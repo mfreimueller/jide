@@ -1,4 +1,4 @@
-# M1 – Local IDE (target 2026-11-08)
+# M1 – Local IDE (target 2026-11-08) – done 2026-10-30
 
 Each task ends with something that runs. See SPEC.md for details and the Figma file for the screens.
 Implementation is done by Sonnet subagents; planning, review and debugging stay in the main (Opus) session.
