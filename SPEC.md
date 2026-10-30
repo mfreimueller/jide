@@ -169,7 +169,7 @@ Working directory for running and testing: a temp copy of the exercise with `res
 The backend and teacher app follow **parsonxam** (`~/git/Personal/_work/parsonxam`): same stack, same auth code (sign-in links, hashed session tokens, `Bearer` middleware, rate limiter, mailer), same migration and deployment pattern. Copy from there rather than reinventing.
 
 - **Electron + TypeScript + Svelte 5** (renderer), Monaco editor, xterm.js console (plain pipes, no native modules).
-- **Java helper**: a small Java program that stays running and compiles via `javax.tools.JavaCompiler` in memory. This avoids ~1 s JVM startup per keystroke pause. Programs are run in a separate `java` process so they can be killed.
+- **Java helper**: a Maven project (Java 25, JUnit 5 tests, packaged as one runnable jar). A small Java program that stays running and compiles via `javax.tools.JavaCompiler` in memory. This avoids ~1 s JVM startup per keystroke pause. Programs are run in a separate `java` process so they can be killed.
 - **JDK**: online mode bundles a jlink'd Temurin JDK 25 (including `jdk.compiler`). Exam mode uses the installed JDK: `jdkPath` from `exam.json` → `JAVA_HOME` → `PATH`. It shows a clear error if no JDK 25 is found.
 - **Backend**: Hono + TypeScript + MariaDB on Uberspace (Germany), as in parsonxam. No student code is ever executed on the server.
 - **Teacher app**: SvelteKit SPA, as in parsonxam's `teacher/`.

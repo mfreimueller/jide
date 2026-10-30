@@ -3,7 +3,7 @@
 Each task ends with something that runs. See SPEC.md for details and the Figma file for the screens.
 Implementation is done by Sonnet subagents; planning, review and debugging stay in the main (Opus) session.
 
-- [ ] **T1 Scaffold** – npm workspaces (`app`, `shared`), Electron + electron-vite + TypeScript, Monaco in an empty window.
+- [x] **T1 Scaffold** – npm workspaces (`app`, `shared`), Electron + electron-vite + TypeScript, Monaco in an empty window.
   - Done when: `npm run dev` opens a window with a Java-highlighted editor; `npm run build` and `npm test` pass.
 - [ ] **T2 Exercise loader** (`shared`) – parse `exercise.yaml`, copy the exercise into a local workspace on first open, never overwrite student files on update.
   - Done when: unit tests for parsing, the first copy and the update rule pass, using `examples/summe`.
