@@ -6,3 +6,4 @@ build/
 java-helper/target/
 .DS_Store
 .env
+.claude/worktrees/

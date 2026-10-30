@@ -5,7 +5,7 @@ Implementation is done by Sonnet subagents; planning, review and debugging stay 
 
 - [x] **T1 Scaffold** – npm workspaces (`app`, `shared`), Electron + electron-vite + TypeScript, Monaco in an empty window.
   - Done when: `npm run dev` opens a window with a Java-highlighted editor; `npm run build` and `npm test` pass.
-- [ ] **T2 Exercise loader** (`shared`) – parse `exercise.yaml`, copy the exercise into a local workspace on first open, never overwrite student files on update.
+- [x] **T2 Exercise loader** (`shared`) – parse `exercise.yaml`, copy the exercise into a local workspace on first open, never overwrite student files on update.
   - Done when: unit tests for parsing, the first copy and the update rule pass, using `examples/summe`.
 - [ ] **T3 Java helper** (`java-helper`) – long-running process, JSON over stdin/stdout. `compile` (in memory, `--release 25`, German messages) returns diagnostics; harness appended to the target file.
   - Done when: integration tests pass: a syntax error is reported in the right line, the harness compiles, and an error inside the harness is flagged as such.
