@@ -143,3 +143,25 @@ test("an exception shows the exit code and its location jumps to the line", asyn
   // the cursor is at the start of line 3
   await expect(page.locator(".monaco-editor .view-line", { hasText: "a[2] = 1;" })).toContainText(/^\W*Q\W+a\[2\]/);
 });
+
+test("each run starts with an empty console", async () => {
+  const { app, page } = await launch();
+  await openExercise(page, "Summe zweier Zahlen");
+  await setEditorText(app, page, 'void main() {\n    IO.println("ERSTER-LAUF");\n}\n');
+  await startRun(page);
+  await expect(consoleText(page)).toContainText("ERSTER-LAUF");
+  await expect(consoleText(page)).toContainText("■ Programm beendet.");
+
+  await setEditorText(app, page, 'void main() {\n    IO.println("ZWEITER-LAUF");\n}\n');
+  await startRun(page);
+  await expect(consoleText(page)).toContainText("ZWEITER-LAUF");
+  await expect(consoleText(page)).toContainText("■ Programm beendet.");
+  await expect(consoleText(page)).not.toContainText("ERSTER-LAUF");
+
+  // a run that ends in the "noch Fehler" message clears the console as well
+  await setEditorText(app, page, 'void main() {\n    IO.println("hallo")\n}\n');
+  await startRun(page);
+  await page.getByTestId("btab-Konsole").click();
+  await expect(consoleText(page)).toContainText("Dein Programm enthält noch Fehler – schau unter Probleme.");
+  await expect(consoleText(page)).not.toContainText("ZWEITER-LAUF");
+});

@@ -40,6 +40,7 @@ export class RunController {
   async start(): Promise<void> {
     if (this.state !== "idle") return;
     this.state = "starting";
+    this.console.clear(); // each run starts with an empty console
     this.showTab("Konsole");
     try {
       await this.session.flush();
