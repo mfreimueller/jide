@@ -11,9 +11,9 @@ Implementation is done by Sonnet subagents; planning, review and debugging stay 
   - Done when: integration tests pass: a syntax error is reported in the right line, the harness compiles, and an error inside the harness is flagged as such.
 - [x] **T4 Editor UI** – file tree, tabs, read-only files, rendered assignment panel (Markdown → sanitized HTML), local autosave.
   - Done when: `examples/summe` opens and edits survive an app restart.
-- [ ] **T5 Live errors** – compile 500 ms after typing stops → Monaco markers + "Probleme" list.
+- [x] **T5 Live errors** – compile 500 ms after typing stops → Monaco markers + "Probleme" list.
   - Done when: a missing `;` shows a red squiggle within ~1 s.
-- [ ] **T6 Run + console** – compile to a temp dir, start `java`, xterm.js console with stdin, Stopp button, 1 MB output cap, clickable exception lines.
+- [x] **T6 Run + console** – compile to a temp dir, start `java`, xterm.js console with stdin, Stopp button, 1 MB output cap, clickable exception lines.
   - Done when: a Scanner program reads two numbers and prints the sum; an endless loop can be stopped.
 - [ ] **T7 Completion** – keywords/snippets, curated class catalogue (IO, String, Math, Scanner, Random, …), identifiers in the file, `sc.` member heuristic.
   - Done when: typing `Math.` lists `max`, `abs`, `sqrt`… with German descriptions.
