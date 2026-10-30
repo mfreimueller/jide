@@ -7,3 +7,6 @@ java-helper/target/
 .DS_Store
 .env
 .claude/worktrees/
+app/e2e/screenshots/
+test-results/
+playwright-report/

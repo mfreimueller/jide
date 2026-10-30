@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["electron.vite.config.ts", "src/main/**/*", "src/preload/**/*", "src/shared-types/**/*"]
+  "include": ["electron.vite.config.ts", "playwright.config.ts", "e2e/**/*", "src/main/**/*", "src/preload/**/*", "src/shared-types/**/*"]
 }
