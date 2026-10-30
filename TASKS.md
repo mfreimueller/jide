@@ -9,7 +9,7 @@ Implementation is done by Sonnet subagents; planning, review and debugging stay 
   - Done when: unit tests for parsing, the first copy and the update rule pass, using `examples/summe`.
 - [x] **T3 Java helper** (`java-helper`) – long-running process, JSON over stdin/stdout. `compile` (in memory, `--release 25`, German messages) returns diagnostics; harness appended to the target file.
   - Done when: integration tests pass: a syntax error is reported in the right line, the harness compiles, and an error inside the harness is flagged as such.
-- [ ] **T4 Editor UI** – file tree, tabs, read-only files, rendered assignment panel (Markdown → sanitized HTML), local autosave.
+- [x] **T4 Editor UI** – file tree, tabs, read-only files, rendered assignment panel (Markdown → sanitized HTML), local autosave.
   - Done when: `examples/summe` opens and edits survive an app restart.
 - [ ] **T5 Live errors** – compile 500 ms after typing stops → Monaco markers + "Probleme" list.
   - Done when: a missing `;` shows a red squiggle within ~1 s.
