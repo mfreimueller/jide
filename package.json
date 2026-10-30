@@ -1,0 +1,8 @@
+{
+  "name": "jide",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Minimal Java IDE for beginners",
+  "workspaces": ["shared", "java-helper", "app"],
+  "scripts": {}
+}

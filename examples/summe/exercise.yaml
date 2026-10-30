@@ -1,0 +1,6 @@
+id: summe
+title: "Summe zweier Zahlen"
+files:
+  - path: Summe.java
+    editable: true
+mainFile: Summe.java

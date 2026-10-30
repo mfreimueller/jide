@@ -1,0 +1,9 @@
+id: maximum
+title: "Größere Zahl"
+files:
+  - path: Maximum.java
+    editable: true
+harness:
+  appendTo: Maximum.java
+  file: harness/Maximum.main.java
+mainFile: Maximum.java
