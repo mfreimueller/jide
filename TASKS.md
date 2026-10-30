@@ -15,7 +15,7 @@ Implementation is done by Sonnet subagents; planning, review and debugging stay 
   - Done when: a missing `;` shows a red squiggle within ~1 s.
 - [x] **T6 Run + console** – compile to a temp dir, start `java`, xterm.js console with stdin, Stopp button, 1 MB output cap, clickable exception lines.
   - Done when: a Scanner program reads two numbers and prints the sum; an endless loop can be stopped.
-- [ ] **T7 Completion** – keywords/snippets, curated class catalogue (IO, String, Math, Scanner, Random, …), identifiers in the file, `sc.` member heuristic.
+- [x] **T7 Completion** – keywords/snippets, curated class catalogue (IO, String, Math, Scanner, Random, …), identifiers in the file, `sc.` member heuristic.
   - Done when: typing `Math.` lists `max`, `abs`, `sqrt`… with German descriptions.
 
 Windows packaging (installer + bundled JDK) moves to M2, so it's ready for 2026-11-20.
