@@ -48,6 +48,7 @@ monaco.editor.defineTheme("jide-light", {
     { token: "", foreground: "1c2024" },
     { token: "identifier", foreground: "1c2024" },
     { token: "type.identifier", foreground: "0d74ce" },
+    { token: "entity.name.function.declaration", foreground: "1c2024", fontStyle: "bold" },
     { token: "keyword", foreground: "8e4ec6" },
     // brackets are "delimiter.curly|parenthesis|square|angle", other delimiters are "delimiter"
     { token: "delimiter", foreground: "1c2024" },

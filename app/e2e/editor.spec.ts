@@ -101,3 +101,18 @@ test("completion: Scanner variable gives members, unknown receiver gives nothing
   await page.keyboard.type("close(); xyz.");
   await expect(page.locator(".suggest-widget")).not.toBeVisible();
 });
+
+test("method names in declarations are bold, the colour stays", async () => {
+  const page = await open("Größere Zahl");
+  const lines = page.locator(".monaco-editor .view-lines");
+  await expect(lines).toContainText("maximum");
+  const name = lines.locator("span", { hasText: /^maximum$/ }).first();
+  expect(await name.evaluate((el) => getComputedStyle(el).fontWeight)).toBe("700");
+  expect(await colorOf(name)).toBe("rgb(28, 32, 36)");
+  // the return type keyword and the other identifiers are not bold
+  const kw = lines.locator("span", { hasText: /^int$/ }).first();
+  expect(await kw.evaluate((el) => getComputedStyle(el).fontWeight)).not.toBe("700");
+  const a = lines.locator("span", { hasText: /^return$/ }).first();
+  expect(await a.evaluate((el) => getComputedStyle(el).fontWeight)).not.toBe("700");
+  await page.screenshot({ path: join(screenshotDir, "bold-methods.png") });
+});
