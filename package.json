@@ -3,6 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "description": "Minimal Java IDE for beginners",
-  "workspaces": ["shared", "java-helper", "app"],
-  "scripts": {}
+  "workspaces": [
+    "shared",
+    "java-helper",
+    "app"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w app",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "smoke": "npm run smoke -w app"
+  }
 }
