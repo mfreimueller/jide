@@ -61,6 +61,7 @@ They enter a personal code once. From then on they see the exercises the teacher
 
 ### 3.2 Running programs
 - "Ausführen" compiles and runs the program in a built-in console. stdin is fully interactive (`Scanner`).
+- Each run starts with an empty console.
 - If the code has compile errors, nothing runs: the console says "Dein Programm enthält noch Fehler – schau unter Probleme." and the "Probleme" tab opens.
 - A "Stopp" button kills the process. Output is capped at 1 MB: when reached, the program is stopped and the console says "Dein Programm hat sehr viel ausgegeben und wurde gestoppt (Endlosschleife?)."
 - Uncaught exceptions are shown with the line number in the student's file. Clicking it jumps to the line.
