@@ -36,3 +36,15 @@ test("without problems the list says so", async () => {
   await expect(page.getByTestId("bottom-Probleme")).toContainText("Keine Probleme gefunden.");
   await expect(page.getByTestId("problems-badge")).toHaveCount(0);
 });
+
+test("a missing Java is explained instead of crashing", async () => {
+  const { page } = await launch({ JAVA_HOME: "/nicht/vorhanden" });
+  await openExercise(page, "Summe zweier Zahlen");
+  await expect(page.getByTestId("system-error-console")).toContainText("Java wurde nicht gefunden");
+  await page.getByTestId("btab-Probleme").click();
+  await expect(page.getByTestId("system-error")).toContainText("Java wurde nicht gefunden");
+  await page.getByTestId("run").click();
+  await page.getByTestId("btab-Konsole").click();
+  await expect(page.getByTestId("console")).toContainText("Java wurde nicht gefunden");
+  await expect(page.getByTestId("run")).toBeEnabled();
+});

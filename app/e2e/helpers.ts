@@ -22,10 +22,10 @@ export function useTempApp(): void {
   });
 }
 
-export async function launch(): Promise<{ app: ElectronApplication; page: Page }> {
+export async function launch(extraEnv: Record<string, string> = {}): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
     args: [appDir],
-    env: { ...process.env, JIDE_USER_DATA_DIR: userData, JIDE_EXERCISES_DIR: examplesDir }
+    env: { ...process.env, JIDE_USER_DATA_DIR: userData, JIDE_EXERCISES_DIR: examplesDir, ...extraEnv }
   });
   running.push(app);
   const page = await app.firstWindow();
