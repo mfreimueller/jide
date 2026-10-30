@@ -19,3 +19,8 @@ Implementation is done by Sonnet subagents; planning, review and debugging stay 
   - Done when: typing `Math.` lists `max`, `abs`, `sqrt`… with German descriptions.
 
 Windows packaging (installer + bundled JDK) moves to M2, so it's ready for 2026-11-20.
+
+# Before M2 (planned for 2026-10-31)
+
+- [ ] **Rename** the tool from "jide" to **J;DE** (for Java IDE). Clarify first which places change (window title, UI texts, logo, installer name, package/folder names, repo name).
+- [ ] **App icon**: design up to four icon sketches in Figma; the user picks one, then use it for the app (window, installer, logo mark).
