@@ -2,6 +2,9 @@
   "name": "@jide/java-helper",
   "version": "0.1.0",
   "private": true,
-  "scripts": { "test": "vitest run --passWithNoTests" },
+  "scripts": {
+    "build": "mvn -q -B package -DskipTests",
+    "test": "mvn -q -B verify && vitest run"
+  },
   "devDependencies": { "vitest": "^5.0.5" }
 }
