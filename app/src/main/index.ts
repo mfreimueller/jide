@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
+import { registerCompileIpc } from "./compile";
 import { registerExerciseIpc } from "./exercises";
 
 const smoke = process.env.JIDE_SMOKE === "1";
@@ -92,6 +93,7 @@ app.whenReady().then(() => {
     });
   }
   registerExerciseIpc();
+  registerCompileIpc();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

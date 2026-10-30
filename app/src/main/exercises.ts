@@ -47,7 +47,7 @@ async function loadAll(): Promise<{ exercises: Exercise[]; errors: string[] }> {
 }
 
 /** Only ids that belong to a currently known exercise are accepted. */
-async function findExercise(id: unknown): Promise<Exercise | undefined> {
+export async function findExercise(id: unknown): Promise<Exercise | undefined> {
   if (typeof id !== "string") return undefined;
   const { exercises } = await loadAll();
   return exercises.find((e) => e.id === id);

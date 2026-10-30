@@ -1,5 +1,6 @@
 import { monaco } from "./monaco";
 import type { OpenedExercise, OpenedFile } from "../../../shared-types/api";
+import type { MarkerData } from "./diagnostics";
 
 export const AUTOSAVE_DELAY_MS = 800;
 export const READONLY_MESSAGE = "Diese Datei ist vorgegeben und kann nicht geändert werden.";
@@ -66,7 +67,55 @@ export class EditorSession {
     this.editor.focus();
   }
 
+  /** Opens the file and puts the cursor at the given position (Probleme list, exception links). */
+  openAt(path: string, line: number, column = 1): void {
+    const model = this.models.get(path);
+    if (!model || !this.editor) return;
+    this.openFile(path);
+    const pos = model.validatePosition({ lineNumber: line, column });
+    this.editor.setPosition(pos);
+    this.editor.revealPositionInCenter(pos);
+    this.editor.focus();
+  }
+
+  /** Current editor contents of all files (not the saved ones). */
+  fileContents(): { path: string; content: string }[] {
+    return this.files.map((f) => ({ path: f.path, content: this.models.get(f.path)?.getValue() ?? f.content }));
+  }
+
+  /** Number of lines of the student's code in a file (a trailing line break does not start a new line). */
+  lineCount(path: string): number {
+    const model = this.models.get(path);
+    if (!model) return 0;
+    const n = model.getLineCount();
+    return n > 1 && model.getLineLength(n) === 0 ? n - 1 : n;
+  }
+
+  /** Sets the markers of every file; files not in the map get none. */
+  setMarkers(owner: string, byFile: Map<string, MarkerData[]>): void {
+    for (const [path, model] of this.models) {
+      const markers = (byFile.get(path) ?? []).map((m) => {
+        const r = model.validateRange(
+          new monaco.Range(m.startLineNumber, m.startColumn, m.endLineNumber, m.endColumn)
+        );
+        return {
+          severity: m.severity,
+          message: m.message,
+          startLineNumber: r.startLineNumber,
+          startColumn: r.startColumn,
+          endLineNumber: r.endLineNumber,
+          endColumn: r.endColumn
+        };
+      });
+      monaco.editor.setModelMarkers(model, owner, markers);
+    }
+  }
+
+  /** Called after every edit of an editable file (auto-compile hooks in here). */
+  onContentChange: (() => void) | undefined;
+
   private onEdit(path: string): void {
+    this.onContentChange?.();
     this.dirty.add(path);
     this.saveState = "saving";
     clearTimeout(this.timers.get(path));

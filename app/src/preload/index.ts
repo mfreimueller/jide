@@ -12,6 +12,15 @@ const api: JideApi = {
   openExercise: (id) => ipcRenderer.invoke("jide:open-exercise", id),
   saveFile: (id, path, content) => ipcRenderer.invoke("jide:save-file", id, path, content),
   resetFile: (id, path) => ipcRenderer.invoke("jide:reset-file", id, path),
+  compile: (id, files) => ipcRenderer.invoke("jide:compile", id, files),
+  run: (id, files) => ipcRenderer.invoke("jide:run", id, files),
+  stopRun: () => ipcRenderer.send("jide:run-stop"),
+  sendInput: (text) => ipcRenderer.send("jide:run-input", text),
+  onRunEvent: (handler) => {
+    const listener = (_e: Electron.IpcRendererEvent, ev: Parameters<typeof handler>[0]): void => handler(ev);
+    ipcRenderer.on("jide:run-event", listener);
+    return () => ipcRenderer.removeListener("jide:run-event", listener);
+  },
   onFlushRequest: (handler) => {
     ipcRenderer.on("jide:flush-request", () => {
       void handler()

@@ -2,8 +2,9 @@
   import { onDestroy } from "svelte";
   import type { OpenedExercise } from "../../../shared-types/api";
   import AssignmentPanel from "./AssignmentPanel.svelte";
-  import BottomPanel from "./BottomPanel.svelte";
+  import BottomPanel, { type BottomTab } from "./BottomPanel.svelte";
   import CodeEditor from "./CodeEditor.svelte";
+  import { LiveCompiler } from "./problems.svelte";
   import { EditorSession } from "./session.svelte";
   import Toolbar from "./Toolbar.svelte";
 
@@ -22,7 +23,13 @@
   const session = new EditorSession(exercise);
   // svelte-ignore state_referenced_locally
   registerSession(session);
+  // svelte-ignore state_referenced_locally
+  const problems = new LiveCompiler(session, exercise.id);
+  void problems.compileNow();
+  let bottomTab = $state<BottomTab>("Konsole");
+  const errorsByFile = $derived(problems.errorsByFile);
   onDestroy(() => {
+    problems.dispose();
     registerSession(undefined);
     session.dispose();
   });
@@ -63,6 +70,7 @@
         >
           <span class="java" class:ro={!f.editable}>J</span>{f.path}
           {#if !f.editable}<span class="lock">nur lesen</span>{/if}
+          {#if errorsByFile.get(f.path)}<span class="err" data-testid="file-errors">{errorsByFile.get(f.path)}</span>{/if}
         </button>
       {/each}
     </div>
@@ -73,7 +81,7 @@
         {/each}
       </div>
       <CodeEditor {session} />
-      <BottomPanel />
+      <BottomPanel bind:tab={bottomTab} {problems} {session} />
     </div>
     <AssignmentPanel markdown={exercise.assignment} />
   </div>
@@ -141,6 +149,17 @@
     margin-left: auto;
     font-size: 11px;
     color: #80838d;
+  }
+  .file .err {
+    margin-left: auto;
+    font-size: 11px;
+    color: #fff;
+    background: #e5484d;
+    border-radius: 999px;
+    padding: 0 6px;
+  }
+  .file .lock + .err {
+    margin-left: 0;
   }
   .java {
     width: 16px;
