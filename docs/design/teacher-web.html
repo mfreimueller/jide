@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>jide teacher</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, sans-serif; color: #1c2024; background: #e9ecef; padding: 40px; display: flex; flex-direction: column; gap: 80px; }
+  .screen { width: 1440px; height: 900px; background: #f8f9fa; position: relative; overflow: hidden; display: flex; border-radius: 10px; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid #d9dcdf; background: #fff; color: #1c2024; white-space: nowrap; }
+  .btn.primary { background: #2f5bd3; border-color: #2f5bd3; color: #fff; }
+  .btn.ghost { border-color: transparent; background: transparent; color: #60646c; }
+  .btn.sm { height: 28px; font-size: 12px; padding: 0 10px; }
+  .btn.danger { color: #ce2c31; }
+  .muted { color: #60646c; font-size: 14px; line-height: 20px; }
+  .small { font-size: 12px; color: #80838d; }
+  .label { font-size: 13px; font-weight: 500; color: #3a3f45; }
+  .field { height: 40px; border: 1.5px solid #d9dcdf; border-radius: 8px; padding: 0 12px; display: flex; align-items: center; font-size: 14px; background: #fff; }
+  .spacer { flex: 1; }
+  .logo-mark { width: 30px; height: 30px; border-radius: 8px; background: #2f5bd3; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; font-family: "JetBrains Mono", monospace; }
+  .chip { font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .chip.new { background: #e1e8fb; color: #2f5bd3; }
+  .chip.wip { background: #fff4d5; color: #ab6400; }
+  .chip.done { background: #e6f6ec; color: #18794e; }
+  .chip.late { background: #feebec; color: #ce2c31; }
+  .chip.grey { background: #f1f3f5; color: #60646c; }
+
+  /* sidebar */
+  .side { width: 248px; background: #fff; border-right: 1px solid #e3e6e8; padding: 18px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; padding: 0 6px 14px; }
+  .brand .sub { font-size: 12px; font-weight: 500; color: #80838d; }
+  .course { border: 1px solid #e3e6e8; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .course .name { font-size: 14px; font-weight: 600; }
+  .nav { font-size: 14px; padding: 9px 12px; border-radius: 8px; color: #3a3f45; display: flex; align-items: center; gap: 10px; }
+  .nav.active { background: #e1e8fb; color: #2f5bd3; font-weight: 600; }
+  .nav .count { margin-left: auto; font-size: 12px; color: #80838d; }
+  .nav.active .count { color: #2f5bd3; }
+  .nav-ico { width: 18px; text-align: center; font-size: 14px; }
+  .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; border-top: 1px solid #e3e6e8; padding-top: 10px; }
+
+  /* main */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .header { padding: 26px 36px 18px; display: flex; align-items: flex-end; gap: 14px; }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header .crumb { font-size: 13px; color: #80838d; margin-bottom: 4px; }
+  .body { flex: 1; padding: 0 36px 30px; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+  .panel { background: #fff; border: 1px solid #e3e6e8; border-radius: 12px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; }
+  .search { width: 260px; }
+
+  /* matrix */
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th { text-align: left; font-weight: 600; color: #60646c; font-size: 12px; padding: 10px 12px; border-bottom: 1px solid #e3e6e8; background: #fbfcfd; vertical-align: bottom; }
+  td { padding: 8px 12px; border-bottom: 1px solid #f1f3f5; vertical-align: middle; }
+  th.ex { width: 150px; }
+  .ex-head { display: flex; flex-direction: column; gap: 2px; }
+  .ex-head b { color: #1c2024; font-size: 13px; }
+  .cell { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-radius: 8px; }
+  .cell.ok { background: #e6f6ec; }
+  .cell.part { background: #fff4d5; }
+  .cell.late { background: #feebec; }
+  .cell.none { background: #f8f9fa; color: #b0b4ba; }
+  .cell .top { font-weight: 600; font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  .cell.ok .top { color: #18794e; }
+  .cell.part .top { color: #ab6400; }
+  .cell.late .top { color: #ce2c31; }
+  .cell .ts { font-size: 11px; color: #60646c; }
+  .stud { font-weight: 500; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: #60646c; align-items: center; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: -2px; }
+
+  /* detail */
+  .split { display: flex; gap: 16px; flex: 1; min-height: 0; }
+  .codeview { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .ftabs { display: flex; gap: 2px; padding: 8px 8px 0; background: #f1f3f5; border-bottom: 1px solid #e3e6e8; border-radius: 12px 12px 0 0; }
+  .ftab { font-size: 13px; padding: 7px 14px; border-radius: 6px 6px 0 0; color: #60646c; }
+  .ftab.active { background: #fff; color: #1c2024; font-weight: 500; }
+  .code-area { display: flex; font-family: "JetBrains Mono", monospace; font-size: 13.5px; line-height: 22px; padding: 12px 0; font-variant-ligatures: none; }
+  .gutter { width: 50px; text-align: right; padding-right: 14px; color: #b0b4ba; }
+  .code { white-space: pre; }
+  .kw { color: #8e4ec6; } .ty { color: #0d74ce; } .str { color: #18794e; } .num { color: #ab6400; } .cm { color: #80838d; font-style: italic; } .fn { font-weight: 600; }
+  .infocol { width: 360px; display: flex; flex-direction: column; gap: 16px; }
+  .card-pad { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .kv { display: flex; justify-content: space-between; font-size: 13px; }
+  .kv span:first-child { color: #60646c; }
+  .trow { font-size: 13px; display: flex; gap: 10px; align-items: center; }
+  .pass { color: #18794e; font-weight: 700; width: 14px; }
+  .fail { color: #ce2c31; font-weight: 700; width: 14px; }
+  .hist { font-size: 13px; display: flex; justify-content: space-between; padding: 6px 8px; border-radius: 6px; }
+  .hist.cur { background: #e1e8fb; color: #2f5bd3; font-weight: 500; }
+
+  /* students */
+  .code-pill { font-family: "JetBrains Mono", monospace; font-size: 13px; background: #f1f3f5; border-radius: 6px; padding: 3px 8px; letter-spacing: 0.04em; }
+  .textarea { border: 1.5px solid #d9dcdf; border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 21px; height: 210px; white-space: pre; color: #1c2024; background: #fff; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+  /* exercises */
+  .toggle { width: 36px; height: 20px; border-radius: 999px; background: #d9dcdf; position: relative; }
+  .toggle::after { content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff; top: 2px; left: 2px; }
+  .toggle.on { background: #2f5bd3; }
+  .toggle.on::after { left: 18px; }
+  .drop { border: 2px dashed #c4d2f7; background: #f5f8ff; border-radius: 12px; padding: 22px; display: flex; align-items: center; gap: 18px; }
+  .drop-ico { width: 44px; height: 44px; border-radius: 10px; background: #e1e8fb; color: #2f5bd3; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; }
+  .check { font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .datefield { height: 30px; border: 1px solid #d9dcdf; border-radius: 6px; padding: 0 10px; display: inline-flex; align-items: center; font-size: 13px; gap: 6px; background: #fff; }
+
+  /* login */
+  .center { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .card { background: #fff; border: 1px solid #e3e6e8; border-radius: 14px; padding: 40px; width: 420px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+
+  /* print sheet */
+  .paper-wrap { flex: 1; display: flex; justify-content: center; padding: 30px; background: #e9ecef; }
+  .paper { width: 595px; background: #fff; box-shadow: 0 4px 18px rgba(0,0,0,0.12); padding: 34px; display: grid; grid-template-columns: 1fr 1fr; gap: 0; align-content: start; }
+  .slip { border: 1px dashed #b0b4ba; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; height: 128px; margin: -0.5px; }
+  .slip .who { font-size: 13px; font-weight: 600; }
+  .slip .c { font-family: "JetBrains Mono", monospace; font-size: 22px; font-weight: 700; letter-spacing: 0.08em; }
+  .slip .hint { font-size: 10px; color: #60646c; line-height: 14px; }
+</style>
+</head>
+<body>
+
+<!-- T1 Login -->
+<div class="screen" data-name="T01 Anmelden">
+  <div class="center">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700"><div class="logo-mark" style="width:38px;height:38px;font-size:16px">{ }</div>jide <span class="small" style="font-weight:500">Lehrkraft</span></div>
+      <p class="muted">Melde dich an, um Kurse, Aufgaben und Abgaben zu verwalten.</p>
+      <div style="display:flex;flex-direction:column;gap:6px"><span class="label">Benutzername</span><div class="field">freimueller</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><span class="label">Passwort</span><div class="field">••••••••••••</div></div>
+      <div class="btn primary" style="height:42px;justify-content:center;font-size:15px">Anmelden</div>
+    </div>
+  </div>
+</div>
+
+<!-- T2 Abgaben matrix -->
+<div class="screen" data-name="T02 Abgaben – Übersicht">
+  <div class="side">
+    <div class="brand"><div class="logo-mark">{ }</div><div style="display:flex;flex-direction:column">jide<span class="sub">Lehrkraft</span></div></div>
+    <div class="course"><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span class="small">Kurs</span><span class="name">POS · 1AHIF</span></div><span class="small">▾</span></div>
+    <div class="nav active"><span class="nav-ico">▦</span>Abgaben<span class="count">7 neu</span></div>
+    <div class="nav"><span class="nav-ico">☺</span>Schüler:innen<span class="count">16</span></div>
+    <div class="nav"><span class="nav-ico">≡</span>Aufgaben<span class="count">6</span></div>
+    <div class="side-foot">
+      <div class="nav"><span class="nav-ico">⚙</span>Kurse verwalten</div>
+      <div class="nav"><span class="nav-ico">↩</span>Abmelden</div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="header">
+      <div style="display:flex;flex-direction:column"><span class="crumb">POS · 1AHIF</span><h1>Abgaben</h1></div>
+      <span class="spacer"></span>
+      <div class="btn">⤓ Alle Abgaben einer Aufgabe (ZIP)</div>
+    </div>
+    <div class="body">
+      <div class="toolbar">
+        <div class="field search">⌕&nbsp; Schüler:in suchen …</div>
+        <div class="btn">Nur fehlende Abgaben</div>
+        <span class="spacer"></span>
+        <div class="legend">
+          <span><span class="sw" style="background:#e6f6ec"></span>alle Tests bestanden</span>
+          <span><span class="sw" style="background:#fff4d5"></span>Tests teilweise</span>
+          <span><span class="sw" style="background:#feebec"></span>verspätet</span>
+          <span><span class="sw" style="background:#f1f3f5"></span>keine Abgabe</span>
+        </div>
+      </div>
+      <div class="panel" style="overflow:hidden">
+        <table>
+          <tr>
+            <th style="width:200px">Schüler:in</th>
+            <th class="ex"><div class="ex-head"><b>04 Variablen tauschen</b><span>Frist 13.11. · 16/16</span></div></th>
+            <th class="ex"><div class="ex-head"><b>05 Notenrechner</b><span>Frist 20.11. · 14/16</span></div></th>
+            <th class="ex"><div class="ex-head"><b>06 Summe</b><span>Frist 27.11. · 9/16</span></div></th>
+            <th class="ex"><div class="ex-head"><b>07 Zahlenraten</b><span>Frist 04.12. · 3/16</span></div></th>
+            <th class="ex"><div class="ex-head"><b>08 Größere Zahl</b><span>Frist 30.11. · 2/16</span></div></th>
+          </tr>
+          <tr><td class="stud">Anna Huber</td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">12.11. 10:42</span></div></td>
+            <td><div class="cell late"><span class="top">2/5 · verspätet</span><span class="ts">21.11. 18:03</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">19.11. 10:44</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">in Arbeit</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">19.11. 10:44</span></div></td></tr>
+          <tr><td class="stud">Ben Gruber</td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">11.11. 09:15</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 5/5</span><span class="ts">18.11. 20:11</span></div></td>
+            <td><div class="cell part"><span class="top">3/4</span><span class="ts">20.11. 11:02</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">nicht begonnen</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">nicht begonnen</span></div></td></tr>
+          <tr><td class="stud">Clara Wagner</td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">12.11. 10:40</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 5/5</span><span class="ts">19.11. 08:30</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">20.11. 10:58</span></div></td>
+            <td><div class="cell part"><span class="top">3/5</span><span class="ts">21.11. 14:20</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">in Arbeit</span></div></td></tr>
+          <tr><td class="stud">David Pichler</td>
+            <td><div class="cell late"><span class="top">✓ 4/4 · verspätet</span><span class="ts">15.11. 22:47</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">in Arbeit</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">nicht begonnen</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">nicht begonnen</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">nicht begonnen</span></div></td></tr>
+          <tr><td class="stud">Emma Steiner</td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">12.11. 10:39</span></div></td>
+            <td><div class="cell part"><span class="top">4/5</span><span class="ts">19.11. 09:12</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">20.11. 10:51</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 5/5</span><span class="ts">21.11. 15:03</span></div></td>
+            <td><div class="cell part"><span class="top">2/4</span><span class="ts">21.11. 15:40</span></div></td></tr>
+          <tr><td class="stud">Felix Moser</td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">12.11. 10:44</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 5/5</span><span class="ts">17.11. 19:55</span></div></td>
+            <td><div class="cell part"><span class="top">1/4</span><span class="ts">20.11. 10:59</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">nicht begonnen</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">nicht begonnen</span></div></td></tr>
+          <tr><td class="stud">Hannah Bauer</td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">12.11. 10:41</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 5/5</span><span class="ts">18.11. 16:20</span></div></td>
+            <td><div class="cell ok"><span class="top">✓ 4/4</span><span class="ts">20.11. 10:47</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">in Arbeit</span></div></td>
+            <td><div class="cell none"><span class="top">–</span><span class="ts">nicht begonnen</span></div></td></tr>
+        </table>
+      </div>
+      <span class="small">Klick auf eine Zelle öffnet die Abgabe. Es zählt immer die letzte Abgabe; „verspätet“ heißt: nach der Frist abgegeben.</span>
+    </div>
+  </div>
+</div>
+
+<!-- T3 Abgabe detail -->
+<div class="screen" data-name="T03 Abgabe – Detail">
+  <div class="side">
+    <div class="brand"><div class="logo-mark">{ }</div><div style="display:flex;flex-direction:column">jide<span class="sub">Lehrkraft</span></div></div>
+    <div class="course"><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span class="small">Kurs</span><span class="name">POS · 1AHIF</span></div><span class="small">▾</span></div>
+    <div class="nav active"><span class="nav-ico">▦</span>Abgaben<span class="count">7 neu</span></div>
+    <div class="nav"><span class="nav-ico">☺</span>Schüler:innen<span class="count">16</span></div>
+    <div class="nav"><span class="nav-ico">≡</span>Aufgaben<span class="count">6</span></div>
+    <div class="side-foot">
+      <div class="nav"><span class="nav-ico">⚙</span>Kurse verwalten</div>
+      <div class="nav"><span class="nav-ico">↩</span>Abmelden</div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="header">
+      <div style="display:flex;flex-direction:column"><span class="crumb">Abgaben › 05 Notenrechner</span><h1>Anna Huber</h1></div>
+      <span class="chip late" style="margin-bottom:4px">verspätet</span>
+      <span class="spacer"></span>
+      <div class="btn">← Ben Gruber</div>
+      <div class="btn">Clara Wagner →</div>
+      <div class="btn">⤓ Herunterladen</div>
+    </div>
+    <div class="body">
+      <div class="split">
+        <div class="panel codeview">
+          <div class="ftabs"><div class="ftab active">Notenrechner.java</div></div>
+          <div class="code-area">
+            <div class="gutter">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12<br>13<br>14<br>15<br>16</div>
+<div class="code"><span class="kw">void</span> <span class="fn">main</span>() {
+    <span class="ty">Scanner</span> sc = <span class="kw">new</span> <span class="ty">Scanner</span>(<span class="ty">System</span>.in);
+    <span class="ty">IO</span>.print(<span class="str">"Punkte: "</span>);
+    <span class="kw">int</span> punkte = sc.nextInt();
+    <span class="kw">if</span> (punkte &gt;= <span class="num">90</span>) {
+        <span class="ty">IO</span>.println(<span class="str">"Sehr gut"</span>);
+    } <span class="kw">else if</span> (punkte &gt;= <span class="num">80</span>) {
+        <span class="ty">IO</span>.println(<span class="str">"Gut"</span>);
+    } <span class="kw">else if</span> (punkte &gt; <span class="num">65</span>) {
+        <span class="ty">IO</span>.println(<span class="str">"Befriedigend"</span>);
+    } <span class="kw">else if</span> (punkte &gt; <span class="num">50</span>) {
+        <span class="ty">IO</span>.println(<span class="str">"Genuegend"</span>);
+    } <span class="kw">else</span> {
+        <span class="ty">IO</span>.println(<span class="str">"Nicht genuegend"</span>);
+    }
+}</div>
+          </div>
+        </div>
+        <div class="infocol">
+          <div class="panel card-pad">
+            <span class="card-title">Abgabe</span>
+            <div class="kv"><span>Abgegeben</span><span>Sa, 21.11. 18:03</span></div>
+            <div class="kv"><span>Frist</span><span>Fr, 20.11. 23:59</span></div>
+            <div class="kv"><span>Tests (lokal)</span><span style="color:#ab6400;font-weight:600">2 von 5</span></div>
+          </div>
+          <div class="panel card-pad">
+            <span class="card-title">Testergebnisse</span>
+            <div class="trow"><span class="pass">✓</span>93 Punkte → Sehr gut</div>
+            <div class="trow"><span class="pass">✓</span>85 Punkte → Gut</div>
+            <div class="trow"><span class="fail">✗</span>65 Punkte → Befriedigend</div>
+            <div class="trow"><span class="fail">✗</span>50 Punkte → Genügend</div>
+            <div class="trow"><span class="fail">✗</span>12 Punkte → Nicht genügend</div>
+            <span class="small">Ergebnis vom Laptop der Schülerin – nur ein Hinweis.</span>
+          </div>
+          <div class="panel card-pad">
+            <span class="card-title">Verlauf (3 Abgaben)</span>
+            <div class="hist cur"><span>Sa, 21.11. 18:03</span><span>2/5 · zählt</span></div>
+            <div class="hist"><span>Sa, 21.11. 17:41</span><span>1/5</span></div>
+            <div class="hist"><span>Fr, 20.11. 22:10</span><span>0/5</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T4 Schüler:innen -->
+<div class="screen" data-name="T04 Schüler:innen">
+  <div class="side">
+    <div class="brand"><div class="logo-mark">{ }</div><div style="display:flex;flex-direction:column">jide<span class="sub">Lehrkraft</span></div></div>
+    <div class="course"><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span class="small">Kurs</span><span class="name">POS · 1AHIF</span></div><span class="small">▾</span></div>
+    <div class="nav"><span class="nav-ico">▦</span>Abgaben<span class="count">7 neu</span></div>
+    <div class="nav active"><span class="nav-ico">☺</span>Schüler:innen<span class="count">16</span></div>
+    <div class="nav"><span class="nav-ico">≡</span>Aufgaben<span class="count">6</span></div>
+    <div class="side-foot">
+      <div class="nav"><span class="nav-ico">⚙</span>Kurse verwalten</div>
+      <div class="nav"><span class="nav-ico">↩</span>Abmelden</div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="header">
+      <div style="display:flex;flex-direction:column"><span class="crumb">POS · 1AHIF</span><h1>Schüler:innen</h1></div>
+      <span class="spacer"></span>
+      <div class="btn">⎙ Codezettel drucken</div>
+    </div>
+    <div class="body">
+      <div class="split">
+        <div class="panel" style="flex:1;overflow:hidden">
+          <table>
+            <tr><th>Name</th><th>Persönlicher Code</th><th>Zuletzt aktiv</th><th>Abgaben</th><th></th></tr>
+            <tr><td class="stud">Anna Huber</td><td><span class="code-pill">K7M4-P2XR</span></td><td><span class="dot" style="background:#30a46c"></span>heute 10:44</td><td>4 / 5</td><td style="text-align:right"><div class="btn sm">Code zurücksetzen</div></td></tr>
+            <tr><td class="stud">Ben Gruber</td><td><span class="code-pill">T9QF-3LWA</span></td><td><span class="dot" style="background:#30a46c"></span>heute 11:02</td><td>3 / 5</td><td style="text-align:right"><div class="btn sm">Code zurücksetzen</div></td></tr>
+            <tr><td class="stud">Clara Wagner</td><td><span class="code-pill">M2HD-8KZN</span></td><td><span class="dot" style="background:#30a46c"></span>gestern 14:20</td><td>4 / 5</td><td style="text-align:right"><div class="btn sm">Code zurücksetzen</div></td></tr>
+            <tr><td class="stud">David Pichler</td><td><span class="code-pill">R5VB-Y7TC</span></td><td><span class="dot" style="background:#e5484d"></span>noch nie angemeldet</td><td>1 / 5</td><td style="text-align:right"><div class="btn sm">Code zurücksetzen</div></td></tr>
+            <tr><td class="stud">Emma Steiner</td><td><span class="code-pill">W3NJ-6PQE</span></td><td><span class="dot" style="background:#30a46c"></span>heute 15:40</td><td>5 / 5</td><td style="text-align:right"><div class="btn sm">Code zurücksetzen</div></td></tr>
+            <tr><td class="stud">Felix Moser</td><td><span class="code-pill">H8KL-2MDX</span></td><td><span class="dot" style="background:#30a46c"></span>vor 3 Tagen</td><td>3 / 5</td><td style="text-align:right"><div class="btn sm">Code zurücksetzen</div></td></tr>
+            <tr><td class="stud">Hannah Bauer</td><td><span class="code-pill">Z4CE-9RFU</span></td><td><span class="dot" style="background:#30a46c"></span>heute 10:47</td><td>3 / 5</td><td style="text-align:right"><div class="btn sm">Code zurücksetzen</div></td></tr>
+          </table>
+        </div>
+        <div class="infocol">
+          <div class="panel card-pad">
+            <span class="card-title">Schüler:innen hinzufügen</span>
+            <span class="muted">Ein Name pro Zeile. Jede Person bekommt automatisch einen persönlichen Code.</span>
+<div class="textarea">Ida Hofer
+Jonas Lehner
+Lea Fuchs
+Lukas Brunner</div>
+            <div class="btn primary" style="justify-content:center">4 Codes erzeugen</div>
+          </div>
+          <div class="panel card-pad">
+            <span class="card-title">Hinweis</span>
+            <span class="muted">„Code zurücksetzen“ macht den alten Code ungültig. Abgaben bleiben erhalten.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T5 Aufgaben -->
+<div class="screen" data-name="T05 Aufgaben">
+  <div class="side">
+    <div class="brand"><div class="logo-mark">{ }</div><div style="display:flex;flex-direction:column">jide<span class="sub">Lehrkraft</span></div></div>
+    <div class="course"><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span class="small">Kurs</span><span class="name">POS · 1AHIF</span></div><span class="small">▾</span></div>
+    <div class="nav"><span class="nav-ico">▦</span>Abgaben<span class="count">7 neu</span></div>
+    <div class="nav"><span class="nav-ico">☺</span>Schüler:innen<span class="count">16</span></div>
+    <div class="nav active"><span class="nav-ico">≡</span>Aufgaben<span class="count">6</span></div>
+    <div class="side-foot">
+      <div class="nav"><span class="nav-ico">⚙</span>Kurse verwalten</div>
+      <div class="nav"><span class="nav-ico">↩</span>Abmelden</div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="header">
+      <div style="display:flex;flex-direction:column"><span class="crumb">POS · 1AHIF</span><h1>Aufgaben</h1></div>
+    </div>
+    <div class="body">
+      <div class="drop">
+        <div class="drop-ico">⤒</div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+          <span style="font-weight:600;font-size:15px">Aufgabe hochladen</span>
+          <span class="muted">ZIP-Datei eines Aufgabenordners hierher ziehen (mit exercise.yaml, aufgabe.md, files/, tests.yaml).</span>
+        </div>
+        <div class="btn">Datei auswählen</div>
+      </div>
+      <div class="panel card-pad" style="flex-direction:row;align-items:center;gap:14px;border-color:#b4e2c4;background:#f4fbf6">
+        <span style="color:#18794e;font-weight:700">✓</span>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+          <span style="font-size:14px;font-weight:600">„09 Würfelstatistik“ hochgeladen</span>
+          <span class="small">2 Dateien · vorgegebene main() · 6 Tests · Format geprüft</span>
+        </div>
+        <div class="btn sm">Vorschau</div>
+      </div>
+      <div class="panel" style="overflow:hidden">
+        <table>
+          <tr><th style="width:56px">Nr.</th><th>Aufgabe</th><th>Freigeschaltet</th><th>Frist</th><th>Abgaben</th><th></th></tr>
+          <tr><td class="mono small">04</td><td class="stud">Variablen tauschen <span class="small">· 4 Tests</span></td><td><div class="toggle on"></div></td><td><span class="datefield">Fr, 13.11. 23:59</span></td><td>16 / 16</td><td style="text-align:right"><div class="btn sm ghost">Bearbeiten</div><div class="btn sm ghost">Prüfungspaket</div></td></tr>
+          <tr><td class="mono small">05</td><td class="stud">Notenrechner <span class="small">· 5 Tests</span></td><td><div class="toggle on"></div></td><td><span class="datefield">Fr, 20.11. 23:59</span></td><td>14 / 16</td><td style="text-align:right"><div class="btn sm ghost">Bearbeiten</div><div class="btn sm ghost">Prüfungspaket</div></td></tr>
+          <tr><td class="mono small">06</td><td class="stud">Summe zweier Zahlen <span class="small">· 4 Tests</span></td><td><div class="toggle on"></div></td><td><span class="datefield">Fr, 27.11. 23:59</span></td><td>9 / 16</td><td style="text-align:right"><div class="btn sm ghost">Bearbeiten</div><div class="btn sm ghost">Prüfungspaket</div></td></tr>
+          <tr><td class="mono small">07</td><td class="stud">Zahlenraten <span class="small">· 5 Tests</span></td><td><div class="toggle on"></div></td><td><span class="datefield">Fr, 04.12. 23:59</span></td><td>3 / 16</td><td style="text-align:right"><div class="btn sm ghost">Bearbeiten</div><div class="btn sm ghost">Prüfungspaket</div></td></tr>
+          <tr><td class="mono small">08</td><td class="stud">Größere Zahl <span class="small">· 4 Tests · main() vorgegeben</span></td><td><div class="toggle on"></div></td><td><span class="datefield">Mo, 30.11. 23:59</span></td><td>2 / 16</td><td style="text-align:right"><div class="btn sm ghost">Bearbeiten</div><div class="btn sm ghost">Prüfungspaket</div></td></tr>
+          <tr><td class="mono small">09</td><td class="stud">Würfelstatistik <span class="chip new">neu</span></td><td><div class="toggle"></div></td><td><span class="datefield small">keine Frist</span></td><td class="small">nicht sichtbar</td><td style="text-align:right"><div class="btn sm ghost">Bearbeiten</div><div class="btn sm ghost">Prüfungspaket</div></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T6 Codezettel -->
+<div class="screen" data-name="T06 Codezettel (Druckansicht)" style="flex-direction:column">
+  <div style="height:56px;background:#fff;border-bottom:1px solid #e3e6e8;display:flex;align-items:center;padding:0 24px;gap:12px">
+    <div class="btn ghost">← Schüler:innen</div>
+    <span style="font-weight:600">Codezettel · POS 1AHIF</span>
+    <span class="small">16 Zettel · zum Ausschneiden</span>
+    <span class="spacer"></span>
+    <div class="btn primary">⎙ Drucken</div>
+  </div>
+  <div class="paper-wrap">
+    <div class="paper">
+      <div class="slip"><span class="who">Anna Huber · 1AHIF</span><span class="c">K7M4-P2XR</span><span class="hint">Öffne jide und gib diesen Code ein. Gut aufheben – nicht weitergeben!</span></div>
+      <div class="slip"><span class="who">Ben Gruber · 1AHIF</span><span class="c">T9QF-3LWA</span><span class="hint">Öffne jide und gib diesen Code ein. Gut aufheben – nicht weitergeben!</span></div>
+      <div class="slip"><span class="who">Clara Wagner · 1AHIF</span><span class="c">M2HD-8KZN</span><span class="hint">Öffne jide und gib diesen Code ein. Gut aufheben – nicht weitergeben!</span></div>
+      <div class="slip"><span class="who">David Pichler · 1AHIF</span><span class="c">R5VB-Y7TC</span><span class="hint">Öffne jide und gib diesen Code ein. Gut aufheben – nicht weitergeben!</span></div>
+      <div class="slip"><span class="who">Emma Steiner · 1AHIF</span><span class="c">W3NJ-6PQE</span><span class="hint">Öffne jide und gib diesen Code ein. Gut aufheben – nicht weitergeben!</span></div>
+      <div class="slip"><span class="who">Felix Moser · 1AHIF</span><span class="c">H8KL-2MDX</span><span class="hint">Öffne jide und gib diesen Code ein. Gut aufheben – nicht weitergeben!</span></div>
+      <div class="slip"><span class="who">Hannah Bauer · 1AHIF</span><span class="c">Z4CE-9RFU</span><span class="hint">Öffne jide und gib diesen Code ein. Gut aufheben – nicht weitergeben!</span></div>
+      <div class="slip"><span class="who">Ida Hofer · 1AHIF</span><span class="c">N6GA-4XSB</span><span class="hint">Öffne jide und gib diesen Code ein. Gut aufheben – nicht weitergeben!</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

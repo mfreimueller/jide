@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>jide screens</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, sans-serif; color: #1c2024; background: #e9ecef; padding: 40px; display: flex; flex-direction: column; gap: 80px; }
+  .screen { width: 1280px; height: 800px; background: #f8f9fa; position: relative; overflow: hidden; display: flex; flex-direction: column; border-radius: 10px; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+
+  /* window chrome */
+  .titlebar { height: 32px; background: #fff; border-bottom: 1px solid #e3e6e8; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #60646c; justify-content: space-between; }
+  .winbtns { display: flex; gap: 18px; font-size: 12px; color: #60646c; }
+
+  /* buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 8px; font-size: 14px; font-weight: 500; border: 1px solid #d9dcdf; background: #fff; color: #1c2024; }
+  .btn.primary { background: #2f5bd3; border-color: #2f5bd3; color: #fff; }
+  .btn.run { background: #e6f6ec; border-color: #b4e2c4; color: #18794e; }
+  .btn.ghost { border-color: transparent; background: transparent; color: #60646c; }
+  .btn.disabled { color: #b0b4ba; background: #f1f3f5; }
+  .btn.big { height: 44px; font-size: 16px; padding: 0 22px; }
+
+  /* login */
+  .center { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .card { background: #fff; border: 1px solid #e3e6e8; border-radius: 14px; padding: 40px; width: 440px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 700; }
+  .logo-mark { width: 40px; height: 40px; border-radius: 10px; background: #2f5bd3; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; font-family: "JetBrains Mono", monospace; }
+  h1 { font-size: 22px; font-weight: 600; }
+  .muted { color: #60646c; font-size: 14px; line-height: 20px; }
+  .small { font-size: 12px; color: #80838d; }
+  .codeinput { display: flex; gap: 8px; align-items: center; }
+  .codebox { width: 44px; height: 52px; border: 1.5px solid #d9dcdf; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; font-family: "JetBrains Mono", monospace; background: #fff; }
+  .codebox.focus { border-color: #2f5bd3; box-shadow: 0 0 0 3px rgba(47,91,211,0.15); }
+  .dash { color: #b0b4ba; font-size: 22px; }
+  .field { height: 44px; border: 1.5px solid #d9dcdf; border-radius: 8px; padding: 0 14px; display: flex; align-items: center; font-size: 15px; background: #fff; }
+  .label { font-size: 13px; font-weight: 500; color: #3a3f45; }
+
+  /* top bar */
+  .topbar { height: 56px; background: #fff; border-bottom: 1px solid #e3e6e8; display: flex; align-items: center; padding: 0 20px; gap: 14px; }
+  .topbar .title { font-size: 16px; font-weight: 600; }
+  .spacer { flex: 1; }
+  .user { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #3a3f45; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: #e1e8fb; color: #2f5bd3; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+  .sync { font-size: 12px; color: #18794e; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #30a46c; }
+
+  /* exercise list */
+  .content { flex: 1; padding: 32px 120px; display: flex; flex-direction: column; gap: 14px; }
+  .section-title { font-size: 13px; font-weight: 600; color: #80838d; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 8px; }
+  .ex { background: #fff; border: 1px solid #e3e6e8; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; }
+  .ex-icon { width: 40px; height: 40px; border-radius: 10px; background: #f1f3f5; display: flex; align-items: center; justify-content: center; font-family: "JetBrains Mono", monospace; font-size: 14px; color: #60646c; font-weight: 600; }
+  .ex-main { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .ex-title { font-size: 16px; font-weight: 600; }
+  .chip { font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .chip.new { background: #e1e8fb; color: #2f5bd3; }
+  .chip.wip { background: #fff4d5; color: #ab6400; }
+  .chip.done { background: #e6f6ec; color: #18794e; }
+  .chip.late { background: #feebec; color: #ce2c31; }
+  .chip.grey { background: #f1f3f5; color: #60646c; }
+  .meta { display: flex; gap: 8px; align-items: center; }
+
+  /* workspace */
+  .work { flex: 1; display: flex; min-height: 0; }
+  .files { width: 210px; background: #fff; border-right: 1px solid #e3e6e8; padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .pane-title { font-size: 11px; font-weight: 600; color: #80838d; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 8px 8px; }
+  .file { font-size: 13px; padding: 7px 10px; border-radius: 6px; display: flex; align-items: center; gap: 8px; color: #3a3f45; }
+  .file.active { background: #e1e8fb; color: #2f5bd3; font-weight: 500; }
+  .file .lock { margin-left: auto; font-size: 11px; color: #80838d; }
+  .file .err { margin-left: auto; font-size: 11px; color: #fff; background: #e5484d; border-radius: 999px; padding: 0 6px; }
+  .java { width: 16px; height: 16px; border-radius: 4px; background: #f76b15; color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .java.ro { background: #b0b4ba; }
+
+  .center-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .tabs { height: 38px; background: #f1f3f5; border-bottom: 1px solid #e3e6e8; display: flex; align-items: flex-end; padding: 0 8px; gap: 2px; }
+  .tab { font-size: 13px; padding: 8px 14px; border-radius: 6px 6px 0 0; color: #60646c; display: flex; gap: 8px; align-items: center; }
+  .tab.active { background: #fff; color: #1c2024; font-weight: 500; }
+  .editor { flex: 1; background: #fff; display: flex; font-family: "JetBrains Mono", monospace; font-size: 14px; line-height: 22px; position: relative; padding-top: 10px; }
+  .gutter { width: 52px; text-align: right; padding-right: 14px; color: #b0b4ba; }
+  .gutter .e { color: #e5484d; font-weight: 700; }
+  .code { flex: 1; white-space: pre; color: #1c2024; }
+  .kw { color: #8e4ec6; }
+  .ty { color: #0d74ce; }
+  .str { color: #18794e; }
+  .num { color: #ab6400; }
+  .cm { color: #80838d; font-style: italic; }
+  .fn { color: #1c2024; font-weight: 600; }
+  .hidden-hint { color: #80838d; font-style: italic; }
+  .squiggle { text-decoration: underline wavy #e5484d; text-underline-offset: 4px; }
+  .curline { background: #f5f8ff; display: inline-block; width: 100%; }
+
+  .hover { position: absolute; background: #fff; border: 1px solid #e3e6e8; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 10px 12px; font-family: Inter, sans-serif; font-size: 13px; line-height: 19px; width: 330px; display: flex; flex-direction: column; gap: 4px; }
+  .hover .h-title { color: #ce2c31; font-weight: 600; }
+
+  .suggest { position: absolute; background: #fff; border: 1px solid #e3e6e8; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); width: 420px; display: flex; overflow: hidden; font-family: Inter, sans-serif; }
+  .s-list { width: 190px; border-right: 1px solid #e3e6e8; padding: 4px; display: flex; flex-direction: column; }
+  .s-item { font-family: "JetBrains Mono", monospace; font-size: 13px; padding: 4px 8px; border-radius: 4px; display: flex; gap: 8px; align-items: center; }
+  .s-item.sel { background: #e1e8fb; }
+  .s-kind { width: 16px; height: 16px; border-radius: 3px; background: #ede4f8; color: #8e4ec6; font-size: 10px; display: flex; align-items: center; justify-content: center; font-family: Inter, sans-serif; font-weight: 700; }
+  .s-doc { flex: 1; padding: 10px 12px; font-size: 12px; line-height: 18px; color: #3a3f45; display: flex; flex-direction: column; gap: 6px; }
+  .s-sig { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #1c2024; font-weight: 600; }
+
+  .bottom { height: 230px; border-top: 1px solid #e3e6e8; background: #fff; display: flex; flex-direction: column; }
+  .btabs { height: 36px; border-bottom: 1px solid #e3e6e8; display: flex; align-items: center; padding: 0 10px; gap: 4px; }
+  .btab { font-size: 13px; padding: 6px 12px; border-radius: 6px; color: #60646c; display: flex; gap: 6px; align-items: center; }
+  .btab.active { background: #f1f3f5; color: #1c2024; font-weight: 500; }
+  .badge { font-size: 11px; background: #e5484d; color: #fff; border-radius: 999px; padding: 0 6px; font-weight: 600; }
+  .badge.ok { background: #30a46c; }
+  .console { flex: 1; background: #1c2024; color: #e8e8e8; font-family: "JetBrains Mono", monospace; font-size: 13px; line-height: 21px; padding: 10px 16px; white-space: pre; }
+  .console .in { color: #7ce2a6; }
+  .console .sys { color: #8b8d98; }
+  .cursor { display: inline-block; width: 8px; height: 16px; background: #e8e8e8; vertical-align: middle; }
+
+  .problems { padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .prob { font-size: 13px; padding: 6px 10px; border-radius: 6px; display: flex; gap: 10px; align-items: center; }
+
+  .tests { flex: 1; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+  .banner { border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; }
+  .banner.warn { background: #fff4d5; color: #ab6400; border: 1px solid #ffdc8f; }
+  .banner.ok { background: #e6f6ec; color: #18794e; border: 1px solid #b4e2c4; }
+  .trow { font-size: 13px; display: flex; gap: 10px; align-items: center; padding: 3px 4px; }
+  .pass { color: #18794e; font-weight: 700; width: 16px; }
+  .fail { color: #ce2c31; font-weight: 700; width: 16px; }
+  .tdetail { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #60646c; }
+
+  .assign { width: 330px; background: #fff; border-left: 1px solid #e3e6e8; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; line-height: 21px; color: #3a3f45; }
+  .assign h2 { font-size: 18px; color: #1c2024; }
+  .assign h3 { font-size: 14px; color: #1c2024; margin-top: 4px; }
+  .assign code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: #f1f3f5; padding: 1px 5px; border-radius: 4px; color: #1c2024; }
+  .assign pre { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: #f1f3f5; padding: 10px 12px; border-radius: 8px; line-height: 19px; color: #1c2024; }
+  .assign ul { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+  .deadline { font-size: 12px; display: flex; gap: 6px; align-items: center; color: #60646c; }
+
+  /* dialog */
+  .overlay { position: absolute; inset: 0; background: rgba(28,32,36,0.45); display: flex; align-items: center; justify-content: center; }
+  .dialog { width: 460px; background: #fff; border-radius: 14px; padding: 26px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
+  .dialog-icon { width: 44px; height: 44px; border-radius: 50%; background: #fff4d5; color: #ab6400; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; }
+  .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+  .summary { background: #f8f9fa; border-radius: 8px; padding: 10px 12px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+
+  .exam-bar { height: 30px; background: #1c2024; color: #fff; font-size: 12px; display: flex; align-items: center; padding: 0 16px; gap: 16px; }
+  .exam-pill { background: #ed1944; color: #fff; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 11px; letter-spacing: 0.04em; }
+
+  .toast { position: absolute; right: 24px; bottom: 250px; background: #1c2024; color: #fff; border-radius: 10px; padding: 12px 16px; font-size: 14px; display: flex; gap: 10px; align-items: center; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+</style>
+</head>
+<body>
+
+<!-- 1 Login -->
+<div class="screen" id="s1" data-name="01 Anmelden">
+  <div class="titlebar"><span>jide</span><span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+  <div class="center">
+    <div class="card">
+      <div class="logo"><div class="logo-mark">{ }</div>jide</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h1>Willkommen!</h1>
+        <p class="muted">Gib deinen persönlichen Code ein. Du findest ihn auf dem Zettel, den du von deiner Lehrkraft bekommen hast.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span class="label">Dein Code</span>
+        <div class="codeinput">
+          <div class="codebox">K</div><div class="codebox">7</div><div class="codebox">M</div><div class="codebox">4</div>
+          <span class="dash">–</span>
+          <div class="codebox">P</div><div class="codebox focus"></div><div class="codebox"></div><div class="codebox"></div>
+        </div>
+      </div>
+      <div class="btn primary big" style="justify-content:center">Anmelden</div>
+      <p class="small">Code verloren? Frag deine Lehrkraft – sie kann dir einen neuen geben. Du musst den Code nur einmal eingeben.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 2 Aufgaben -->
+<div class="screen" id="s2" data-name="02 Aufgaben">
+  <div class="titlebar"><span>jide</span><span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+  <div class="topbar">
+    <div class="logo-mark" style="width:30px;height:30px;font-size:13px;border-radius:8px">{ }</div>
+    <span class="title">Meine Aufgaben</span>
+    <span class="chip grey">POS · 1AHIF</span>
+    <span class="spacer"></span>
+    <span class="sync"><span class="dot"></span>Verbunden</span>
+    <span class="user"><span class="avatar">AH</span>Anna Huber</span>
+  </div>
+  <div class="content">
+    <span class="section-title">Offen</span>
+    <div class="ex">
+      <div class="ex-icon">06</div>
+      <div class="ex-main"><span class="ex-title">Summe zweier Zahlen</span><span class="muted">Lies zwei Zahlen ein und gib ihre Summe aus.</span></div>
+      <div class="meta"><span class="small">bis Fr, 27.11.</span><span class="chip new">Neu</span></div>
+      <div class="btn primary">Öffnen</div>
+    </div>
+    <div class="ex">
+      <div class="ex-icon">07</div>
+      <div class="ex-main"><span class="ex-title">Zahlenraten</span><span class="muted">Der Computer denkt sich eine Zahl – errätst du sie?</span></div>
+      <div class="meta"><span class="small">Tests: 3 / 5</span><span class="chip wip">In Arbeit</span></div>
+      <div class="btn">Weiterarbeiten</div>
+    </div>
+    <div class="ex">
+      <div class="ex-icon">05</div>
+      <div class="ex-main"><span class="ex-title">Notenrechner</span><span class="muted">Berechne aus Punkten eine Note mit if / else.</span></div>
+      <div class="meta"><span class="chip late">Frist vorbei · Abgabe noch möglich</span></div>
+      <div class="btn">Weiterarbeiten</div>
+    </div>
+    <span class="section-title">Abgegeben</span>
+    <div class="ex">
+      <div class="ex-icon">04</div>
+      <div class="ex-main"><span class="ex-title">Variablen tauschen</span><span class="muted">Zuletzt abgegeben: Do, 12.11. um 10:42</span></div>
+      <div class="meta"><span class="small">Tests: 4 / 4</span><span class="chip done">Abgegeben</span></div>
+      <div class="btn">Ansehen</div>
+    </div>
+  </div>
+</div>
+
+<!-- 3 Arbeitsbereich: Fehler + Konsole -->
+<div class="screen" id="s3" data-name="03 Arbeitsbereich – Fehler und Konsole">
+  <div class="titlebar"><span>jide – Summe zweier Zahlen</span><span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+  <div class="topbar">
+    <div class="btn ghost">← Aufgaben</div>
+    <span class="title">Summe zweier Zahlen</span>
+    <span class="small">Gespeichert</span>
+    <span class="spacer"></span>
+    <div class="btn run">▶ Ausführen</div>
+    <div class="btn disabled">■ Stopp</div>
+    <div class="btn">✓ Testen</div>
+    <div class="btn primary">Abgeben</div>
+  </div>
+  <div class="work">
+    <div class="files">
+      <span class="pane-title">Dateien</span>
+      <div class="file active"><span class="java">J</span>Summe.java<span class="err">1</span></div>
+    </div>
+    <div class="center-col">
+      <div class="tabs"><div class="tab active">Summe.java</div></div>
+      <div class="editor">
+        <div class="gutter">1<br>2<br>3<br>4<br>5<br>6<br><span class="e">7</span><br>8<br>9<br>10<br>11</div>
+<div class="code"><span class="kw">void</span> <span class="fn">main</span>() {
+    <span class="ty">Scanner</span> sc = <span class="kw">new</span> <span class="ty">Scanner</span>(<span class="ty">System</span>.in);
+    <span class="ty">IO</span>.print(<span class="str">"Erste Zahl: "</span>);
+    <span class="kw">int</span> a = sc.nextInt();
+    <span class="ty">IO</span>.print(<span class="str">"Zweite Zahl: "</span>);
+    <span class="kw">int</span> b = sc.nextInt();
+<span class="curline">    <span class="kw">int</span> summe = a + b<span class="squiggle"> </span></span>
+    <span class="ty">IO</span>.println(<span class="str">"Summe: "</span> + summe);
+}
+</div>
+        <div class="hover" style="left:250px;top:172px">
+          <span class="h-title">';' erwartet</span>
+          <span>Am Ende einer Anweisung fehlt ein Strichpunkt <code class="mono">;</code></span>
+          <span class="small">Zeile 7 · Summe.java</span>
+        </div>
+      </div>
+      <div class="bottom">
+        <div class="btabs">
+          <div class="btab active">Konsole</div>
+          <div class="btab">Probleme <span class="badge">1</span></div>
+          <div class="btab">Tests</div>
+          <span class="spacer"></span>
+          <div class="btn ghost" style="height:26px;font-size:12px">Leeren</div>
+        </div>
+<div class="console"><span class="sys">▶ Summe.java wird ausgeführt …  (letzte fehlerfreie Version)</span>
+Erste Zahl: <span class="in">3</span>
+Zweite Zahl: <span class="in">4</span>
+Summe: 7
+<span class="sys">■ Programm beendet.</span>
+<span class="cursor"></span></div>
+      </div>
+    </div>
+    <div class="assign">
+      <h2>Summe zweier Zahlen</h2>
+      <div class="deadline"><span class="chip new">Neu</span>Abgabe bis Fr, 27.11.</div>
+      <p>Schreibe ein Programm, das zwei ganze Zahlen von der Tastatur einliest und ihre <b>Summe</b> ausgibt.</p>
+      <h3>Beispiel</h3>
+      <pre>Erste Zahl: 3
+Zweite Zahl: 4
+Summe: 7</pre>
+      <h3>Tipps</h3>
+      <ul>
+        <li>Verwende einen <code>Scanner</code> und <code>nextInt()</code>.</li>
+        <li>Die Ausgabe muss mit <code>Summe:</code> beginnen.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- 4 Arbeitsbereich: vorgegebene Methode + Vervollständigung + Tests -->
+<div class="screen" id="s4" data-name="04 Arbeitsbereich – Vervollständigung und Tests">
+  <div class="titlebar"><span>jide – Größere Zahl</span><span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+  <div class="topbar">
+    <div class="btn ghost">← Aufgaben</div>
+    <span class="title">Größere Zahl</span>
+    <span class="small">Gespeichert</span>
+    <span class="spacer"></span>
+    <div class="btn run">▶ Ausführen</div>
+    <div class="btn disabled">■ Stopp</div>
+    <div class="btn">✓ Testen</div>
+    <div class="btn primary">Abgeben</div>
+  </div>
+  <div class="work">
+    <div class="files">
+      <span class="pane-title">Dateien</span>
+      <div class="file active"><span class="java">J</span>Maximum.java</div>
+      <div class="file"><span class="java ro">J</span>Hilfe.java<span class="lock">nur lesen</span></div>
+    </div>
+    <div class="center-col">
+      <div class="tabs"><div class="tab active">Maximum.java</div><div class="tab">Hilfe.java</div></div>
+      <div class="editor">
+        <div class="gutter">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9</div>
+<div class="code"><span class="cm">/**</span>
+<span class="cm"> * Gibt die größere der beiden Zahlen zurück.</span>
+<span class="cm"> */</span>
+<span class="kw">int</span> <span class="fn">maximum</span>(<span class="kw">int</span> a, <span class="kw">int</span> b) {
+<span class="curline">    <span class="kw">return</span> <span class="ty">Math</span>.m</span>
+}
+
+<span class="hidden-hint">// main() ist vorgegeben und ruft deine Methode auf.</span>
+</div>
+        <div class="suggest" style="left:200px;top:142px">
+          <div class="s-list">
+            <div class="s-item sel"><span class="s-kind">m</span>max(a, b)</div>
+            <div class="s-item"><span class="s-kind">m</span>min(a, b)</div>
+          </div>
+          <div class="s-doc">
+            <span class="s-sig">int Math.max(int a, int b)</span>
+            <span>Gibt die größere der beiden Zahlen zurück.</span>
+            <span class="small">Beispiel: Math.max(3, 7) → 7</span>
+          </div>
+        </div>
+      </div>
+      <div class="bottom">
+        <div class="btabs">
+          <div class="btab">Konsole</div>
+          <div class="btab">Probleme</div>
+          <div class="btab active">Tests <span class="badge">1</span></div>
+          <span class="spacer"></span>
+          <span class="small">zuletzt getestet 10:41</span>
+        </div>
+        <div class="tests">
+          <div class="banner warn"><span>!</span>Da sind noch ein, zwei Fehler in deinem Programm.<span class="spacer"></span><span style="font-weight:500;font-size:13px">3 von 4 Tests bestanden</span></div>
+          <div class="trow"><span class="pass">✓</span>maximum(3, 7) ergibt 7</div>
+          <div class="trow"><span class="pass">✓</span>maximum(9, 2) ergibt 9</div>
+          <div class="trow"><span class="pass">✓</span>maximum(5, 5) ergibt 5</div>
+          <div class="trow"><span class="fail">✗</span>maximum(-4, -8) ergibt -4 <span class="tdetail">erwartet: -4 · dein Ergebnis: -8</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="assign">
+      <h2>Größere Zahl</h2>
+      <div class="deadline"><span class="chip wip">In Arbeit</span>Abgabe bis Mo, 30.11.</div>
+      <p>Vervollständige die Methode <code>maximum</code>. Sie soll die größere der beiden Zahlen zurückgeben.</p>
+      <p>Die <code>main</code>-Methode ist schon vorgegeben – du musst sie nicht schreiben.</p>
+      <h3>Beispiele</h3>
+      <pre>maximum(3, 7)   → 7
+maximum(-4, -8) → -4</pre>
+    </div>
+  </div>
+</div>
+
+<!-- 5 Abgabe-Dialog -->
+<div class="screen" id="s5" data-name="05 Abgeben – Bestätigung">
+  <div class="titlebar"><span>jide – Größere Zahl</span><span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+  <div class="topbar">
+    <div class="btn ghost">← Aufgaben</div>
+    <span class="title">Größere Zahl</span>
+    <span class="spacer"></span>
+    <div class="btn run">▶ Ausführen</div>
+    <div class="btn disabled">■ Stopp</div>
+    <div class="btn">✓ Testen</div>
+    <div class="btn primary">Abgeben</div>
+  </div>
+  <div class="work" style="background:#fff"></div>
+  <div class="overlay">
+    <div class="dialog">
+      <div class="dialog-icon">!</div>
+      <h1>Wirklich abgeben?</h1>
+      <p class="muted">Da sind noch ein, zwei Fehler in deinem Programm. Möchtest du wirklich abgeben?</p>
+      <div class="summary">
+        <span><b>3 von 4</b> Tests bestanden</span>
+        <span class="small">Du kannst später noch einmal abgeben – es zählt die letzte Abgabe.</span>
+      </div>
+      <div class="dialog-actions">
+        <div class="btn">Weiterarbeiten</div>
+        <div class="btn primary">Trotzdem abgeben</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 6 Abgabe erfolgreich (alle Tests grün) -->
+<div class="screen" id="s6" data-name="06 Testen bestanden und abgegeben">
+  <div class="titlebar"><span>jide – Größere Zahl</span><span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+  <div class="topbar">
+    <div class="btn ghost">← Aufgaben</div>
+    <span class="title">Größere Zahl</span>
+    <span class="chip done">Abgegeben 10:44</span>
+    <span class="spacer"></span>
+    <div class="btn run">▶ Ausführen</div>
+    <div class="btn disabled">■ Stopp</div>
+    <div class="btn">✓ Testen</div>
+    <div class="btn primary">Erneut abgeben</div>
+  </div>
+  <div class="work">
+    <div class="files">
+      <span class="pane-title">Dateien</span>
+      <div class="file active"><span class="java">J</span>Maximum.java</div>
+      <div class="file"><span class="java ro">J</span>Hilfe.java<span class="lock">nur lesen</span></div>
+    </div>
+    <div class="center-col">
+      <div class="tabs"><div class="tab active">Maximum.java</div><div class="tab">Hilfe.java</div></div>
+      <div class="editor">
+        <div class="gutter">1<br>2<br>3<br>4<br>5<br>6</div>
+<div class="code"><span class="cm">/**</span>
+<span class="cm"> * Gibt die größere der beiden Zahlen zurück.</span>
+<span class="cm"> */</span>
+<span class="kw">int</span> <span class="fn">maximum</span>(<span class="kw">int</span> a, <span class="kw">int</span> b) {
+    <span class="kw">return</span> <span class="ty">Math</span>.max(a, b);
+}
+</div>
+      </div>
+      <div class="bottom">
+        <div class="btabs">
+          <div class="btab">Konsole</div>
+          <div class="btab">Probleme</div>
+          <div class="btab active">Tests <span class="badge ok">4/4</span></div>
+        </div>
+        <div class="tests">
+          <div class="banner ok"><span>✓</span>Dein Code sieht richtig aus!<span class="spacer"></span><span style="font-weight:500;font-size:13px">4 von 4 Tests bestanden</span></div>
+          <div class="trow"><span class="pass">✓</span>maximum(3, 7) ergibt 7</div>
+          <div class="trow"><span class="pass">✓</span>maximum(9, 2) ergibt 9</div>
+          <div class="trow"><span class="pass">✓</span>maximum(5, 5) ergibt 5</div>
+          <div class="trow"><span class="pass">✓</span>maximum(-4, -8) ergibt -4</div>
+        </div>
+      </div>
+      <div class="toast" style="right:24px"><span style="color:#7ce2a6;font-weight:700">✓</span>Abgabe gespeichert – Do, 19.11. um 10:44</div>
+    </div>
+    <div class="assign">
+      <h2>Größere Zahl</h2>
+      <div class="deadline"><span class="chip done">Abgegeben</span>Abgabe bis Mo, 30.11.</div>
+      <p>Vervollständige die Methode <code>maximum</code>. Sie soll die größere der beiden Zahlen zurückgeben.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 7 Prüfungsmodus Start -->
+<div class="screen" id="s7" data-name="07 Prüfungsmodus – Start">
+  <div class="titlebar"><span>jide – Prüfungsmodus</span><span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+  <div class="exam-bar"><span class="exam-pill">PRÜFUNG</span>1. Test POS – Jänner<span class="spacer"></span>Abgabelaufwerk: P:\ · kein Internet nötig</div>
+  <div class="center">
+    <div class="card">
+      <div class="logo"><div class="logo-mark">{ }</div>jide</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h1>1. Test POS – Jänner</h1>
+        <p class="muted">Gib deinen Namen ein. Deine Arbeit wird laufend auf dein Abgabelaufwerk <b>P:\</b> gesichert.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span class="label">Vor- und Nachname</span>
+        <div class="field">Anna Huber</div>
+      </div>
+      <div class="btn primary big" style="justify-content:center">Prüfung starten</div>
+      <p class="small">3 Aufgaben · Testen ist erlaubt</p>
+    </div>
+  </div>
+</div>
+
+<!-- 8 Prüfungsmodus Arbeitsbereich -->
+<div class="screen" id="s8" data-name="08 Prüfungsmodus – Arbeitsbereich">
+  <div class="titlebar"><span>jide – Prüfungsmodus</span><span class="winbtns"><span>—</span><span>☐</span><span>✕</span></span></div>
+  <div class="exam-bar"><span class="exam-pill">PRÜFUNG</span>Anna Huber<span class="spacer"></span><span style="color:#7ce2a6">● zuletzt gesichert auf P:\ um 10:41</span></div>
+  <div class="topbar">
+    <div class="btn">Aufgabe 1</div>
+    <div class="btn" style="background:#e1e8fb;border-color:#c4d2f7;color:#2f5bd3">Aufgabe 2</div>
+    <div class="btn">Aufgabe 3</div>
+    <span class="spacer"></span>
+    <div class="btn run">▶ Ausführen</div>
+    <div class="btn disabled">■ Stopp</div>
+    <div class="btn">✓ Testen</div>
+    <div class="btn primary">Abgeben</div>
+  </div>
+  <div class="work">
+    <div class="files">
+      <span class="pane-title">Dateien</span>
+      <div class="file active"><span class="java">J</span>Notenrechner.java</div>
+    </div>
+    <div class="center-col">
+      <div class="tabs"><div class="tab active">Notenrechner.java</div></div>
+      <div class="editor">
+        <div class="gutter">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8</div>
+<div class="code"><span class="kw">void</span> <span class="fn">main</span>() {
+    <span class="ty">Scanner</span> sc = <span class="kw">new</span> <span class="ty">Scanner</span>(<span class="ty">System</span>.in);
+    <span class="ty">IO</span>.print(<span class="str">"Punkte: "</span>);
+    <span class="kw">int</span> punkte = sc.nextInt();
+    <span class="kw">if</span> (punkte >= <span class="num">90</span>) {
+        <span class="ty">IO</span>.println(<span class="str">"Sehr gut"</span>);
+    }
+}
+</div>
+      </div>
+      <div class="bottom">
+        <div class="btabs">
+          <div class="btab active">Konsole</div>
+          <div class="btab">Probleme</div>
+          <div class="btab">Tests</div>
+        </div>
+<div class="console"><span class="sys">▶ Notenrechner.java wird ausgeführt …</span>
+Punkte: <span class="in">93</span>
+Sehr gut
+<span class="sys">■ Programm beendet.</span></div>
+      </div>
+    </div>
+    <div class="assign">
+      <h2>Aufgabe 2: Notenrechner</h2>
+      <p>Lies eine Punktezahl (0–100) ein und gib die Note aus:</p>
+      <ul>
+        <li>ab 90: Sehr gut</li>
+        <li>ab 80: Gut</li>
+        <li>ab 65: Befriedigend</li>
+        <li>ab 50: Genügend</li>
+        <li>sonst: Nicht genügend</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
