@@ -1,7 +1,91 @@
+@import "@fontsource-variable/inter";
+
+* {
+  box-sizing: border-box;
+}
 html,
 body,
 #app {
   margin: 0;
   height: 100%;
   overflow: hidden;
+}
+body {
+  font-family: "Inter Variable", Inter, sans-serif;
+  color: #1c2024;
+  background: #f8f9fa;
+}
+
+/* top bar (shared by both screens) */
+.topbar {
+  height: 56px;
+  flex: none;
+  background: #fff;
+  border-bottom: 1px solid #e3e6e8;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 14px;
+}
+.topbar .title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.spacer {
+  flex: 1;
+}
+.logo-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #2f5bd3;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
+
+/* buttons and chips */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #d9dcdf;
+  background: #fff;
+  color: #1c2024;
+  cursor: pointer;
+}
+.btn.primary {
+  background: #2f5bd3;
+  border-color: #2f5bd3;
+  color: #fff;
+}
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+  color: #60646c;
+}
+.chip {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.chip.new {
+  background: #e1e8fb;
+  color: #2f5bd3;
+}
+.chip.wip {
+  background: #fff4d5;
+  color: #ab6400;
 }

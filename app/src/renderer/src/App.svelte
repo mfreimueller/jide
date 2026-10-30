@@ -1,30 +1,56 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { monaco } from "./lib/monaco";
-  import { SAMPLE_JAVA } from "./lib/sample";
+  import type { OpenedExercise } from "../../shared-types/api";
+  import ExerciseList from "./lib/ExerciseList.svelte";
+  import type { EditorSession } from "./lib/session.svelte";
+  import Workspace from "./lib/Workspace.svelte";
 
-  let container: HTMLDivElement;
+  let exercise = $state<OpenedExercise | undefined>();
+  let error = $state("");
+  let current: EditorSession | undefined;
 
   onMount(() => {
-    const editor = monaco.editor.create(container, {
-      value: SAMPLE_JAVA,
-      language: "java",
-      fontFamily: "Cascadia Mono, Consolas, monospace",
-      fontSize: 14,
-      fontLigatures: false,
-      minimap: { enabled: false },
-      automaticLayout: true
+    // Main waits for this before the window closes.
+    window.jide.onFlushRequest(async () => {
+      await current?.flush();
     });
-    window.jide.notifyEditorReady();
-    return () => editor.dispose();
   });
+
+  async function open(id: string): Promise<void> {
+    const result = await window.jide.openExercise(id);
+    if (result.ok) {
+      error = "";
+      exercise = result.exercise;
+    } else {
+      error = result.message;
+    }
+  }
 </script>
 
-<div class="editor" bind:this={container}></div>
+{#if exercise}
+  {#key exercise.id}
+    <Workspace
+      {exercise}
+      onBack={() => (exercise = undefined)}
+      registerSession={(s) => (current = s)}
+    />
+  {/key}
+{:else}
+  <ExerciseList onOpen={open} />
+  {#if error}
+    <div class="toast" role="alert">{error}</div>
+  {/if}
+{/if}
 
 <style>
-  .editor {
-    width: 100%;
-    height: 100%;
+  .toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    background: #1c2024;
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
   }
 </style>
