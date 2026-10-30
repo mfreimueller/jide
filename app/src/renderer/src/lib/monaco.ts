@@ -1,5 +1,8 @@
 import * as monaco from "monaco-editor/editor/editor.api";
-// editor.api is the bare core: the suggest widget and snippet insertion are opt-in contributions.
+// editor.api is the bare core: the suggest widget, snippet insertion and the read-only message
+// (contribution + the MessageController it shows it with, which imports its own CSS) are opt-in.
+import "monaco-editor/editor/contrib/message/browser/messageController";
+import "monaco-editor/editor/contrib/readOnlyMessage/browser/contribution";
 import "monaco-editor/editor/contrib/snippet/browser/snippetController2";
 import "monaco-editor/editor/contrib/suggest/browser/suggestController";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";

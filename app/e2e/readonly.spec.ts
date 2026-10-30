@@ -49,6 +49,7 @@ test("a read-only file is marked, cannot be edited, is not copied to the workspa
   await lines.click();
   await page.keyboard.press("ControlOrMeta+A");
   await page.keyboard.type("kaputt");
+  await expect(page.locator("#app p").filter({ hasText: "Diese Datei ist vorgegeben und kann nicht geändert werden." })).toBeVisible();
   await page.keyboard.press("Delete");
   await page.keyboard.press("Backspace");
   expect(await lines.innerText()).toBe(before);
