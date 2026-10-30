@@ -46,7 +46,9 @@ They enter a personal code once. From then on they see the exercises the teacher
 ## 3. Functional requirements
 
 ### 3.1 Editor (both modes)
-- Monaco editor, German UI.
+- Monaco editor, German UI. Code font: JetBrains Mono, bundled with the app, ligatures off (editor, assignment code, console).
+- Syntax colors as in the design; identifiers starting with an uppercase letter are colored as types (Monaco's Java grammar has no type tokens).
+- Autosave; if saving fails the student stays in the exercise and sees "Speichern fehlgeschlagen" (no code is ever discarded).
 - Syntax highlighting for Java.
 - File tree for multi-file exercises. Files can be marked read-only (e.g. a given class).
 - **Auto-compile**: compiles ~500 ms after the student stops typing. Errors and warnings show as red/yellow squiggles and in a "Probleme" list. javac messages are in German.
@@ -59,7 +61,8 @@ They enter a personal code once. From then on they see the exercises the teacher
 
 ### 3.2 Running programs
 - "Ausführen" compiles and runs the program in a built-in console. stdin is fully interactive (`Scanner`).
-- A "Stopp" button kills the process. Output is capped (e.g. 1 MB) to survive endless loops that print.
+- If the code has compile errors, nothing runs: the console says "Dein Programm enthält noch Fehler – schau unter Probleme." and the "Probleme" tab opens.
+- A "Stopp" button kills the process. Output is capped at 1 MB: when reached, the program is stopped and the console says "Dein Programm hat sehr viel ausgegeben und wurde gestoppt (Endlosschleife?)."
 - Uncaught exceptions are shown with the line number in the student's file. Clicking it jumps to the line.
 
 ### 3.3 Hidden `main()` (optional per exercise)
