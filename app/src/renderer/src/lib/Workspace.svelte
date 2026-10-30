@@ -5,6 +5,7 @@
   import BottomPanel, { type BottomTab } from "./BottomPanel.svelte";
   import CodeEditor from "./CodeEditor.svelte";
   import { LiveCompiler } from "./problems.svelte";
+  import { RunController } from "./run.svelte";
   import { EditorSession } from "./session.svelte";
   import Toolbar from "./Toolbar.svelte";
 
@@ -27,8 +28,11 @@
   const problems = new LiveCompiler(session, exercise.id);
   void problems.compileNow();
   let bottomTab = $state<BottomTab>("Konsole");
+  // svelte-ignore state_referenced_locally
+  const run = new RunController(session, problems, exercise.id, exercise.mainFile, (t) => (bottomTab = t));
   const errorsByFile = $derived(problems.errorsByFile);
   onDestroy(() => {
+    run.dispose();
     problems.dispose();
     registerSession(undefined);
     session.dispose();
@@ -57,7 +61,7 @@
       <span class="status" data-testid="save-status">Gespeichert</span>
     {/if}
     <span class="spacer"></span>
-    <Toolbar />
+    <Toolbar {run} />
   </div>
   <div class="work">
     <div class="files" data-testid="file-list">
@@ -81,7 +85,7 @@
         {/each}
       </div>
       <CodeEditor {session} />
-      <BottomPanel bind:tab={bottomTab} {problems} {session} />
+      <BottomPanel bind:tab={bottomTab} {problems} {session} {run} />
     </div>
     <AssignmentPanel markdown={exercise.assignment} />
   </div>

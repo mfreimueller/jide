@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { registerCompileIpc } from "./compile";
 import { registerExerciseIpc } from "./exercises";
+import { registerRunIpc } from "./run";
 
 const smoke = process.env.JIDE_SMOKE === "1";
 
@@ -94,6 +95,7 @@ app.whenReady().then(() => {
   }
   registerExerciseIpc();
   registerCompileIpc();
+  registerRunIpc();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -4,16 +4,19 @@
 </script>
 
 <script lang="ts">
+  import Console from "./Console.svelte";
   import { locationLabel } from "./diagnostics";
   import type { LiveCompiler } from "./problems.svelte";
+  import type { RunController } from "./run.svelte";
   import type { EditorSession } from "./session.svelte";
 
   // Konsole (T6), Probleme (T5); Tests (M3) fills its tab later.
   let {
     tab = $bindable("Konsole"),
     problems,
-    session
-  }: { tab?: BottomTab; problems: LiveCompiler; session: EditorSession } = $props();
+    session,
+    run
+  }: { tab?: BottomTab; problems: LiveCompiler; session: EditorSession; run: RunController } = $props();
 
   const errors = $derived(problems.errorCount);
 </script>
@@ -26,8 +29,19 @@
         {#if t === "Probleme" && errors > 0}<span class="badge" data-testid="problems-badge">{errors}</span>{/if}
       </button>
     {/each}
+    <span class="spacer"></span>
+    {#if tab === "Konsole"}
+      <button class="btn ghost clear" onclick={() => run.clear()} data-testid="clear-console">Leeren</button>
+    {/if}
   </div>
   <div class="body" class:console={tab === "Konsole"} data-testid="bottom-{tab}">
+    <!-- always mounted so the output survives tab switches -->
+    {#if tab === "Konsole" && problems.systemError}
+      <div class="system-error strip" role="alert" data-testid="system-error-console">{problems.systemError}</div>
+    {/if}
+    <div class="console-slot" class:hidden={tab !== "Konsole"}>
+      <Console term={run.console} visible={tab === "Konsole"} />
+    </div>
     {#if tab === "Probleme"}
       <div class="problems" data-testid="problems">
         {#if problems.systemError}
@@ -88,6 +102,10 @@
     color: #1c2024;
     font-weight: 500;
   }
+  .clear {
+    height: 26px;
+    font-size: 12px;
+  }
   .badge {
     font-size: 11px;
     background: #e5484d;
@@ -100,6 +118,19 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .console-slot {
+    flex: 1;
+    min-height: 0;
+  }
+  .console-slot.hidden {
+    display: none;
+  }
+  .system-error.strip {
+    border-radius: 0;
+    flex: none;
   }
   .body.console {
     background: #1c2024;
