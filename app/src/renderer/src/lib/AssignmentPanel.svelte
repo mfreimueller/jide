@@ -50,7 +50,8 @@
     margin: 0;
   }
   .assign :global(code) {
-    font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+    font-family: var(--jide-code-font);
+    font-variant-ligatures: none;
     font-size: 12.5px;
     background: #f1f3f5;
     padding: 1px 5px;
@@ -59,7 +60,8 @@
   }
   .assign :global(pre) {
     margin: 0;
-    font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+    font-family: var(--jide-code-font);
+    font-variant-ligatures: none;
     font-size: 12.5px;
     background: #f1f3f5;
     padding: 10px 12px;

@@ -1,4 +1,11 @@
 @import "@fontsource-variable/inter";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/600.css";
+@import "@fontsource/jetbrains-mono/400-italic.css";
+
+:root {
+  --jide-code-font: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+}
 
 * {
   box-sizing: border-box;
@@ -45,7 +52,8 @@ body {
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-family: var(--jide-code-font);
+  font-variant-ligatures: none;
 }
 
 /* buttons and chips */
@@ -88,4 +96,10 @@ body {
 .chip.wip {
   background: #fff4d5;
   color: #ab6400;
+}
+
+/* suggest documentation panel: let long examples wrap instead of being cut off */
+.monaco-editor .suggest-details code {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
