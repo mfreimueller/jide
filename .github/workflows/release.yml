@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: build, install and smoke-test, but do not publish"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Tag must match app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          v=$(node -p "require('./app/package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${v}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match app/package.json version ${v}"; exit 1
+          fi
+      - run: npm ci
+      - run: npm run build -w java-helper
+      - run: npm run runtime -w app
+      - run: npm run verify-runtime -w app
+      - name: Build installer
+        working-directory: app
+        run: npx electron-vite build && npx electron-builder --win nsis --x64 --publish never
+      - name: Silent install
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem app/dist/JDE-Setup-*.exe | Select-Object -First 1
+          "Installer: $($setup.Name) $([math]::Round($setup.Length/1MB,1)) MB"
+          $p = Start-Process -FilePath $setup.FullName -ArgumentList "/S" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exit code $($p.ExitCode)" }
+          $exe = Join-Path $env:LOCALAPPDATA "Programs\JDE\JDE.exe"
+          if (-not (Test-Path $exe)) { Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Depth 1; throw "JDE.exe not found" }
+          "JDE_EXE=$exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          foreach ($d in @([Environment]::GetFolderPath("Desktop"), [Environment]::GetFolderPath("CommonDesktopDirectory"), "$env:APPDATA\Microsoft\Windows\Start Menu\Programs")) {
+            Get-ChildItem $d -Filter "*J;DE*" -ErrorAction SilentlyContinue | ForEach-Object { "shortcut: $($_.FullName)" }
+          }
+      - name: Smoke test the installed app
+        shell: pwsh
+        run: |
+          $env:JIDE_SMOKE = "1"
+          $env:JIDE_USER_DATA_DIR = Join-Path $env:RUNNER_TEMP "jde-smoke"
+          $out = Join-Path $env:RUNNER_TEMP "smoke.out"
+          $err = Join-Path $env:RUNNER_TEMP "smoke.err"
+          $p = Start-Process -FilePath $env:JDE_EXE -RedirectStandardOutput $out -RedirectStandardError $err -PassThru
+          if (-not $p.WaitForExit(60000)) { $p.Kill(); Get-Content $out, $err; throw "smoke: timeout" }
+          Get-Content $out, $err
+          if (-not ((Get-Content $out -Raw) -match "JIDE_SMOKE_READY")) { throw "smoke: JIDE_SMOKE_READY not printed" }
+      - name: Bundled JDK works in the installed app
+        shell: pwsh
+        run: |
+          $java = Join-Path (Split-Path $env:JDE_EXE) "resources\jdk\bin\java.exe"
+          & $java -version
+          if ($LASTEXITCODE -ne 0) { throw "bundled java failed" }
+          if (-not (Test-Path (Join-Path (Split-Path $env:JDE_EXE) "resources\java-helper.jar"))) { throw "helper jar missing" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: |
+            app/dist/JDE-Setup-*.exe
+            app/dist/latest.yml
+      - name: Publish release
+        if: env.DRY_RUN != 'true'
+        working-directory: app
+        run: npx electron-builder --win nsis --x64 --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
