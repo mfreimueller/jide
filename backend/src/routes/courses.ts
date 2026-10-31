@@ -12,6 +12,7 @@ import {
   resetCode,
   setArchived,
 } from '../lib/courses.js';
+import { listForCourse, updateForCourse } from '../lib/exercises.js';
 import { parseJson } from '../lib/http.js';
 import { teacherAuth, type TeacherVariables } from '../middleware/teacher_auth.js';
 
@@ -68,6 +69,36 @@ courseRoutes.post('/:id/students', async (c) => {
   await courseForTeacher(db, c.get('teacher').id, id);
   const { names } = await parseJson(c, studentsSchema);
   return c.json({ students: await addStudents(db, id, parseNames(names)) }, 201);
+});
+
+const courseExerciseSchema = z
+  .object({
+    unlocked: z.boolean({ message: 'unlocked muss true oder false sein.' }).optional(),
+    // ISO 8601 instant; the teacher UI converts Vienna time to UTC. null clears the deadline.
+    deadline: z
+      .union([z.iso.datetime({ offset: true, message: 'deadline muss ein ISO-8601-Zeitpunkt sein, z. B. 2026-12-01T22:59:00Z.' }), z.null()])
+      .optional(),
+  })
+  .refine((b) => b.unlocked !== undefined || b.deadline !== undefined, { message: 'Bitte unlocked oder deadline angeben.' });
+
+courseRoutes.get('/:id/exercises', async (c) => {
+  const db = getDb();
+  const teacherId = c.get('teacher').id;
+  const id = parseId(c.req.param('id'));
+  await courseForTeacher(db, teacherId, id);
+  return c.json({ exercises: await listForCourse(db, teacherId, id) });
+});
+
+courseRoutes.put('/:id/exercises/:exerciseId', async (c) => {
+  const db = getDb();
+  const teacherId = c.get('teacher').id;
+  const id = parseId(c.req.param('id'));
+  await courseForTeacher(db, teacherId, id);
+  const body = await parseJson(c, courseExerciseSchema);
+  const deadline =
+    body.deadline === undefined ? undefined : body.deadline === null ? null : new Date(Math.floor(Date.parse(body.deadline) / 1000) * 1000);
+  const exercise = await updateForCourse(db, teacherId, id, c.req.param('exerciseId'), { unlocked: body.unlocked, deadline });
+  return c.json({ exercise });
 });
 
 courseRoutes.post('/:id/students/:studentId/reset-code', async (c) => {

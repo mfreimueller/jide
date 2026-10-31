@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { AppError } from './errors.js';
 import { corsMiddleware } from './middleware/cors.js';
+import { exerciseRoutes } from './routes/exercises.js';
+import { studentExerciseRoutes } from './routes/student_exercises.js';
 import { health } from './routes/health.js';
 import { courseRoutes } from './routes/courses.js';
 import { studentRoutes } from './routes/student.js';
@@ -13,6 +15,8 @@ app.use('/api/*', corsMiddleware);
 app.route('/api/health', health);
 app.route('/api/teacher', teacherAuthRoutes);
 app.route('/api/teacher/courses', courseRoutes);
+app.route('/api/teacher/exercises', exerciseRoutes);
+app.route('/api/exercises', studentExerciseRoutes);
 app.route('/api/student', studentRoutes);
 
 app.notFound((c) => c.json({ error: 'NOT_FOUND', message: 'No such route.' }, 404));
