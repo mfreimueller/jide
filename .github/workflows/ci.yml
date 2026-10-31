@@ -7,6 +7,14 @@ on:
   pull_request:
 
 jobs:
+  # Builds the installer, installs it silently and smoke-tests it; never publishes.
+  installer:
+    uses: ./.github/workflows/release.yml
+    with:
+      dry_run: true
+    permissions:
+      contents: write
+
   app:
     strategy:
       fail-fast: false
