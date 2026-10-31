@@ -1,6 +1,6 @@
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { ExerciseError, type Exercise } from "./exercise";
+import { ExerciseError, type Exercise } from "./exercise.js";
 
 export interface WorkspaceFile {
   path: string;
