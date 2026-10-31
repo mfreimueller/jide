@@ -12,6 +12,14 @@ const api: JideApi = {
   openExercise: (id) => ipcRenderer.invoke("jide:open-exercise", id),
   saveFile: (id, path, content) => ipcRenderer.invoke("jide:save-file", id, path, content),
   resetFile: (id, path) => ipcRenderer.invoke("jide:reset-file", id, path),
+  getSession: () => ipcRenderer.invoke("jide:session"),
+  login: (code) => ipcRenderer.invoke("jide:login", code),
+  onSessionExpired: (handler) => {
+    const listener = (_e: Electron.IpcRendererEvent, message: string): void => handler(message);
+    ipcRenderer.on("jide:session-expired", listener);
+    return () => ipcRenderer.removeListener("jide:session-expired", listener);
+  },
+  handIn: (id) => ipcRenderer.invoke("jide:hand-in", id),
   compile: (id, files) => ipcRenderer.invoke("jide:compile", id, files),
   run: (id, files) => ipcRenderer.invoke("jide:run", id, files),
   stopRun: () => ipcRenderer.send("jide:run-stop"),

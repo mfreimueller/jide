@@ -3,6 +3,7 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerCompileIpc } from "./compile";
 import { registerExerciseIpc } from "./exercises";
+import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
 import { startAutoUpdate } from "./updater";
 
@@ -96,6 +97,7 @@ app.whenReady().then(() => {
       process.stdout.write("JIDE_SMOKE_READY\n", () => app.exit(0));
     });
   }
+  registerOnlineIpc();
   registerExerciseIpc();
   registerCompileIpc();
   registerRunIpc();

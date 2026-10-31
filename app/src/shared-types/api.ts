@@ -1,16 +1,38 @@
-export type ExerciseStatus = "neu" | "in-arbeit";
+export type ExerciseStatus = "neu" | "in-arbeit" | "abgegeben";
 
 export interface ExerciseSummary {
   id: string;
   title: string;
   status: ExerciseStatus;
+  /** Soft deadline, ISO 8601 UTC; null in local mode or without deadline. */
+  deadline: string | null;
+  /** Last hand-in made on this laptop or restored from the server (ISO 8601 UTC). */
+  submittedAt: string | null;
 }
 
 export interface ExerciseList {
   exercises: ExerciseSummary[];
   /** Loading errors, German messages. */
   errors: string[];
+  /** Online mode only: the server could not be reached, the list comes from the cache. */
+  offline: boolean;
 }
+
+/** Who is using the app. `student: null` = online mode without a (valid) stored code: show the login. */
+export type AppSession =
+  | { mode: "local" }
+  | { mode: "online"; student: StudentInfo | null };
+
+export interface StudentInfo {
+  name: string;
+  course: { subject: string; className: string };
+}
+
+export type LoginResult = { ok: true; student: StudentInfo } | { ok: false; message: string };
+
+export type HandInResult =
+  | { ok: true; submittedAt: string; late: boolean }
+  | { ok: false; message: string };
 
 export interface OpenedFile {
   path: string;
@@ -25,6 +47,8 @@ export interface OpenedExercise {
   assignment: string;
   mainFile: string;
   files: OpenedFile[];
+  deadline: string | null;
+  submittedAt: string | null;
 }
 
 export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };
@@ -80,6 +104,14 @@ export interface JideApi {
   openExercise: (id: string) => Promise<OpenResult>;
   saveFile: (id: string, path: string, content: string) => Promise<SaveResult>;
   resetFile: (id: string, path: string) => Promise<SaveResult>;
+  /** Local mode or online mode (with or without a stored code). */
+  getSession: () => Promise<AppSession>;
+  /** Online mode: checks the code (case-insensitive) with the server and stores it. */
+  login: (code: string) => Promise<LoginResult>;
+  /** Called when the server no longer accepts the stored code (it has been deleted by then). */
+  onSessionExpired: (handler: (message: string) => void) => () => void;
+  /** Uploads the saved editable files. The caller flushes pending edits first. */
+  handIn: (id: string) => Promise<HandInResult>;
   /** Compiles all files (current editor contents) without running. */
   compile: (id: string, files: SourceFileInput[]) => Promise<CompileResult>;
   /** Compiles into a fresh run directory and, if there are no errors, starts the program. */

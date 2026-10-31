@@ -1,31 +1,17 @@
 import { stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { app, ipcMain } from "electron";
-import {
-  ExerciseError,
-  listExercises,
-  openWorkspace,
-  resetFile,
-  saveFile,
-  type Exercise
-} from "@jide/shared";
+import { ExerciseError, openWorkspace, resetFile, saveFile, type Exercise } from "@jide/shared";
 import type {
   ExerciseList,
   ExerciseSummary,
+  HandInResult,
   OpenResult,
   SaveResult
 } from "../shared-types/api";
+import { context } from "./context";
 
 const MAX_CONTENT_BYTES = 2 * 1024 * 1024;
-
-/** Env override, otherwise the repo's examples/ folder (the app folder is app/ in dev). */
-function exercisesRoot(): string {
-  const fromEnv = process.env["JIDE_EXERCISES_DIR"];
-  if (fromEnv) return resolve(fromEnv);
-  // Packaged: examples are shipped in resources until exercises come from the backend (T13).
-  if (app.isPackaged) return join(process.resourcesPath, "examples");
-  return resolve(app.getAppPath(), "..", "examples");
-}
 
 function workspaceRoot(): string {
   return join(app.getPath("userData"), "workspaces");
@@ -39,20 +25,9 @@ async function dirExists(p: string): Promise<boolean> {
   }
 }
 
-async function loadAll(): Promise<{ exercises: Exercise[]; errors: string[] }> {
-  const root = exercisesRoot();
-  if (!(await dirExists(root))) {
-    return { exercises: [], errors: [`Aufgabenordner nicht gefunden: ${root}`] };
-  }
-  const { exercises, errors } = await listExercises(root);
-  return { exercises, errors: errors.map((e) => e.message) };
-}
-
 /** Only ids that belong to a currently known exercise are accepted. */
-export async function findExercise(id: unknown): Promise<Exercise | undefined> {
-  if (typeof id !== "string") return undefined;
-  const { exercises } = await loadAll();
-  return exercises.find((e) => e.id === id);
+export function findExercise(id: unknown): Promise<Exercise | undefined> {
+  return context().source.find(id);
 }
 
 function errorMessage(e: unknown, fallback: string): string {
@@ -65,19 +40,35 @@ const UNKNOWN_EXERCISE = "Diese Aufgabe gibt es nicht.";
 
 export function registerExerciseIpc(): void {
   ipcMain.handle("jide:list-exercises", async (): Promise<ExerciseList> => {
-    const { exercises, errors } = await loadAll();
+    const { source, handIns } = context();
+    const { exercises, errors, offline } = await source.list();
     const summaries: ExerciseSummary[] = [];
     for (const ex of exercises) {
       const started = await dirExists(join(workspaceRoot(), ex.id));
-      summaries.push({ id: ex.id, title: ex.title, status: started ? "in-arbeit" : "neu" });
+      const submittedAt = handIns.get(ex.id);
+      summaries.push({
+        id: ex.id,
+        title: ex.title,
+        status: submittedAt ? "abgegeben" : started ? "in-arbeit" : "neu",
+        deadline: ex.deadline,
+        submittedAt
+      });
     }
-    return { exercises: summaries, errors };
+    return { exercises: summaries, errors, offline };
   });
 
   ipcMain.handle("jide:open-exercise", async (_e, id: unknown): Promise<OpenResult> => {
+    const { source, handIns } = context();
     const ex = await findExercise(id);
     if (!ex) return { ok: false, message: UNKNOWN_EXERCISE };
     try {
+      const prepared = await source.prepareWorkspace(
+        ex,
+        workspaceRoot(),
+        await dirExists(join(workspaceRoot(), ex.id))
+      );
+      if (!prepared.ok) return { ok: false, message: prepared.message };
+      if (prepared.submittedAt) handIns.set(ex.id, prepared.submittedAt);
       const ws = await openWorkspace(ex, workspaceRoot());
       return {
         ok: true,
@@ -86,7 +77,9 @@ export function registerExerciseIpc(): void {
           title: ex.title,
           assignment: ex.assignment,
           mainFile: ex.mainFile,
-          files: ws.files
+          files: ws.files,
+          deadline: await source.deadlineOf(ex.id),
+          submittedAt: handIns.get(ex.id)
         }
       };
     } catch (e) {
@@ -124,5 +117,23 @@ export function registerExerciseIpc(): void {
     } catch (e) {
       return { ok: false, message: errorMessage(e, "Die Datei konnte nicht zurückgesetzt werden.") };
     }
+  });
+
+  ipcMain.handle("jide:hand-in", async (_e, id: unknown): Promise<HandInResult> => {
+    const { source, handIns } = context();
+    if (!source.handIn) return { ok: false, message: "Abgeben ist hier nicht möglich." };
+    const ex = await findExercise(id);
+    if (!ex) return { ok: false, message: UNKNOWN_EXERCISE };
+    let files;
+    try {
+      // The saved files are handed in; the renderer has flushed its pending edits before asking.
+      const ws = await openWorkspace(ex, workspaceRoot());
+      files = ws.files.filter((f) => f.editable).map((f) => ({ path: f.path, content: f.content }));
+    } catch (e) {
+      return { ok: false, message: errorMessage(e, "Deine Dateien konnten nicht gelesen werden.") };
+    }
+    const r = await source.handIn(ex, files);
+    if (r.ok) handIns.set(ex.id, r.submittedAt);
+    return r;
   });
 }

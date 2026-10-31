@@ -17,8 +17,6 @@ extraResources:
     to: jdk
   - from: ../java-helper/target/java-helper.jar
     to: java-helper.jar
-  - from: ../examples
-    to: examples
 win:
   target:
     - target: nsis
