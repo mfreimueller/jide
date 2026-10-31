@@ -21,7 +21,7 @@ npm install
 npm run dev              # starts the Electron app (electron-vite dev), nothing else
 ```
 
-`npm run dev` only runs the app. The server side runs separately, each in its own terminal:
+`npm run dev` only runs the app. It starts in online mode against the local backend (`http://localhost:3000`); with `JIDE_EXERCISES_DIR=examples npm run dev` it uses a local exercise folder instead, without login. The server side runs separately, each in its own terminal:
 
 ```bash
 cp backend/.env.example backend/.env   # optional, the defaults match docker-compose.yml
@@ -37,6 +37,7 @@ Checks, from the repo root:
 ```bash
 npm run typecheck
 npm test                 # backend tests need the MariaDB from docker compose
+npm run test:e2e         # Playwright tests of the Electron app (online ones need the MariaDB too)
 ```
 
 ## Documentation
