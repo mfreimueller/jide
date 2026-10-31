@@ -1,0 +1,62 @@
+name: Update test
+
+# Manual: checks that an installed version FROM is updated to TO by electron-updater.
+# Both versions must exist as published GitHub releases (tags vFROM / vTO).
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "Installed version, e.g. 0.1.0"
+        required: true
+      to:
+        description: "Expected version after the update, e.g. 0.1.1"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: windows-latest
+    steps:
+      - name: Install FROM silently
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "v${{ inputs.from }}" --repo "${{ github.repository }}" --pattern "JDE-Setup-*.exe" --dir "$env:RUNNER_TEMP\from"
+          $setup = Get-ChildItem "$env:RUNNER_TEMP\from\JDE-Setup-*.exe" | Select-Object -First 1
+          $p = Start-Process -FilePath $setup.FullName -ArgumentList "/S" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exit code $($p.ExitCode)" }
+          $exe = Join-Path $env:LOCALAPPDATA "Programs\JDE\JDE.exe"
+          if (-not (Test-Path $exe)) { throw "JDE.exe not found" }
+          "JDE_EXE=$exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          "Installed version: $((Get-Item $exe).VersionInfo.ProductVersion)"
+      - name: Start the app and wait for "update downloaded"
+        shell: pwsh
+        run: |
+          $userData = Join-Path $env:RUNNER_TEMP "jde-update-data"
+          $env:JIDE_USER_DATA_DIR = $userData
+          $log = Join-Path $userData "updater.log"
+          $p = Start-Process -FilePath $env:JDE_EXE -PassThru
+          $deadline = (Get-Date).AddMinutes(5)
+          $ok = $false
+          while ((Get-Date) -lt $deadline) {
+            if ((Test-Path $log) -and ((Get-Content $log -Raw) -match "update downloaded: ${{ inputs.to }}")) { $ok = $true; break }
+            Start-Sleep -Seconds 3
+          }
+          if (Test-Path $log) { Get-Content $log }
+          if (-not $ok) { Stop-Process -Id $p.Id -Force; throw "update ${{ inputs.to }} was not downloaded" }
+          # Quit like a student would; the downloaded installer runs on quit.
+          $null = $p.CloseMainWindow()
+          if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force; throw "app did not quit" }
+      - name: Installed version is TO
+        shell: pwsh
+        run: |
+          $deadline = (Get-Date).AddMinutes(3)
+          do {
+            Start-Sleep -Seconds 5
+            $v = (Get-Item $env:JDE_EXE).VersionInfo.ProductVersion
+            "version now: $v"
+          } while ($v -ne "${{ inputs.to }}" -and (Get-Date) -lt $deadline)
+          if ($v -ne "${{ inputs.to }}") { throw "expected ${{ inputs.to }}, found $v" }
