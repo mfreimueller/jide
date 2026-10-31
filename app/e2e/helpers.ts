@@ -19,18 +19,35 @@ export function useTempApp(): void {
   test.afterEach(async () => {
     for (const app of running.splice(0)) await app.close().catch(() => undefined);
     rmSync(userData, { recursive: true, force: true });
+    for (const d of extraDirs.splice(0)) rmSync(d, { recursive: true, force: true });
   });
 }
 
-export async function launch(extraEnv: Record<string, string> = {}): Promise<{ app: ElectronApplication; page: Page }> {
+/** Another empty user data folder (a second laptop), removed after the test. */
+export function newUserData(): string {
+  const dir = mkdtempSync(join(tmpdir(), "jide-e2e-"));
+  extraDirs.push(dir);
+  return dir;
+}
+const extraDirs: string[] = [];
+
+/** `userDataDir` defaults to the test's own folder. An empty JIDE_EXERCISES_DIR switches to online mode. */
+export async function launch(
+  extraEnv: Record<string, string> = {},
+  userDataDir?: string
+): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
     args: [appDir],
-    env: { ...process.env, JIDE_USER_DATA_DIR: userData, JIDE_EXERCISES_DIR: examplesDir, ...extraEnv }
+    env: { ...process.env, JIDE_USER_DATA_DIR: userDataDir ?? userData, JIDE_EXERCISES_DIR: examplesDir, ...extraEnv }
   });
   running.push(app);
   const page = await app.firstWindow();
   await page.setViewportSize({ width: 1280, height: 800 });
   return { app, page };
+}
+
+export function userDataDir(): string {
+  return userData;
 }
 
 export function card(page: Page, title: string) {
