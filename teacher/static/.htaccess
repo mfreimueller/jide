@@ -1,0 +1,6 @@
+# Uberspace (Apache): serve index.html for client-side routes, leave /api to the backend proxy.
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.html [L]
