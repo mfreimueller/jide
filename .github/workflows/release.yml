@@ -3,8 +3,7 @@ name: Release
 on:
   push:
     tags: ["v*"]
-  # TEMPORARY (T9): lets the dry run execute from the feature branch; remove before merge.
-  push:
+    # TEMPORARY (T9): lets the dry run execute from the feature branch; remove before merge.
     branches: [feat/windows-packaging]
   workflow_dispatch:
     inputs:
