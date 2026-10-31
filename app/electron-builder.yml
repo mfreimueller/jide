@@ -1,6 +1,10 @@
 appId: io.github.mfreimueller.jide
 productName: JDE
 copyright: J;DE
+# electron-builder derives the per-user install folder from the npm package name ("@jide/app" ->
+# "@jideapp"). Override it in the packaged app only; userData stays "JDE" (productName).
+extraMetadata:
+  name: jde
 directories:
   buildResources: resources
   output: dist
@@ -21,9 +25,7 @@ win:
       arch: x64
   icon: resources/icon.ico
 nsis:
-  # oneClick:true would install into Programs\@jideapp (package name); the assisted installer uses "JDE".
-  oneClick: false
-  allowToChangeInstallationDirectory: false
+  oneClick: true
   perMachine: false
   allowElevation: false
   createDesktopShortcut: always
