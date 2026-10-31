@@ -10,3 +10,4 @@ java-helper/target/
 app/e2e/screenshots/
 test-results/
 playwright-report/
+.deploy.env
