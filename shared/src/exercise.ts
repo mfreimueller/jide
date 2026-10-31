@@ -71,19 +71,11 @@ function javaPathProblem(p: string): string | undefined {
   return undefined;
 }
 
-export async function loadExercise(dir: string): Promise<Exercise> {
-  const name = path.basename(path.resolve(dir));
+/** Parses and validates the text of an exercise.yaml (no file access). Throws ExerciseError with a German message. */
+export function parseExerciseConfig(raw: string, name = "?"): ExerciseConfig {
   const fail = (problem: string): never => {
     throw new ExerciseError(`Aufgabe "${name}": ${problem}`);
   };
-
-  let raw: string;
-  try {
-    raw = await readFile(path.join(dir, "exercise.yaml"), "utf8");
-  } catch {
-    return fail("Datei exercise.yaml fehlt.");
-  }
-
   let data: unknown;
   try {
     data = parseYaml(raw);
@@ -111,6 +103,23 @@ export async function loadExercise(dir: string): Promise<Exercise> {
   if (config.harness && !seen.has(config.harness.appendTo)) {
     fail(`harness.appendTo "${config.harness.appendTo}" ist nicht in files aufgeführt.`);
   }
+  return config;
+}
+
+export async function loadExercise(dir: string): Promise<Exercise> {
+  const name = path.basename(path.resolve(dir));
+  const fail = (problem: string): never => {
+    throw new ExerciseError(`Aufgabe "${name}": ${problem}`);
+  };
+
+  let raw: string;
+  try {
+    raw = await readFile(path.join(dir, "exercise.yaml"), "utf8");
+  } catch {
+    return fail("Datei exercise.yaml fehlt.");
+  }
+
+  const config = parseExerciseConfig(raw, name);
 
   const originals: Record<string, string> = {};
   for (const f of config.files) {
