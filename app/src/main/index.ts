@@ -22,7 +22,7 @@ app.on("before-quit", () => {
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    title: "jide",
+    title: "J;DE",
     width: 1280,
     height: 800,
     minWidth: 1024,
@@ -71,7 +71,7 @@ function createWindow(): BrowserWindow {
     ipcMain.on("jide:flush-done", onDone);
     win.webContents.send("jide:flush-request");
   });
-  // The page sets its own title; keep "jide".
+  // The page sets its own title; keep "J;DE".
   win.on("page-title-updated", (e) => e.preventDefault());
 
   if (process.env["ELECTRON_RENDERER_URL"]) {

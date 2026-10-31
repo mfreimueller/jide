@@ -62,7 +62,7 @@ export class HelperClient {
       );
     }
     if (!this.limiter.tryStart()) {
-      throw new HelperError("Der Java-Helfer ist mehrfach abgestürzt. Bitte starte jide neu.");
+      throw new HelperError("Der Java-Helfer ist mehrfach abgestürzt. Bitte starte J;DE neu.");
     }
     const proc = spawn(this.javaPath, ["-jar", this.jarPath], { stdio: "pipe", windowsHide: true });
     this.proc = proc;
