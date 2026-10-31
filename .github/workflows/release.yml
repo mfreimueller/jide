@@ -3,6 +3,9 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # TEMPORARY (T9): lets the dry run execute from the feature branch; remove before merge.
+  push:
+    branches: [feat/windows-packaging]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -17,7 +20,8 @@ jobs:
   release:
     runs-on: windows-latest
     env:
-      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+      # Only tags (or a manual run with dry_run=false) publish.
+      DRY_RUN: ${{ startsWith(github.ref, 'refs/tags/v') && 'false' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run && 'false') || 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

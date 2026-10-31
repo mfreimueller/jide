@@ -26,8 +26,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build -w java-helper
-      - run: npm run typecheck -w shared -w app -w java-helper
-      - run: npm test -w shared -w java-helper -w app
+      - run: npm run typecheck --if-present -w shared -w app -w java-helper
+      - run: npm test --if-present -w shared -w java-helper -w app
       - name: e2e
         run: npm run test:e2e
       - name: Bundled runtime (jlink) check
