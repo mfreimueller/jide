@@ -47,6 +47,7 @@ Test summaries in hand-ins stay empty until M3.
   - Done when: svelte-check passes and a manual walk-through against the local backend covers every screen.
 - [ ] **T15 Deploy** – bundle the backend (e.g. esbuild) because it imports `@jide/shared` as TypeScript source; `scripts/deploy-backend.sh`, `scripts/deploy-teacher.sh`, `.deploy.env.example`, `docs/deployment.md` (one-time Uberspace setup as in parsonxam). Also a short root `README.md`: what J;DE is (one paragraph), repo layout (app, backend, teacher, shared, java-helper, examples), local dev (`docker compose up -d`, `npm install`, `npm run dev`, running the tests), links to SPEC, docs/release.md, docs/deployment.md and the exercise format (SPEC §4). The repo is public: no server values (domain, SMTP, SSH login) in the README.
   - Done when: the user has run the one-time setup, `/api/health` answers on the real domain and a sign-in mail arrives.
+  - Files ready (2026-10-31); waiting for the one-time server setup.
 - [ ] **T16 Rehearsal** – real server: course with two test students, both sample exercises uploaded and unlocked, the released Windows app (CI) logs in, downloads, hands in; the hand-ins show up in the teacher view.
   - Done when: done once end to end before 2026-11-18.
 
