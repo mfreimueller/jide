@@ -20,7 +20,7 @@ Teacher routes need the teacher `Bearer` token, student routes the student code.
 
 **Upload**: raw request body (`Content-Type: application/zip`), not multipart. Limit 10 MB (413, counted while streaming); at most 500 files and 50 MB unpacked; no `..`, absolute or backslash paths, no symlinks (400, German message). The zip holds one exercise in the SPEC §4 format, either as a single folder (`summe/exercise.yaml`) or with the files at the root (`exercise.yaml`). It is validated with the `@jide/shared` parser (the same one the app uses), then **re-packed as a single folder `<id>/`** (sorted, fixed timestamps) and stored in the `exercises.package` LONGBLOB. `version` is the sha256 of that stored zip, so identical content has an identical version. Re-uploading the same `id` replaces the package and keeps unlocks and deadlines.
 
-The backend imports `@jide/shared` as TypeScript source (npm workspace). `shared/src` therefore uses `.js` import extensions; T15 (deploy) must bundle or build shared, since `tsc -p tsconfig.build.json` + `node dist` does not compile it.
+The backend imports `@jide/shared` as TypeScript source (npm workspace). `shared/src` therefore uses `.js` import extensions; `npm run build -w @jide/backend` therefore bundles with esbuild into self-contained `dist/index.js` and `dist/add_teacher.js` (no `node_modules` needed on the server). See `docs/deployment.md`.
 
 All commands run from the repo root.
 
