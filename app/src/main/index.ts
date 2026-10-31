@@ -4,6 +4,7 @@ import icon from "../../resources/icon.png?asset";
 import { registerCompileIpc } from "./compile";
 import { registerExerciseIpc } from "./exercises";
 import { registerRunIpc } from "./run";
+import { startAutoUpdate } from "./updater";
 
 const smoke = process.env.JIDE_SMOKE === "1";
 
@@ -99,6 +100,7 @@ app.whenReady().then(() => {
   registerCompileIpc();
   registerRunIpc();
   createWindow();
+  if (!smoke) startAutoUpdate();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
