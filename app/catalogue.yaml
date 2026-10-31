@@ -1,0 +1,431 @@
+# J;DE Code-Vervollständigung: Katalog der Klassen
+# ================================================
+# Diese Datei bestimmt, was beim Tippen von "Math.", "sc." oder "new " vorgeschlagen wird.
+# Sie kann direkt bearbeitet werden. Änderungen werden mit dem nächsten Release in die App
+# eingebaut und per Auto-Update an alle Rechner verteilt (die laufende App liest die Datei nicht).
+# Ob die Datei formal stimmt, prüft "npm test" (Fehlermeldungen nennen Klasse und Signatur).
+#
+# Aufbau: eine Liste von Klassen. Pro Klasse (alle Texte auf Deutsch):
+#
+#   - class: Math                         # Name der Klasse
+#     doc: Mathematische Funktionen.      # Kurzbeschreibung der Klasse
+#     example: "int m = Math.max(3, 7);"  # Beispiel in einer Zeile
+#     constructors:                       # optional: nach "new " angeboten (Math hat keine)
+#       - sig: "Scanner(InputStream in)"  #   Klassenname(Parameter), ohne Rückgabetyp
+#         doc: …
+#         example: …
+#     static:                             # optional: Math.max(...), IO.println(...)
+#       - sig: "max(int a, int b): int"   #   Methode: name(Typ a, Typ b): Rückgabetyp
+#         doc: Die größere von zwei Zahlen.
+#         example: "int m = Math.max(3, 7);"
+#       - sig: "PI: double"               #   Feld: name: Typ
+#         constant: true                  #   "constant: true" für Konstanten (sonst weglassen)
+#         doc: Die Kreiszahl Pi.
+#         example: "double u = 2 * Math.PI * r;"
+#     instance:                           # optional: Methoden/Felder einer Variable (sc.nextInt())
+#       - sig: "nextInt(): int"           #   ohne Parameter: leere Klammern
+#         doc: Liest eine ganze Zahl.
+#         example: "int alter = sc.nextInt();"
+#
+# Signaturen: Parameter mit Komma trennen ("Map<K, V> karte" und "Object... werte" sind erlaubt,
+# ebenso Arrays wie "int[] zahlen"). Nur bei Konstruktoren darf ein Parameter ein reiner Platzhalter
+# sein, z. B. "Scanner(System.in)"; er wird im Editor als Vorgabetext eingefügt.
+# Texte mit ": " oder Anführungszeichen am besten in "…" oder '…' setzen.
+#
+# Sonderfälle: "kind: receiver" = Pfad wie System.out, der keine eigene Klasse ist;
+#              "kind: array" = Pseudo-Klasse für Variablen wie int[] zahlen (genau einmal).
+# Die Kommentare mit "Kap." verweisen auf die Kapitel der Folien POS 1xHIF; "Vorgabe" =
+# ausdrücklich gewünscht, obwohl die Folien es noch nicht verwenden.
+
+# "Vorgabe": Java 25 (compact source files); die Folien verwenden noch System.out (Kap. 01-23).
+- class: IO
+  doc: Einfache Ein- und Ausgabe in der Konsole (ab Java 25).
+  example: IO.println("Hallo");
+  static:
+    - sig: "println(Object wert): void"
+      doc: Gibt etwas aus und springt danach in eine neue Zeile.
+      example: IO.println("Hallo Welt");
+    - sig: "print(Object wert): void"
+      doc: Gibt etwas aus, ohne in eine neue Zeile zu springen.
+      example: 'IO.print("Name: ");'
+    - sig: "readln(String frage): String"
+      doc: Zeigt die Frage an und liest eine Zeile Text von der Tastatur.
+      example: 'String name = IO.readln("Name: ");'
+
+# Kap. 01-23: System.out.println / print; printf ist das Konsolen-Gegenstück zu PrintWriter.printf (Kap. 23)
+- class: System
+  doc: Zugriff auf Konsole (Ausgabe und Eingabe).
+  example: System.out.println(5);
+  static:
+    - sig: "out: PrintStream"
+      doc: Die Konsolenausgabe. Danach folgt println, print oder printf.
+      example: System.out.println("Hallo");
+    - sig: "in: InputStream"
+      doc: Die Tastatureingabe, wird dem Scanner übergeben.
+      example: Scanner sc = new Scanner(System.in);
+
+- class: System.out
+  kind: receiver
+  doc: Die Konsolenausgabe.
+  example: System.out.println("Hallo");
+  static:
+    - sig: "println(Object wert): void"
+      doc: Gibt etwas aus und springt danach in eine neue Zeile.
+      example: 'System.out.println("Summe: " + summe);'
+    - sig: "print(Object wert): void"
+      doc: Gibt etwas aus, ohne in eine neue Zeile zu springen.
+      example: 'System.out.print("Zahl: ");'
+    - sig: "printf(String format, Object... werte): PrintStream"
+      doc: Gibt formatierten Text aus (%d ganze Zahl, %s Text, %.2f Kommazahl, %n neue Zeile).
+      example: 'System.out.printf("Alter: %d%n", alter);'
+
+# Kap. 12 (String-Methoden), Kap. 13 (replace), Kap. 16 (split, toLowerCase), Kap. 19 (isEmpty).
+# substring, indexOf, contains, equalsIgnoreCase sind Ergänzungen über die Folien hinaus.
+- class: String
+  doc: Text (Zeichenkette).
+  example: String name = "Anna";
+  instance:
+    - sig: "length(): int"
+      doc: "Anzahl der Zeichen im Text. Achtung: mit Klammern!"
+      example: int n = text.length();
+    - sig: "charAt(int index): char"
+      doc: Das Zeichen an der Stelle index (das erste Zeichen hat Index 0).
+      example: char erstes = text.charAt(0);
+    - sig: "equals(String anderer): boolean"
+      doc: Vergleicht zwei Texte auf Gleichheit. Niemals == für Texte verwenden!
+      example: if (eingabe.equals("exit")) { }
+    - sig: "startsWith(String anfang): boolean"
+      doc: Prüft, ob der Text mit anfang beginnt.
+      example: befehl.startsWith("gehe")
+    - sig: "endsWith(String ende): boolean"
+      doc: Prüft, ob der Text mit ende aufhört.
+      example: frage.endsWith("?")
+    - sig: "trim(): String"
+      doc: Entfernt Leerzeichen am Anfang und am Ende.
+      example: String sauber = text.trim();
+    - sig: "toUpperCase(): String"
+      doc: Wandelt alle Buchstaben in Großbuchstaben um.
+      example: String gross = text.toUpperCase();
+    - sig: "toLowerCase(): String"
+      doc: Wandelt alle Buchstaben in Kleinbuchstaben um.
+      example: String klein = text.toLowerCase();
+    - sig: "replace(char alt, char neu): String"
+      doc: Ersetzt jedes Vorkommen von alt durch neu.
+      example: eingabe = eingabe.replace(',', '.');
+    - sig: "isEmpty(): boolean"
+      doc: Prüft, ob der Text leer ist (Länge 0).
+      example: if (name.isEmpty()) { }
+    - sig: "split(String trenner): String[]"
+      doc: Zerlegt den Text an jedem trenner in ein Array von Teilen.
+      example: String[] teile = eingabe.split(" ");
+    - sig: "substring(int von, int bis): String"
+      doc: Teil des Textes von Index von bis vor Index bis.
+      example: String teil = text.substring(0, 3);
+    - sig: "indexOf(String suche): int"
+      doc: Stelle des ersten Vorkommens von suche oder -1, wenn nicht gefunden.
+      example: int pos = text.indexOf("a");
+    - sig: "contains(String teil): boolean"
+      doc: Prüft, ob der Text teil enthält.
+      example: if (text.contains("Java")) { }
+    - sig: "equalsIgnoreCase(String anderer): boolean"
+      doc: Wie equals, aber Groß- und Kleinschreibung wird ignoriert.
+      example: if (antwort.equalsIgnoreCase("ja")) { }
+
+# "Vorgabe" (nicht in den Folien)
+- class: Math
+  doc: Mathematische Funktionen.
+  example: int groesser = Math.max(a, b);
+  static:
+    - sig: "max(int a, int b): int"
+      doc: Die größere von zwei Zahlen.
+      example: int groesser = Math.max(a, b);
+    - sig: "min(int a, int b): int"
+      doc: Die kleinere von zwei Zahlen.
+      example: int kleiner = Math.min(a, b);
+    - sig: "abs(int zahl): int"
+      doc: Der Betrag einer Zahl (ohne Vorzeichen).
+      example: int betrag = Math.abs(-5); // 5
+    - sig: "sqrt(double zahl): double"
+      doc: Die Quadratwurzel einer Zahl.
+      example: double w = Math.sqrt(16); // 4.0
+    - sig: "pow(double basis, double exponent): double"
+      doc: "Potenz: basis hoch exponent."
+      example: double q = Math.pow(2, 3); // 8.0
+    - sig: "round(double zahl): long"
+      doc: Rundet auf die nächste ganze Zahl.
+      example: long r = Math.round(2.5); // 3
+    - sig: "floor(double zahl): double"
+      doc: Rundet ab.
+      example: double r = Math.floor(2.9); // 2.0
+    - sig: "ceil(double zahl): double"
+      doc: Rundet auf.
+      example: double r = Math.ceil(2.1); // 3.0
+    - sig: "random(): double"
+      doc: Zufallszahl von 0.0 (inklusive) bis 1.0 (exklusive).
+      example: double z = Math.random();
+    - sig: "PI: double"
+      constant: true
+      doc: Die Kreiszahl Pi (3.14159...).
+      example: double umfang = 2 * Math.PI * r;
+
+# Kap. 06 (User Input)
+- class: Scanner
+  doc: Liest Eingaben von der Tastatur.
+  example: Scanner sc = new Scanner(System.in);
+  constructors:
+    - sig: Scanner(System.in)
+      doc: Erstellt einen Scanner, der von der Tastatur liest.
+      example: Scanner sc = new Scanner(System.in);
+  instance:
+    - sig: "nextInt(): int"
+      doc: Liest eine ganze Zahl.
+      example: int alter = sc.nextInt();
+    - sig: "nextDouble(): double"
+      doc: Liest eine Kommazahl.
+      example: double preis = sc.nextDouble();
+    - sig: "nextLine(): String"
+      doc: Liest eine ganze Zeile Text.
+      example: String name = sc.nextLine();
+    - sig: "next(): String"
+      doc: Liest das nächste Wort (bis zum nächsten Leerzeichen).
+      example: String wort = sc.next();
+    - sig: "nextBoolean(): boolean"
+      doc: Liest true oder false.
+      example: boolean ja = sc.nextBoolean();
+    - sig: "hasNextInt(): boolean"
+      doc: Prüft, ob als Nächstes eine ganze Zahl kommt.
+      example: if (sc.hasNextInt()) { }
+    - sig: "hasNextLine(): boolean"
+      doc: Prüft, ob noch eine weitere Zeile vorhanden ist.
+      example: while (sc.hasNextLine()) { }
+    - sig: "hasNext(): boolean"
+      doc: Prüft, ob noch ein weiteres Wort vorhanden ist.
+      example: while (sc.hasNext()) { }
+    - sig: "close(): void"
+      doc: Schließt den Scanner, wenn du ihn nicht mehr brauchst.
+      example: sc.close();
+
+# Kap. 06 (Zufallszahlen)
+- class: Random
+  doc: Erzeugt Zufallszahlen.
+  example: Random r = new Random();
+  constructors:
+    - sig: Random()
+      doc: Erstellt einen Zufallszahlen-Generator.
+      example: Random r = new Random();
+  instance:
+    - sig: "nextInt(int grenze): int"
+      doc: Zufällige ganze Zahl von 0 bis grenze - 1.
+      example: int wuerfel = r.nextInt(6) + 1; // 1 bis 6
+    - sig: "nextDouble(): double"
+      doc: Zufällige Kommazahl von 0.0 bis 1.0.
+      example: double z = r.nextDouble();
+    - sig: "nextBoolean(): boolean"
+      doc: Zufällig true oder false.
+      example: boolean kopf = r.nextBoolean();
+
+# Kap. 06, 13 (Convert)
+- class: Integer
+  doc: Ganze Zahlen und Umwandlung von Text in Zahlen.
+  example: int zahl = Integer.parseInt("42");
+  static:
+    - sig: "parseInt(String text): int"
+      doc: Wandelt einen Text in eine ganze Zahl um.
+      example: int alter = Integer.parseInt("42");
+    - sig: "valueOf(String text): Integer"
+      doc: Wandelt einen Text in eine ganze Zahl um (als Objekt).
+      example: Integer z = Integer.valueOf("7");
+    - sig: "toString(int zahl): String"
+      doc: Wandelt eine Zahl in Text um.
+      example: String s = Integer.toString(42);
+    - sig: "MAX_VALUE: int"
+      constant: true
+      doc: Die größte mögliche int-Zahl (2147483647).
+      example: int max = Integer.MAX_VALUE;
+    - sig: "MIN_VALUE: int"
+      constant: true
+      doc: Die kleinste mögliche int-Zahl (-2147483648).
+      example: int min = Integer.MIN_VALUE;
+
+# Kap. 13 (Convert)
+- class: Double
+  doc: Kommazahlen und Umwandlung von Text in Kommazahlen.
+  example: double d = Double.parseDouble("3.14");
+  static:
+    - sig: "parseDouble(String text): double"
+      doc: Wandelt einen Text (mit Punkt) in eine Kommazahl um.
+      example: double d = Double.parseDouble("3.14");
+    - sig: "valueOf(String text): Double"
+      doc: Wandelt einen Text in eine Kommazahl um (als Objekt).
+      example: Double d = Double.valueOf("2.5");
+    - sig: "toString(double zahl): String"
+      doc: Wandelt eine Kommazahl in Text um.
+      example: String s = Double.toString(2.5);
+    - sig: "MAX_VALUE: double"
+      constant: true
+      doc: Die größte mögliche double-Zahl.
+      example: double max = Double.MAX_VALUE;
+    - sig: "MIN_VALUE: double"
+      constant: true
+      doc: Die kleinste positive double-Zahl.
+      example: double min = Double.MIN_VALUE;
+
+# Kap. 13 (Convert)
+- class: Boolean
+  doc: Wahrheitswerte und Umwandlung von Text.
+  example: boolean b = Boolean.parseBoolean("true");
+  static:
+    - sig: "parseBoolean(String text): boolean"
+      doc: Wandelt den Text "true" oder "false" in einen boolean um.
+      example: boolean ok = Boolean.parseBoolean("true");
+
+# "Vorgabe" (nicht in den Folien)
+- class: Character
+  doc: Hilfsmethoden für einzelne Zeichen (char).
+  example: boolean z = Character.isDigit('7');
+  static:
+    - sig: "isDigit(char zeichen): boolean"
+      doc: Prüft, ob das Zeichen eine Ziffer ist.
+      example: Character.isDigit('7') // true
+    - sig: "isLetter(char zeichen): boolean"
+      doc: Prüft, ob das Zeichen ein Buchstabe ist.
+      example: Character.isLetter('a') // true
+    - sig: "isLetterOrDigit(char zeichen): boolean"
+      doc: Prüft, ob das Zeichen ein Buchstabe oder eine Ziffer ist.
+      example: Character.isLetterOrDigit('_') // false
+    - sig: "isUpperCase(char zeichen): boolean"
+      doc: Prüft, ob das Zeichen ein Großbuchstabe ist.
+      example: Character.isUpperCase('A') // true
+    - sig: "isLowerCase(char zeichen): boolean"
+      doc: Prüft, ob das Zeichen ein Kleinbuchstabe ist.
+      example: Character.isLowerCase('a') // true
+    - sig: "isWhitespace(char zeichen): boolean"
+      doc: Prüft, ob das Zeichen ein Leerzeichen, Tab oder Zeilenumbruch ist.
+      example: Character.isWhitespace(' ') // true
+    - sig: "toUpperCase(char zeichen): char"
+      doc: Wandelt ein Zeichen in einen Großbuchstaben um.
+      example: char g = Character.toUpperCase('a'); // 'A'
+    - sig: "toLowerCase(char zeichen): char"
+      doc: Wandelt ein Zeichen in einen Kleinbuchstaben um.
+      example: char k = Character.toLowerCase('A'); // 'a'
+
+# "Vorgabe" (Kap. 10/11 behandeln Arrays und Sortieren, aber nur mit eigenen Schleifen, nicht java.util.Arrays)
+- class: Arrays
+  doc: Hilfsmethoden für Arrays.
+  example: Arrays.sort(zahlen);
+  static:
+    - sig: "toString(int[] array): String"
+      doc: Wandelt ein Array in Text um, z. B. [1, 2, 3].
+      example: IO.println(Arrays.toString(zahlen));
+    - sig: "sort(int[] array): void"
+      doc: Sortiert ein Array aufsteigend.
+      example: Arrays.sort(zahlen);
+    - sig: "fill(int[] array, int wert): void"
+      doc: Setzt alle Elemente auf denselben Wert.
+      example: Arrays.fill(zahlen, 0);
+    - sig: "copyOf(int[] array, int laenge): int[]"
+      doc: Kopiert ein Array in ein neues Array der gegebenen Länge.
+      example: int[] kopie = Arrays.copyOf(zahlen, zahlen.length);
+    - sig: "equals(int[] a, int[] b): boolean"
+      doc: Prüft, ob zwei Arrays gleich lang sind und dieselben Werte haben.
+      example: if (Arrays.equals(a, b)) { }
+
+# Kap. 23 (Dateioperationen): FileReader + BufferedReader, FileWriter + PrintWriter, IOException.
+# Die Folien verwenden weder Files noch Path, deshalb sind sie nicht im Katalog.
+- class: FileReader
+  doc: Liest Zeichen aus einer Datei. Wird meist an einen BufferedReader übergeben.
+  example: FileReader fr = new FileReader("datei.txt");
+  constructors:
+    - sig: FileReader(String dateiname)
+      doc: Öffnet eine Datei zum Lesen.
+      example: FileReader fr = new FileReader("datei.txt");
+  instance:
+    - sig: "close(): void"
+      doc: Schließt die Datei.
+      example: fr.close();
+
+- class: BufferedReader
+  doc: Liest eine Datei zeilenweise.
+  example: BufferedReader br = new BufferedReader(new FileReader("datei.txt"));
+  constructors:
+    - sig: BufferedReader(new FileReader("datei.txt"))
+      doc: Packt einen FileReader ein und macht das Lesen effizient.
+      example: BufferedReader br = new BufferedReader(new FileReader("datei.txt"));
+  instance:
+    - sig: "readLine(): String"
+      doc: Liest die nächste Zeile. Am Dateiende ist das Ergebnis null.
+      example: String zeile = br.readLine();
+    - sig: "close(): void"
+      doc: Schließt die Datei (Ressource freigeben!).
+      example: br.close();
+
+- class: FileWriter
+  doc: Schreibt Zeichen in eine Datei. Wird meist an einen PrintWriter übergeben.
+  example: FileWriter fw = new FileWriter("ausgabe.txt");
+  constructors:
+    - sig: FileWriter(String dateiname)
+      doc: Öffnet eine Datei zum Schreiben (überschreibt den alten Inhalt).
+      example: FileWriter fw = new FileWriter("ausgabe.txt");
+    - sig: FileWriter(String dateiname, boolean anhaengen)
+      doc: Öffnet eine Datei zum Schreiben; mit true wird angehängt statt überschrieben.
+      example: FileWriter fw = new FileWriter("datei.txt", true);
+  instance:
+    - sig: "close(): void"
+      doc: Schließt die Datei.
+      example: fw.close();
+
+- class: PrintWriter
+  doc: Schreibt Text bequem in eine Datei (wie System.out in die Konsole).
+  example: PrintWriter pw = new PrintWriter(new FileWriter("ausgabe.txt"));
+  constructors:
+    - sig: PrintWriter(new FileWriter("ausgabe.txt"))
+      doc: Packt einen FileWriter ein.
+      example: PrintWriter pw = new PrintWriter(new FileWriter("ausgabe.txt"));
+  instance:
+    - sig: "println(Object wert): void"
+      doc: Schreibt eine Zeile in die Datei.
+      example: pw.println("Zeile 1");
+    - sig: "print(Object wert): void"
+      doc: Schreibt Text ohne Zeilenumbruch in die Datei.
+      example: pw.print("Text");
+    - sig: "printf(String format, Object... werte): PrintWriter"
+      doc: Schreibt formatierten Text in die Datei.
+      example: 'pw.printf("Zahl: %d%n", 42);'
+    - sig: "close(): void"
+      doc: Schließt die Datei. Erst dann ist sicher alles gespeichert.
+      example: pw.close();
+
+# Kap. 23 (IOException behandeln); Exception in Kap. 03, 10, 12, 13, 20
+- class: IOException
+  doc: Fehler bei Dateizugriffen (muss mit try-catch behandelt werden).
+  example: catch (IOException e) { }
+  instance:
+    - sig: "getMessage(): String"
+      doc: Die Fehlermeldung der Ausnahme.
+      example: 'IO.println("Fehler: " + e.getMessage());'
+
+- class: FileNotFoundException
+  doc: Die Datei wurde nicht gefunden (Untertyp von IOException).
+  example: catch (FileNotFoundException e) { }
+  instance:
+    - sig: "getMessage(): String"
+      doc: Die Fehlermeldung der Ausnahme.
+      example: 'IO.println("Fehler: " + e.getMessage());'
+
+- class: Exception
+  doc: Allgemeine Ausnahme (Fehler zur Laufzeit).
+  example: catch (Exception e) { }
+  instance:
+    - sig: "getMessage(): String"
+      doc: Die Fehlermeldung der Ausnahme.
+      example: 'IO.println("Fehler: " + e.getMessage());'
+
+# Pseudo-Klasse für Variablen mit Array-Typ: `int[] zahlen; zahlen.` (Kap. 10)
+- class: "[]"
+  kind: array
+  doc: Array.
+  example: int[] zahlen = new int[5];
+  instance:
+    - sig: "length: int"
+      doc: Anzahl der Elemente im Array. Ohne Klammern (keine Methode)!
+      example: for (int i = 0; i < zahlen.length; i++) { }
