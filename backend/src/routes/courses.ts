@@ -12,7 +12,8 @@ import {
   resetCode,
   setArchived,
 } from '../lib/courses.js';
-import { listForCourse, updateForCourse } from '../lib/exercises.js';
+import { handInMatrix, lastHandInsZip } from '../lib/handins.js';
+import { exerciseForTeacher, listForCourse, updateForCourse } from '../lib/exercises.js';
 import { parseJson } from '../lib/http.js';
 import { teacherAuth, type TeacherVariables } from '../middleware/teacher_auth.js';
 
@@ -99,6 +100,26 @@ courseRoutes.put('/:id/exercises/:exerciseId', async (c) => {
     body.deadline === undefined ? undefined : body.deadline === null ? null : new Date(Math.floor(Date.parse(body.deadline) / 1000) * 1000);
   const exercise = await updateForCourse(db, teacherId, id, c.req.param('exerciseId'), { unlocked: body.unlocked, deadline });
   return c.json({ exercise });
+});
+
+courseRoutes.get('/:id/handins', async (c) => {
+  const db = getDb();
+  const id = parseId(c.req.param('id'));
+  await courseForTeacher(db, c.get('teacher').id, id);
+  // ?missing=1 keeps only students who lack a hand-in for at least one unlocked exercise.
+  return c.json(await handInMatrix(db, id, c.req.query('missing') === '1'));
+});
+
+courseRoutes.get('/:id/exercises/:exerciseId/handins.zip', async (c) => {
+  const db = getDb();
+  const id = parseId(c.req.param('id'));
+  await courseForTeacher(db, c.get('teacher').id, id);
+  const ex = await exerciseForTeacher(db, c.get('teacher').id, c.req.param('exerciseId'));
+  const zip = await lastHandInsZip(db, id, ex.rowId);
+  return c.body(new Uint8Array(zip), 200, {
+    'Content-Type': 'application/zip',
+    'Content-Disposition': `attachment; filename="${ex.id}-abgaben.zip"`,
+  });
 });
 
 courseRoutes.post('/:id/students/:studentId/reset-code', async (c) => {

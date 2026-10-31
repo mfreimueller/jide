@@ -82,7 +82,9 @@ export interface StudentView {
   name: string;
   code: string; // formatted XXXX-XXXX
   lastActivityAt: string | null; // null = "noch nie angemeldet"
+  /** Unlocked exercises of the course the student has handed in at least once ("4 / 5": handInCount / unlockedExerciseCount). */
   handInCount: number;
+  unlockedExerciseCount: number;
 }
 
 interface StudentRow {
@@ -90,6 +92,8 @@ interface StudentRow {
   name: string;
   code: string;
   lastActivityAt: Date | null;
+  handInCount: number | string;
+  unlockedExerciseCount: number | string;
 }
 
 function toStudentView(r: StudentRow): StudentView {
@@ -98,15 +102,19 @@ function toStudentView(r: StudentRow): StudentView {
     name: r.name,
     code: formatCode(r.code),
     lastActivityAt: r.lastActivityAt ? r.lastActivityAt.toISOString() : null,
-    // TODO(T12): count the student's hand-ins once the hand-ins table exists.
-    handInCount: 0,
+    handInCount: Number(r.handInCount),
+    unlockedExerciseCount: Number(r.unlockedExerciseCount),
   };
 }
 
 export async function listStudents(db: SQLInstance, courseId: number): Promise<StudentView[]> {
   const rows = await db<StudentRow[]>`
-    SELECT id, name, code, last_activity_at AS lastActivityAt
-    FROM students WHERE course_id = ${courseId} ORDER BY name, id
+    SELECT s.id, s.name, s.code, s.last_activity_at AS lastActivityAt,
+           (SELECT COUNT(DISTINCT h.exercise_id) FROM handins h
+              JOIN course_exercises ce ON ce.exercise_id = h.exercise_id AND ce.course_id = s.course_id AND ce.unlocked = 1
+              WHERE h.student_id = s.id) AS handInCount,
+           (SELECT COUNT(*) FROM course_exercises ce WHERE ce.course_id = s.course_id AND ce.unlocked = 1) AS unlockedExerciseCount
+    FROM students s WHERE s.course_id = ${courseId} ORDER BY s.name, s.id
   `;
   return rows.map(toStudentView);
 }
@@ -163,7 +171,12 @@ export async function resetCode(db: SQLInstance, courseId: number, studentId: nu
     try {
       await db`UPDATE students SET code = ${generateAccessCode()} WHERE id = ${studentId}`;
       const rows = await db<StudentRow[]>`
-        SELECT id, name, code, last_activity_at AS lastActivityAt FROM students WHERE id = ${studentId}
+        SELECT s.id, s.name, s.code, s.last_activity_at AS lastActivityAt,
+           (SELECT COUNT(DISTINCT h.exercise_id) FROM handins h
+              JOIN course_exercises ce ON ce.exercise_id = h.exercise_id AND ce.course_id = s.course_id AND ce.unlocked = 1
+              WHERE h.student_id = s.id) AS handInCount,
+           (SELECT COUNT(*) FROM course_exercises ce WHERE ce.course_id = s.course_id AND ce.unlocked = 1) AS unlockedExerciseCount
+    FROM students s WHERE s.id = ${studentId}
       `;
       return toStudentView(rows[0]!);
     } catch (e) {
