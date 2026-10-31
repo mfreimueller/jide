@@ -45,13 +45,15 @@ export function registerExerciseIpc(): void {
     const summaries: ExerciseSummary[] = [];
     for (const ex of exercises) {
       const started = await dirExists(join(workspaceRoot(), ex.id));
-      const submittedAt = handIns.get(ex.id);
+      const handIn = handIns.get(ex.id);
+      const submittedAt = handIn?.submittedAt ?? null;
       summaries.push({
         id: ex.id,
         title: ex.title,
         status: submittedAt ? "abgegeben" : started ? "in-arbeit" : "neu",
         deadline: ex.deadline,
-        submittedAt
+        submittedAt,
+        late: handIn?.late ?? false
       });
     }
     return { exercises: summaries, errors, offline };
@@ -68,7 +70,7 @@ export function registerExerciseIpc(): void {
         await dirExists(join(workspaceRoot(), ex.id))
       );
       if (!prepared.ok) return { ok: false, message: prepared.message };
-      if (prepared.submittedAt) handIns.set(ex.id, prepared.submittedAt);
+      if (prepared.submittedAt) handIns.set(ex.id, prepared.submittedAt, prepared.late === true);
       const ws = await openWorkspace(ex, workspaceRoot());
       return {
         ok: true,
@@ -79,7 +81,8 @@ export function registerExerciseIpc(): void {
           mainFile: ex.mainFile,
           files: ws.files,
           deadline: await source.deadlineOf(ex.id),
-          submittedAt: handIns.get(ex.id)
+          submittedAt: handIns.get(ex.id)?.submittedAt ?? null,
+          late: handIns.get(ex.id)?.late ?? false
         }
       };
     } catch (e) {
@@ -133,7 +136,7 @@ export function registerExerciseIpc(): void {
       return { ok: false, message: errorMessage(e, "Deine Dateien konnten nicht gelesen werden.") };
     }
     const r = await source.handIn(ex, files);
-    if (r.ok) handIns.set(ex.id, r.submittedAt);
+    if (r.ok) handIns.set(ex.id, r.submittedAt, r.late);
     return r;
   });
 }

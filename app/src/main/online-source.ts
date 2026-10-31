@@ -103,7 +103,7 @@ export class OnlineSource implements ExerciseSource {
     ex: Exercise,
     workspaceRoot: string,
     workspaceExists: boolean
-  ): Promise<{ ok: true; submittedAt?: string } | { ok: false; message: string }> {
+  ): Promise<{ ok: true; submittedAt?: string; late?: boolean } | { ok: false; message: string }> {
     if (workspaceExists) return { ok: true };
     // New laptop (or first time): the last hand-in, if any, is the starting point.
     let latest;
@@ -121,7 +121,10 @@ export class OnlineSource implements ExerciseSource {
       await rm(path.join(workspaceRoot, ex.id), { recursive: true, force: true });
       return { ok: false, message: "Deine letzte Abgabe konnte nicht wiederhergestellt werden." };
     }
-    return { ok: true, submittedAt: latest.submittedAt };
+    // The server computes "late" the same way: hand-in after the current deadline.
+    const deadline = await this.deadlineOf(ex.id);
+    const late = deadline !== null && new Date(latest.submittedAt).getTime() > new Date(deadline).getTime();
+    return { ok: true, submittedAt: latest.submittedAt, late };
   }
 
   async handIn(ex: Exercise, files: HandInFile[]): Promise<HandInOutcome> {

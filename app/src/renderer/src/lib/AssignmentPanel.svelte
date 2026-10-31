@@ -6,8 +6,9 @@
   let {
     markdown,
     deadline = null,
-    submittedAt = null
-  }: { markdown: string; deadline?: string | null; submittedAt?: string | null } = $props();
+    submittedAt = null,
+    late = false
+  }: { markdown: string; deadline?: string | null; submittedAt?: string | null; late?: boolean } = $props();
   const html = $derived(renderMarkdown(markdown));
 
   // Links in the assignment must never navigate the app window.
@@ -20,7 +21,7 @@
 <aside class="assign" data-testid="assignment" onclick={blockLinks}>
   {#if deadline}
     <div class="deadline" data-testid="deadline">
-      {#if submittedAt}<span class="chip done">Abgegeben</span>{:else if isPast(deadline)}<span class="chip late"
+      {#if submittedAt}<span class="chip" class:done={!late} class:late-hand={late}>{late ? "Abgegeben · verspätet" : "Abgegeben"}</span>{:else if isPast(deadline)}<span class="chip late"
           >Frist vorbei</span
         >{/if}Abgabe bis {formatDate(deadline)}
     </div>

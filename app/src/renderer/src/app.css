@@ -96,6 +96,10 @@ body {
   background: #feebec;
   color: #ce2c31;
 }
+.chip.late-hand {
+  background: #fff4d5;
+  color: #ab6400;
+}
 .chip.grey {
   background: #f1f3f5;
   color: #60646c;

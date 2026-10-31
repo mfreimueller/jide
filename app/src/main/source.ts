@@ -41,7 +41,7 @@ export interface ExerciseSource {
     ex: Exercise,
     workspaceRoot: string,
     workspaceExists: boolean
-  ): Promise<{ ok: true; submittedAt?: string } | { ok: false; message: string }>;
+  ): Promise<{ ok: true; submittedAt?: string; late?: boolean } | { ok: false; message: string }>;
   /** Present when the source accepts hand-ins. */
   handIn?(ex: Exercise, files: HandInFile[]): Promise<HandInOutcome>;
 }

@@ -8,6 +8,8 @@ export interface ExerciseSummary {
   deadline: string | null;
   /** Last hand-in made on this laptop or restored from the server (ISO 8601 UTC). */
   submittedAt: string | null;
+  /** The last hand-in came after the deadline. */
+  late: boolean;
 }
 
 export interface ExerciseList {
@@ -49,6 +51,7 @@ export interface OpenedExercise {
   files: OpenedFile[];
   deadline: string | null;
   submittedAt: string | null;
+  late: boolean;
 }
 
 export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };

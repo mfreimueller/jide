@@ -55,7 +55,7 @@ test("login with a lower-case code lists the unlocked exercises", async () => {
   await expect(page.getByTestId("sync")).toHaveText("Verbunden");
   await expect(card(page, SUMME)).toContainText("Neu");
   await expect(card(page, SUMME)).toContainText("bis Do, 27.11."); // 2031-11-27T22:59Z = 23:59 in Vienna
-  await expect(card(page, "Größere Zahl")).toContainText("Neu");
+  await expect(card(page, "Größere Zahl")).toContainText("Frist vorbei · Abgabe noch möglich");
   await expect(page.getByTestId("offline-hint")).toHaveCount(0);
   await page.screenshot({ path: join(screenshotDir, "online-list.png") });
 });
@@ -101,6 +101,32 @@ test("a fresh laptop starts from the last hand-in", async () => {
   await second.page.getByRole("button", { name: "← Aufgaben" }).click();
   await openExercise(second.page, "Größere Zahl");
   await expect(second.page.locator(".monaco-editor .view-lines")).not.toContainText("ABGABE-EINS");
+});
+
+test("a hand-in after the deadline is marked verspätet, also after a restart and on a new laptop", async () => {
+  const backend = await startBackend();
+  const first = await loggedIn(backend);
+  await openExercise(first.page, "Größere Zahl");
+  await expect(first.page.getByTestId("handed-in")).toHaveCount(0);
+  await setEditorText(first.app, first.page, "int maximum(int a, int b) { return a; }\n");
+  await handIn(first.page);
+  await expect(first.page.getByTestId("toast")).toContainText(/Abgabe gespeichert – verspätet \(\w\w, \d+\.\d+\. um \d\d:\d\d\)/);
+  await expect(first.page.getByTestId("handed-in")).toContainText("Abgegeben · verspätet");
+  await first.page.screenshot({ path: join(screenshotDir, "online-handin-late.png") });
+  await first.page.getByRole("button", { name: "← Aufgaben" }).click();
+  await expect(card(first.page, "Größere Zahl")).toContainText("Abgegeben · verspätet");
+  await first.app.close();
+
+  // restart: kept in handins.json
+  const again = await launchOnline(backend, userDataDir());
+  await expect(card(again.page, "Größere Zahl")).toContainText("Abgegeben · verspätet");
+  await again.app.close();
+
+  // new laptop: derived from the restored hand-in and the deadline
+  const second = await launchOnline(backend, newUserData());
+  await login(second.page, backend.code);
+  await openExercise(second.page, "Größere Zahl");
+  await expect(second.page.getByTestId("handed-in")).toContainText("Abgegeben · verspätet");
 });
 
 test("offline start shows the cached list; editing works; Abgeben says there is no connection", async () => {

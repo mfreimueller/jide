@@ -44,6 +44,8 @@
 
   // svelte-ignore state_referenced_locally
   let submittedAt = $state<string | null>(exercise.submittedAt);
+  // svelte-ignore state_referenced_locally
+  let late = $state(exercise.late);
   let handInBusy = $state(false);
   let toast = $state<{ kind: "ok" | "error"; text: string } | undefined>();
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -68,7 +70,13 @@
       const r = await window.jide.handIn(exercise.id);
       if (r.ok) {
         submittedAt = r.submittedAt;
-        showToast("ok", `Abgabe gespeichert – ${formatDateTime(r.submittedAt)}`);
+        late = r.late;
+        showToast(
+          "ok",
+          r.late
+            ? `Abgabe gespeichert – verspätet (${formatDateTime(r.submittedAt)})`
+            : `Abgabe gespeichert – ${formatDateTime(r.submittedAt)}`
+        );
       } else {
         showToast("error", r.message);
       }
@@ -82,7 +90,7 @@
   /** "Abgegeben 10:44" for today, "Abgegeben Do, 12.11." otherwise. */
   function handInChip(iso: string): string {
     const today = formatDate(new Date().toISOString()) === formatDate(iso);
-    return `Abgegeben ${today ? formatTime(iso) : formatDate(iso)}`;
+    return `Abgegeben${late ? " · verspätet" : ""} ${today ? formatTime(iso) : formatDate(iso)}`;
   }
 
   let leaving = false;
@@ -108,7 +116,7 @@
       <span class="status" data-testid="save-status">Gespeichert</span>
     {/if}
     {#if submittedAt}
-      <span class="chip done" data-testid="handed-in">{handInChip(submittedAt)}</span>
+      <span class="chip" class:done={!late} class:late-hand={late} data-testid="handed-in">{handInChip(submittedAt)}</span>
     {/if}
     <span class="spacer"></span>
     <Toolbar
@@ -147,7 +155,7 @@
         </div>
       {/if}
     </div>
-    <AssignmentPanel markdown={exercise.assignment} deadline={exercise.deadline} {submittedAt} />
+    <AssignmentPanel markdown={exercise.assignment} deadline={exercise.deadline} {submittedAt} {late} />
   </div>
 </div>
 

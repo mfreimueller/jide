@@ -48,7 +48,7 @@
     <div class="meta">
       {#if ex.deadline}<span class="small">bis {formatDate(ex.deadline)}</span>{/if}
       {#if ex.status === "abgegeben"}
-        <span class="chip done">Abgegeben</span>
+        <span class="chip" class:done={!ex.late} class:late-hand={ex.late}>{ex.late ? "Abgegeben · verspätet" : "Abgegeben"}</span>
       {:else if late(ex)}
         <span class="chip late">Frist vorbei · Abgabe noch möglich</span>
       {:else if ex.status === "neu"}

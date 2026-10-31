@@ -44,7 +44,8 @@ for (const name of readdirSync(examples)) {
   await saveExercise(db, teacher.id, pkg);
   await updateForCourse(db, teacher.id, course.id, pkg.id, {
     unlocked: true,
-    deadline: pkg.id === "summe" ? new Date("2031-11-27T22:59:00Z") : undefined
+    // summe: far in the future; maximum: long past, so hand-ins are late
+    deadline: new Date(pkg.id === "summe" ? "2031-11-27T22:59:00Z" : "2020-01-10T22:59:00Z")
   });
 }
 
