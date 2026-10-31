@@ -19,7 +19,7 @@ export interface StudentVariables {
 }
 
 // Only failures count: a whole class shares one school IP (see rate_limit.ts).
-export const STUDENT_MAX_FAILURES = 20;
+export const STUDENT_MAX_FAILURES = 50;
 export const STUDENT_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const ACTIVITY_INTERVAL_MS = 60_000;
 
@@ -28,9 +28,6 @@ const INVALID_CODE = 'Dieser Code ist ungültig. Bitte prüfe ihn oder frage dei
 /** Resolves a raw code to its student; 401 for unknown codes or archived courses. Rate-limited per IP. */
 export async function authenticateStudent(c: Context, rawCode: string | null | undefined): Promise<Student> {
   const key = `student:${clientIp(c)}`;
-  if (tooManyFailures(key, STUDENT_MAX_FAILURES, STUDENT_FAILURE_WINDOW_MS)) {
-    throw new AppError(429, 'RATE_LIMITED', 'Zu viele falsche Versuche. Bitte warte ein paar Minuten.');
-  }
   const code = rawCode ? normaliseCode(rawCode) : null;
   const rows = code
     ? await getDb()<(Student & { archived: number })[]>`
@@ -41,7 +38,11 @@ export async function authenticateStudent(c: Context, rawCode: string | null | u
     : [];
   const student = rows[0];
   if (!student || student.archived === 1) {
+    // A valid code is never blocked; only failures are counted and, over the limit, answered with 429.
     recordFailure(key);
+    if (tooManyFailures(key, STUDENT_MAX_FAILURES, STUDENT_FAILURE_WINDOW_MS)) {
+      throw new AppError(429, 'RATE_LIMITED', 'Zu viele falsche Versuche. Bitte warte ein paar Minuten.');
+    }
     throw new AppError(401, 'UNAUTHORIZED', INVALID_CODE);
   }
   const now = new Date();

@@ -144,14 +144,17 @@ describe('archived course', () => {
 });
 
 describe('rate limit', () => {
-  it('blocks an IP after too many failures, other IPs are unaffected', async () => {
+  it('answers unknown codes with 429 after too many failures, but valid codes still work', async () => {
     const f = await fixture();
-    for (let i = 0; i < STUDENT_MAX_FAILURES; i++) expect((await login('ABCD-EFGH', '10.9.9.9')).status).toBe(401);
+    for (let i = 0; i < STUDENT_MAX_FAILURES - 1; i++) expect((await login('ABCD-EFGH', '10.9.9.9')).status).toBe(401);
     const blocked = await login('ABCD-EFGH', '10.9.9.9');
     expect(blocked.status).toBe(429);
     expect(((await blocked.json()) as { message: string }).message).toMatch(/Versuche/);
-    expect((await me(f.code, '10.9.9.9')).status).toBe(429);
+    expect((await me('ABCD-EFGH', '10.9.9.9')).status).toBe(429);
     expect((await login(f.code, '10.8.8.8')).status).toBe(200);
+    // Over the limit, a valid code still logs in and a valid Bearer still works.
+    expect((await login(f.code, '10.9.9.9')).status).toBe(200);
+    expect((await me(f.code, '10.9.9.9')).status).toBe(200);
   });
 
   it('never counts successful logins', async () => {
