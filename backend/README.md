@@ -1,6 +1,6 @@
 # @jide/backend
 
-Hono + MariaDB backend for J;DE (teacher sign-in, courses, students and exercises so far; hand-ins follow).
+Hono + MariaDB backend for J;DE (teacher sign-in, courses, students and exercises and hand-ins).
 
 ## Exercises API
 
@@ -23,6 +23,18 @@ Teacher routes need the teacher `Bearer` token, student routes the student code.
 The backend imports `@jide/shared` as TypeScript source (npm workspace). `shared/src` therefore uses `.js` import extensions; T15 (deploy) must bundle or build shared, since `tsc -p tsconfig.build.json` + `node dist` does not compile it.
 
 All commands run from the repo root.
+
+## Hand-ins API
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| POST | `/api/exercises/:id/handins` | student: JSON `{ files: [{path, content}], testSummary: {passed, total} \| null }` (`testSummary` optional); 201 `{ submittedAt, late }`. 404 unless unlocked; 400 for unknown/read-only/duplicate paths; max 50 files (400) and 1 MB UTF-8 content (413). Server time only. |
+| GET | `/api/exercises/:id/handins/latest` | student: `{ submittedAt, files }` of the last hand-in, 404 if none |
+| GET | `/api/teacher/courses/:courseId/handins` | matrix `{ students, exercises, rows }`; `rows[i].cells[j]` = last hand-in of `students[i]` for `exercises[j]` (`handinId, submittedAt, late, testSummary, count`) or `null`. `?missing=1` keeps only students lacking a hand-in for an unlocked exercise (server side). |
+| GET | `/api/teacher/handins/:handinId` | `{ handin }` with student, exercise, files, `history` (newest first), `previous`/`next` (`{studentId, handinId}` of the neighbouring students by name who handed in this exercise) |
+| GET | `/api/teacher/courses/:courseId/exercises/:id/handins.zip` | last hand-in of every student, folder per student (Windows-safe name, clashes get ` (2)`) |
+
+Storage: `handins` (student, exercise row, `submitted_at` UTC server time, `exercise_version`, `tests_passed`/`tests_total`) and `handin_files` (one row per file, `content` MEDIUMTEXT). Every hand-in is kept; the highest id of a student and exercise counts. `late` is never stored: it is computed on read as `submitted_at > current course deadline`, so extending a deadline un-marks late hand-ins. `handInCount`/`unlockedExerciseCount` in the student list count unlocked exercises only.
 
 ## Database
 
