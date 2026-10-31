@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
+import icon from "../../resources/icon.png?asset";
 import { registerCompileIpc } from "./compile";
 import { registerExerciseIpc } from "./exercises";
 import { registerRunIpc } from "./run";
@@ -23,6 +24,7 @@ app.on("before-quit", () => {
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     title: "J;DE",
+    icon,
     width: 1280,
     height: 800,
     minWidth: 1024,

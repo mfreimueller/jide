@@ -44,16 +44,7 @@ body {
 .logo-mark {
   width: 30px;
   height: 30px;
-  border-radius: 8px;
-  background: #2f5bd3;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: var(--jide-code-font);
-  font-variant-ligatures: none;
+  display: block;
 }
 
 /* buttons and chips */

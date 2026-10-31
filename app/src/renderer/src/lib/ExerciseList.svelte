@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import iconUrl from "../assets/icon.svg";
   import type { ExerciseList } from "../../../shared-types/api";
 
   let { onOpen }: { onOpen: (id: string) => void } = $props();
@@ -21,7 +22,7 @@
 
 <div class="screen">
   <div class="topbar">
-    <div class="logo-mark">{"{ }"}</div>
+    <img class="logo-mark" src={iconUrl} alt="J;DE" />
     <span class="title">Meine Aufgaben</span>
   </div>
   <div class="content">
