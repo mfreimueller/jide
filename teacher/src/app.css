@@ -1,0 +1,189 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+/* Tokens taken from docs/design/teacher-web.html. */
+:root {
+	--bg: #f8f9fa;
+	--surface: #ffffff;
+	--surface-alt: #f1f3f5;
+	--surface-head: #fbfcfd;
+	--border: #e3e6e8;
+	--border-strong: #d9dcdf;
+	--text: #1c2024;
+	--text-body: #3a3f45;
+	--text-muted: #60646c;
+	--text-faint: #80838d;
+	--text-ghost: #b0b4ba;
+	--text-inverse: #ffffff;
+	--primary: #2f5bd3;
+	--primary-dark: #2449b0;
+	--primary-soft: #e1e8fb;
+	--primary-line: #c4d2f7;
+	--primary-wash: #f5f8ff;
+	--success: #18794e;
+	--success-soft: #e6f6ec;
+	--success-dot: #30a46c;
+	--success-line: #b4e2c4;
+	--success-wash: #f4fbf6;
+	--danger: #ce2c31;
+	--danger-soft: #feebec;
+	--danger-dot: #e5484d;
+	--warn: #ab6400;
+	--warn-soft: #fff4d5;
+
+	--font-sans: 'Inter Variable', Inter, system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+	--radius: 8px;
+	--radius-lg: 12px;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	/* Code must show the characters as typed: no ≤ / ≠ / → ligatures. */
+	font-variant-ligatures: none !important;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font-sans);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+p {
+	margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+	font: inherit;
+	color: inherit;
+}
+
+:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+/* Shared building blocks (used on several pages). */
+.panel {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+}
+.card-pad {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px 18px;
+}
+.card-title {
+	font-size: 14px;
+	font-weight: 600;
+}
+.muted {
+	color: var(--text-muted);
+	font-size: 14px;
+	line-height: 20px;
+}
+.small {
+	font-size: 12px;
+	color: var(--text-faint);
+}
+.mono {
+	font-family: var(--font-mono);
+}
+.spacer {
+	flex: 1;
+}
+table.data {
+	border-collapse: collapse;
+	width: 100%;
+	font-size: 13px;
+}
+table.data th {
+	text-align: left;
+	font-weight: 600;
+	color: var(--text-muted);
+	font-size: 12px;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--border);
+	background: var(--surface-head);
+	vertical-align: bottom;
+}
+table.data td {
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--surface-alt);
+	vertical-align: middle;
+}
+table.data tr:last-child td {
+	border-bottom: 0;
+}
+.code-pill {
+	font-family: var(--font-mono);
+	font-size: 13px;
+	background: var(--surface-alt);
+	border-radius: 6px;
+	padding: 3px 8px;
+	letter-spacing: 0.04em;
+}
+.chip {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 500;
+	padding: 3px 10px;
+	border-radius: 999px;
+	white-space: nowrap;
+}
+.chip.late {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+.chip.new {
+	background: var(--primary-soft);
+	color: var(--primary);
+}
+.chip.grey {
+	background: var(--surface-alt);
+	color: var(--text-muted);
+}
+.alert {
+	padding: 10px 14px;
+	border-radius: var(--radius);
+	background: var(--danger-soft);
+	color: var(--danger);
+	font-size: 13px;
+}
+
+.body {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 0 36px 36px;
+	min-width: 0;
+}
+.split {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+}
+.infocol {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	width: 360px;
+	flex: none;
+}
