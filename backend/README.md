@@ -1,6 +1,6 @@
 # @jide/backend
 
-Hono + MariaDB backend for J;DE (teacher sign-in so far; courses, exercises and hand-ins follow).
+Hono + MariaDB backend for J;DE (teacher sign-in, courses and students so far; exercises and hand-ins follow).
 
 All commands run from the repo root.
 
