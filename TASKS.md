@@ -45,7 +45,7 @@ Test summaries in hand-ins stay empty until M3.
   - Done when: e2e tests pass against a local backend (login, list, open, hand in, restore on a fresh user-data dir, offline start).
 - [ ] **T14 Teacher app** (`teacher/`) – SvelteKit SPA from parsonxam: sign-in, courses, students + printable code sheet (A4 slips), exercises (upload, unlock, deadline, exam-package export may wait for M4), hand-in matrix with "only missing" filter, hand-in detail (highlighted read-only code, history, previous/next student), zip download. Design: `docs/design/teacher-web.html`.
   - Done when: svelte-check passes and a manual walk-through against the local backend covers every screen.
-- [ ] **T15 Deploy** – `scripts/deploy-backend.sh`, `scripts/deploy-teacher.sh`, `.deploy.env.example`, `docs/deployment.md` (one-time Uberspace setup as in parsonxam).
+- [ ] **T15 Deploy** – bundle the backend (e.g. esbuild) because it imports `@jide/shared` as TypeScript source; `scripts/deploy-backend.sh`, `scripts/deploy-teacher.sh`, `.deploy.env.example`, `docs/deployment.md` (one-time Uberspace setup as in parsonxam).
   - Done when: the user has run the one-time setup, `/api/health` answers on the real domain and a sign-in mail arrives.
 - [ ] **T16 Rehearsal** – real server: course with two test students, both sample exercises uploaded and unlocked, the released Windows app (CI) logs in, downloads, hands in; the hand-ins show up in the teacher view.
   - Done when: done once end to end before 2026-11-18.
