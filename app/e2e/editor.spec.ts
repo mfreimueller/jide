@@ -96,7 +96,9 @@ test("completion: Scanner variable gives members, unknown receiver gives nothing
   await page.locator(".monaco-editor .view-lines").click();
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.type("\nvoid t() { Scanner s = new Scanner(System.in); s.");
-  await expect(page.getByRole("option", { name: /^nextInt / })).toBeVisible();
+  // Monaco exposes suggest rows as "option" on macOS but as "listitem" on Windows.
+  const nextInt = page.getByRole("option", { name: /^nextInt / }).or(page.getByRole("listitem", { name: /^nextInt / }));
+  await expect(nextInt).toBeVisible();
   await page.keyboard.press("Escape");
   await page.keyboard.type("close(); xyz.");
   await expect(page.locator(".suggest-widget")).not.toBeVisible();
