@@ -121,7 +121,7 @@ supervisorctl reread && supervisorctl update
 
 ### 8. GitHub repository variable
 
-The student app has to know the server. In the GitHub repository, under **Settings, Secrets and variables, Actions, Variables**, add `JIDE_API_URL` = `https://<domain>`. It must match the domain configured above. (As of this writing the release workflow does not read it yet; it is wired up together with the app's online mode, see TASKS.md.)
+The student app has to know the server; the URL is fixed at build time (see [release.md](release.md)). In the GitHub repository, under **Settings, Secrets and variables, Actions, Variables**, set `JIDE_API_URL` = `https://<domain>` (no trailing path; the app appends `/api/...`). It must match the domain configured above, or released apps will talk to the wrong server. Releases and the installer job of CI fail while it is empty.
 
 ## Deploying
 
