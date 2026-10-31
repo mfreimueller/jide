@@ -1,0 +1,20 @@
+services:
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: jide
+      MARIADB_USER: jide
+      MARIADB_PASSWORD: jide
+    ports:
+      - "3307:3306"
+    volumes:
+      - jide_mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  jide_mariadb_data:
