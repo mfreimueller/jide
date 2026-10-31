@@ -1,0 +1,35 @@
+appId: io.github.mfreimueller.jide
+productName: JDE
+copyright: J;DE
+directories:
+  buildResources: resources
+  output: dist
+files:
+  - out/**
+  - package.json
+asar: true
+extraResources:
+  - from: build/jdk
+    to: jdk
+  - from: ../java-helper/target/java-helper.jar
+    to: java-helper.jar
+  - from: ../examples
+    to: examples
+win:
+  target:
+    - target: nsis
+      arch: x64
+  icon: resources/icon.ico
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: "J;DE"
+  artifactName: JDE-Setup-${version}.exe
+publish:
+  provider: github
+  owner: mfreimueller
+  repo: jide
+  releaseType: release
