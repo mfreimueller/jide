@@ -22,5 +22,5 @@ Windows packaging (installer + bundled JDK) moves to M2, so it's ready for 2026-
 
 # Before M2 (planned for 2026-10-31)
 
-- [ ] **Rename** the tool from "jide" to **J;DE** (for Java IDE). Clarify first which places change (window title, UI texts, logo, installer name, package/folder names, repo name).
+- [x] **Rename** the tool from "jide" to **J;DE** (for Java IDE). Renamed user-visible places only: window and page title, German UI texts (Java-helper restart message), `productName` "JDE" (app data folder/installer), package description, design mockups and SPEC title. Internal identifiers (npm packages, IPC channels, JIDE_* env vars, Java package, repo name) stay "jide".
 - [ ] **App icon**: design up to four icon sketches in Figma; the user picks one, then use it for the app (window, installer, logo mark).

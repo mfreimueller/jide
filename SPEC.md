@@ -1,6 +1,8 @@
-# jide – Spec (Draft v0.1, 2026-10-30)
+# J;DE – Spec (Draft v0.1, 2026-10-30)
 
 A minimal Java IDE for first-year HTL students (POS 1xHIF), with exercises distributed by a thin backend and an offline exam mode.
+
+J;DE (for "Java IDE"); the technical name is "JDE" where a semicolon cannot be used (installer file, app data folder). Internal identifiers (npm packages @jide/*, IPC channels, JIDE_* env vars, Java package at.jide.helper, repo name "jide") stay "jide".
 
 ## 1. Objective
 
