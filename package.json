@@ -6,7 +6,8 @@
   "workspaces": [
     "shared",
     "java-helper",
-    "app"
+    "app",
+    "backend"
   ],
   "scripts": {
     "dev": "npm run dev -w app",
