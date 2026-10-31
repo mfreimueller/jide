@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import type { OpenedExercise } from "../../../shared-types/api";
+  import { formatDate, formatDateTime, formatTime } from "../../../shared-types/datetime";
   import AssignmentPanel from "./AssignmentPanel.svelte";
   import BottomPanel, { type BottomTab } from "./BottomPanel.svelte";
   import CodeEditor from "./CodeEditor.svelte";
@@ -11,10 +12,13 @@
 
   let {
     exercise,
+    canHandIn,
     onBack,
     registerSession
   }: {
     exercise: OpenedExercise;
+    /** Online mode: show "Abgeben". */
+    canHandIn: boolean;
     onBack: () => void;
     registerSession: (s: EditorSession | undefined) => void;
   } = $props();
@@ -38,6 +42,49 @@
     session.dispose();
   });
 
+  // svelte-ignore state_referenced_locally
+  let submittedAt = $state<string | null>(exercise.submittedAt);
+  let handInBusy = $state(false);
+  let toast = $state<{ kind: "ok" | "error"; text: string } | undefined>();
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  onDestroy(() => clearTimeout(toastTimer));
+
+  function showToast(kind: "ok" | "error", text: string): void {
+    toast = { kind, text };
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toast = undefined), 8000);
+  }
+
+  /** Flushes pending edits, then uploads the saved files. */
+  async function handIn(): Promise<void> {
+    if (handInBusy) return;
+    handInBusy = true;
+    try {
+      await session.flush();
+      if (!session.clean) {
+        showToast("error", "Deine Änderungen konnten nicht gespeichert werden. Versuch es gleich nochmal.");
+        return;
+      }
+      const r = await window.jide.handIn(exercise.id);
+      if (r.ok) {
+        submittedAt = r.submittedAt;
+        showToast("ok", `Abgabe gespeichert – ${formatDateTime(r.submittedAt)}`);
+      } else {
+        showToast("error", r.message);
+      }
+    } catch {
+      showToast("error", "Das hat leider nicht geklappt.");
+    } finally {
+      handInBusy = false;
+    }
+  }
+
+  /** "Abgegeben 10:44" for today, "Abgegeben Do, 12.11." otherwise. */
+  function handInChip(iso: string): string {
+    const today = formatDate(new Date().toISOString()) === formatDate(iso);
+    return `Abgegeben ${today ? formatTime(iso) : formatDate(iso)}`;
+  }
+
   let leaving = false;
   async function back(): Promise<void> {
     if (leaving) return;
@@ -60,8 +107,16 @@
     {:else}
       <span class="status" data-testid="save-status">Gespeichert</span>
     {/if}
+    {#if submittedAt}
+      <span class="chip done" data-testid="handed-in">{handInChip(submittedAt)}</span>
+    {/if}
     <span class="spacer"></span>
-    <Toolbar {run} />
+    <Toolbar
+      {run}
+      handIn={canHandIn
+        ? { label: submittedAt ? "Erneut abgeben" : "Abgeben", busy: handInBusy, onClick: () => void handIn() }
+        : undefined}
+    />
   </div>
   <div class="work">
     <div class="files" data-testid="file-list">
@@ -86,8 +141,13 @@
       </div>
       <CodeEditor {session} />
       <BottomPanel bind:tab={bottomTab} {problems} {session} {run} />
+      {#if toast}
+        <div class="toast" class:error={toast.kind === "error"} role="status" data-testid="toast">
+          <span class="mark">{toast.kind === "ok" ? "✓" : "!"}</span>{toast.text}
+        </div>
+      {/if}
     </div>
-    <AssignmentPanel markdown={exercise.assignment} />
+    <AssignmentPanel markdown={exercise.assignment} deadline={exercise.deadline} {submittedAt} />
   </div>
 </div>
 
@@ -181,10 +241,32 @@
     background: #b0b4ba;
   }
   .center-col {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
+  }
+  .toast {
+    position: absolute;
+    right: 24px;
+    bottom: 250px;
+    background: #1c2024;
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+  .toast .mark {
+    color: #7ce2a6;
+    font-weight: 700;
+  }
+  .toast.error .mark {
+    color: #ffb4b6;
   }
   .tabs {
     height: 38px;

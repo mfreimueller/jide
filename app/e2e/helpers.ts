@@ -39,7 +39,7 @@ export function card(page: Page, title: string) {
 
 export async function openExercise(page: Page, title: string): Promise<void> {
   await card(page, title)
-    .getByRole("button", { name: /Öffnen|Weiterarbeiten/ })
+    .getByRole("button", { name: /Öffnen|Weiterarbeiten|Ansehen/ })
     .click();
   await expect(page.locator(".monaco-editor .view-lines")).toBeVisible();
 }

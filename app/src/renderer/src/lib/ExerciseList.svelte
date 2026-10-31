@@ -1,48 +1,111 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import iconUrl from "../assets/icon.svg";
-  import type { ExerciseList } from "../../../shared-types/api";
+  import { formatDate, formatDateTime, isPast } from "../../../shared-types/datetime";
+  import type { ExerciseList, ExerciseSummary, StudentInfo } from "../../../shared-types/api";
 
-  let { onOpen }: { onOpen: (id: string) => void } = $props();
+  let { student, onOpen }: { student: StudentInfo | null; onOpen: (id: string) => void } = $props();
 
   let list = $state<ExerciseList | undefined>();
   let failure = $state("");
 
+  const initials = $derived(
+    (student?.name ?? "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]!.toUpperCase())
+      .join("")
+  );
+  const open = $derived((list?.exercises ?? []).filter((e) => e.status !== "abgegeben"));
+  const handedIn = $derived((list?.exercises ?? []).filter((e) => e.status === "abgegeben"));
+
   onMount(async () => {
+    // Opening the list is also the quiet retry after being offline.
     try {
       list = await window.jide.listExercises();
     } catch {
       failure = "Die Aufgaben konnten nicht geladen werden.";
-      list = { exercises: [], errors: [] };
+      list = { exercises: [], errors: [], offline: false };
     }
     // Tell main that the start screen is on screen (smoke test).
     requestAnimationFrame(() => window.jide.notifyEditorReady());
   });
+
+  function late(ex: ExerciseSummary): boolean {
+    return ex.status !== "abgegeben" && isPast(ex.deadline);
+  }
 </script>
+
+{#snippet row(ex: ExerciseSummary)}
+  <div class="ex" data-testid="exercise" data-id={ex.id}>
+    <div class="ex-main">
+      <span class="ex-title">{ex.title}</span>
+      {#if ex.submittedAt}
+        <span class="muted">Zuletzt abgegeben: {formatDateTime(ex.submittedAt)}</span>
+      {/if}
+    </div>
+    <div class="meta">
+      {#if ex.deadline}<span class="small">bis {formatDate(ex.deadline)}</span>{/if}
+      {#if ex.status === "abgegeben"}
+        <span class="chip done">Abgegeben</span>
+      {:else if late(ex)}
+        <span class="chip late">Frist vorbei · Abgabe noch möglich</span>
+      {:else if ex.status === "neu"}
+        <span class="chip new">Neu</span>
+      {:else}
+        <span class="chip wip">In Arbeit</span>
+      {/if}
+    </div>
+    {#if ex.status === "neu"}
+      <button class="btn primary" onclick={() => onOpen(ex.id)}>Öffnen</button>
+    {:else if ex.status === "abgegeben"}
+      <button class="btn" onclick={() => onOpen(ex.id)}>Ansehen</button>
+    {:else}
+      <button class="btn" onclick={() => onOpen(ex.id)}>Weiterarbeiten</button>
+    {/if}
+  </div>
+{/snippet}
 
 <div class="screen">
   <div class="topbar">
     <img class="logo-mark" src={iconUrl} alt="J;DE" />
     <span class="title">Meine Aufgaben</span>
+    {#if student}
+      <span class="chip grey" data-testid="course">{student.course.subject} · {student.course.className}</span>
+    {/if}
+    <span class="spacer"></span>
+    {#if student && list}
+      {#if list.offline}
+        <span class="sync off" data-testid="sync"><span class="dot"></span>Offline</span>
+      {:else}
+        <span class="sync" data-testid="sync"><span class="dot"></span>Verbunden</span>
+      {/if}
+    {/if}
+    {#if student}
+      <span class="user" data-testid="student"><span class="avatar">{initials}</span>{student.name}</span>
+    {/if}
   </div>
   <div class="content">
     {#if list}
-      {#each list.exercises as ex (ex.id)}
-        <div class="ex" data-testid="exercise" data-id={ex.id}>
-          <div class="ex-main"><span class="ex-title">{ex.title}</span></div>
-          {#if ex.status === "neu"}
-            <span class="chip new">Neu</span>
-            <button class="btn primary" onclick={() => onOpen(ex.id)}>Öffnen</button>
-          {:else}
-            <span class="chip wip">In Arbeit</span>
-            <button class="btn" onclick={() => onOpen(ex.id)}>Weiterarbeiten</button>
-          {/if}
-        </div>
-      {:else}
-        {#if !failure && list.errors.length === 0}
-          <p class="muted">Keine Aufgaben vorhanden.</p>
-        {/if}
-      {/each}
+      {#if list.offline}
+        <div class="notice" data-testid="offline-hint">Offline – du siehst die zuletzt geladenen Aufgaben.</div>
+      {/if}
+      {#if open.length > 0}
+        <span class="section-title">Offen</span>
+        {#each open as ex (ex.id)}
+          {@render row(ex)}
+        {/each}
+      {/if}
+      {#if handedIn.length > 0}
+        <span class="section-title">Abgegeben</span>
+        {#each handedIn as ex (ex.id)}
+          {@render row(ex)}
+        {/each}
+      {/if}
+      {#if list.exercises.length === 0 && !failure && list.errors.length === 0}
+        <p class="muted">Keine Aufgaben vorhanden.</p>
+      {/if}
       {#if failure}
         <div class="notice" data-testid="load-errors"><p>{failure}</p></div>
       {/if}
@@ -72,6 +135,14 @@
     gap: 14px;
     overflow-y: auto;
   }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #80838d;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 8px;
+  }
   .ex {
     background: #fff;
     border: 1px solid #e3e6e8;
@@ -91,13 +162,59 @@
     font-size: 16px;
     font-weight: 600;
   }
+  .meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .small {
+    font-size: 12px;
+    color: #80838d;
+  }
   .muted {
     color: #60646c;
     font-size: 14px;
     line-height: 20px;
   }
+  .sync {
+    font-size: 12px;
+    color: #18794e;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sync .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #30a46c;
+  }
+  .sync.off {
+    color: #80838d;
+  }
+  .sync.off .dot {
+    background: #b0b4ba;
+  }
+  .user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #3a3f45;
+  }
+  .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e1e8fb;
+    color: #2f5bd3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
   .notice {
-    margin-top: 8px;
     padding: 10px 14px;
     border-radius: 8px;
     background: #fff4d5;
@@ -105,5 +222,8 @@
     color: #ab6400;
     font-size: 13px;
     line-height: 19px;
+  }
+  .notice p {
+    margin: 0;
   }
 </style>

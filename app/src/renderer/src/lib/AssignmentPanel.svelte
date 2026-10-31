@@ -1,7 +1,13 @@
 <script lang="ts">
   import { renderMarkdown } from "./markdown";
 
-  let { markdown }: { markdown: string } = $props();
+  import { formatDate, isPast } from "../../../shared-types/datetime";
+
+  let {
+    markdown,
+    deadline = null,
+    submittedAt = null
+  }: { markdown: string; deadline?: string | null; submittedAt?: string | null } = $props();
   const html = $derived(renderMarkdown(markdown));
 
   // Links in the assignment must never navigate the app window.
@@ -12,6 +18,13 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <aside class="assign" data-testid="assignment" onclick={blockLinks}>
+  {#if deadline}
+    <div class="deadline" data-testid="deadline">
+      {#if submittedAt}<span class="chip done">Abgegeben</span>{:else if isPast(deadline)}<span class="chip late"
+          >Frist vorbei</span
+        >{/if}Abgabe bis {formatDate(deadline)}
+    </div>
+  {/if}
   {@html html}
 </aside>
 
@@ -30,6 +43,13 @@
     line-height: 21px;
     color: #3a3f45;
     overflow-y: auto;
+  }
+  .deadline {
+    font-size: 12px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    color: #60646c;
   }
   .assign :global(h1) {
     font-size: 18px;
