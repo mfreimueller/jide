@@ -22,6 +22,8 @@ const MAX_CONTENT_BYTES = 2 * 1024 * 1024;
 function exercisesRoot(): string {
   const fromEnv = process.env["JIDE_EXERCISES_DIR"];
   if (fromEnv) return resolve(fromEnv);
+  // Packaged: examples are shipped in resources until exercises come from the backend (T13).
+  if (app.isPackaged) return join(process.resourcesPath, "examples");
   return resolve(app.getAppPath(), "..", "examples");
 }
 
