@@ -58,6 +58,7 @@ jobs:
             Start-Sleep -Seconds 5
             # The installer briefly removes the exe while it replaces the files.
             $v = if (Test-Path $env:JDE_EXE) { (Get-Item $env:JDE_EXE).VersionInfo.ProductVersion } else { "(installing)" }
+            $v = $v -replace '^(\d+\.\d+\.\d+)\.0$', '$1'   # Windows file versions have a 4th part
             "version now: $v"
           } while ($v -ne "${{ inputs.to }}" -and (Get-Date) -lt $deadline)
           if ($v -ne "${{ inputs.to }}") { throw "expected ${{ inputs.to }}, found $v" }
