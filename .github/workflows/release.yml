@@ -39,12 +39,22 @@ jobs:
           if [ "${GITHUB_REF_NAME}" != "v${v}" ]; then
             echo "Tag ${GITHUB_REF_NAME} does not match app/package.json version ${v}"; exit 1
           fi
+      - name: API URL is set
+        shell: bash
+        env:
+          JIDE_API_URL: ${{ vars.JIDE_API_URL }}
+        run: |
+          if [ -z "$JIDE_API_URL" ]; then
+            echo "Repository variable JIDE_API_URL is empty. Set it under Settings > Secrets and variables > Actions > Variables."; exit 1
+          fi
       - run: npm ci
       - run: npm run build -w java-helper
       - run: npm run runtime -w app
       - run: npm run verify-runtime -w app
       - name: Build installer (not published)
         working-directory: app
+        env:
+          JIDE_API_URL: ${{ vars.JIDE_API_URL }}
         run: npx electron-vite build && npx electron-builder --win nsis --x64 --publish never
       - name: Silent install
         shell: pwsh
