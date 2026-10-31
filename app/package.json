@@ -2,7 +2,8 @@
   "name": "@jide/app",
   "version": "0.1.0",
   "private": true,
-  "description": "jide Electron app",
+  "productName": "JDE",
+  "description": "J;DE Electron app",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
