@@ -81,8 +81,8 @@ jobs:
             exit 0
           }
           "UNC path: $unc"
-          ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $unc "JDE.exe") -Label "UNC, first start"
-          ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $unc "JDE.exe") -Label "UNC, second start"
+          ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $unc "JDE.exe") -Label "UNC, first start" -TimeoutMs 30000
+          ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $unc "JDE.exe") -Label "UNC, second start" -TimeoutMs 30000
       - name: Folder is unchanged
         shell: pwsh
         run: |

@@ -15,6 +15,12 @@ while ($sw.ElapsedMilliseconds -lt $TimeoutMs) {
   Start-Sleep -Milliseconds 25
 }
 $ms = $sw.ElapsedMilliseconds
+if (-not $ready) {
+  "[$Label] diagnostics: HasExited=$($p.HasExited)"
+  if ($p.HasExited) { "exit code: $($p.ExitCode)" }
+  Get-Process | Where-Object { $_.ProcessName -match "JDE|consent|dllhost|SmartScreen|explorer" } |
+    Select-Object ProcessName, Id, Responding, MainWindowTitle | Format-Table | Out-String
+}
 if (-not $p.HasExited) { $p.WaitForExit(10000) | Out-Null }
 if (-not $p.HasExited) { $p.Kill() }
 Get-Content $out, $err -ErrorAction SilentlyContinue
