@@ -79,6 +79,7 @@ Exam mode is the same app as online mode, switched on by `exam.json` next to the
 
 - [ ] **T22 Exam folder + share test** – the smallest exam mode needed to start it from a share: `exam.json` next to the exe switches to exam mode; all writable Electron dirs (user data, cache, logs) go to `%TEMP%`; Java from `JAVA_HOME`; exercises listed from `exercises/` next to the exe (reuse the local source). CI (dry-run workflow artifact, no release) builds the unpacked Windows folder without the bundled JDK, with a sample `exam.json` and both sample exercises, as `JDE-Exam-<version>.zip`.
   - Done when: the user has started it from the real Angabelaufwerk on an exam PC and reported start-up time and any Windows warnings.
+  - Build merged 2026-11-01 (workflow "Exam build", artifact `JDE-Exam-<version>.zip`; CI: 1–2 s start from a local read-only folder, 159 MB zip, 83 files). On the CI runner the app only starts from a network path (mapped drive or UNC) with `--no-sandbox` ("GPU process isn't usable"). Decision 2026-11-01: change nothing until the user has tried the real share with and without `--no-sandbox` (see docs/exam-mode.md).
 - [ ] **T23 Exam config + JDK** – `exam.json` parsed and validated (zod, in `shared`), broken file → clear German error screen; title shown in the top bar; JDK lookup `jdkPath` → `JAVA_HOME` → `PATH`, version checked (25 or newer), clear error screen if missing or too old; nothing is ever written next to the exe; no update check and no backend calls in exam mode.
   - Done when: unit tests for the config and the JDK lookup pass; an e2e test starts exam mode from a read-only folder and opens an exercise.
 - [ ] **T24 Name entry** – start screen "Name eingeben" (as in Figma, if designed there; otherwise ask first), then the exercise list from `exercises/`. The name is asked at every start and goes into `abgabe.json`.
@@ -89,3 +90,9 @@ Exam mode is the same app as online mode, switched on by `exam.json` next to the
   - Done when: the dry run went through end to end.
 
 Order: T22 first (biggest risk, needs the user on site), then T23 → T24 → T25, T26 last.
+
+# Backlog (wishes 2026-11-01, not planned yet)
+
+- **Movable, collapsible side panels** in the student view: at least "Dateien" and "Angabe" can be collapsed; panel widths adjustable.
+- **Exercise groups**: the teacher groups exercises under a topic (e.g. "for-Schleife" with three exercises); the student list shows them grouped, so students see at a glance what to work on now.
+- Open questions before planning: remember panel sizes/collapsed state across restarts? groups per course or per teacher? who orders groups and exercises? an exercise in several groups? where do ungrouped exercises go? groups in exam mode?
