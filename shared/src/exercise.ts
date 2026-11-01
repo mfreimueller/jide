@@ -2,13 +2,10 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
+import { ExerciseError } from "./errors.js";
+import { parseTestsConfig, type TestCase } from "./tests.js";
 
-export class ExerciseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ExerciseError";
-  }
-}
+export { ExerciseError };
 
 const exerciseSchema = z.object({
   id: z
@@ -45,6 +42,8 @@ export interface Exercise extends ExerciseConfig {
   harnessContent?: string;
   /** Original content of every listed file, keyed by its path from exercise.yaml. */
   originals: Record<string, string>;
+  /** Parsed tests.yaml; undefined when the exercise has none. */
+  tests?: TestCase[];
 }
 
 async function isFile(p: string): Promise<boolean> {
@@ -144,7 +143,11 @@ export async function loadExercise(dir: string): Promise<Exercise> {
     return fail("Datei aufgabe.md fehlt.");
   }
 
-  return { ...config, dir, assignment, harnessContent, originals };
+  let tests: TestCase[] | undefined;
+  const testsPath = path.join(dir, "tests.yaml");
+  if (await isFile(testsPath)) tests = parseTestsConfig(await readFile(testsPath, "utf8"), name);
+
+  return { ...config, dir, assignment, harnessContent, originals, tests };
 }
 
 export async function listExercises(

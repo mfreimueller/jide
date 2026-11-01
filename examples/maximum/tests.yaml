@@ -1,0 +1,17 @@
+tests:
+  - name: "maximum(3, 7)"
+    type: check
+    call: "maximum(3, 7)"
+    expected: "7"
+  - name: "maximum(-4, -8)"
+    type: check
+    call: "maximum(-4, -8)"
+    expected: "-4"
+  - name: "maximum(5, 5)"
+    type: check
+    call: "maximum(5, 5)"
+    expected: "5"
+  - name: "maximum(7, 3)"
+    type: check
+    call: "maximum(7, 3)"
+    expected: "7"

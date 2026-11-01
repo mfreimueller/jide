@@ -1,0 +1,16 @@
+tests:
+  - name: "3 + 4"
+    type: io
+    input: "3\n4\n"
+    expected: "Summe: 7"
+    match: contains
+  - name: "-2 + -5"
+    type: io
+    input: "-2\n-5\n"
+    expected: "Summe: -7"
+    match: contains
+  - name: "0 + 0"
+    type: io
+    input: "0\n0\n"
+    expected: "Summe: 0"
+    match: contains
