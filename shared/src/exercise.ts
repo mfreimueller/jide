@@ -2,14 +2,10 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
+import { ExerciseError } from "./errors.js";
 import { parseTestsConfig, type TestCase } from "./tests.js";
 
-export class ExerciseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ExerciseError";
-  }
-}
+export { ExerciseError };
 
 const exerciseSchema = z.object({
   id: z

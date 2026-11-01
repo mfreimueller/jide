@@ -1,6 +1,6 @@
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
-import { ExerciseError } from "./exercise.js";
+import { ExerciseError } from "./errors.js";
 
 export type MatchMode = "exact" | "contains" | "trimmed";
 
