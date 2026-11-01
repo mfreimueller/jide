@@ -2,6 +2,7 @@
   import { onDestroy, type Snippet } from "svelte";
   import type { OpenedExercise } from "../../../shared-types/api";
   import { formatDate, formatDateTime, formatTime } from "../../../shared-types/datetime";
+  import { handInToast } from "./exam-ui";
   import AssignmentPanel from "./AssignmentPanel.svelte";
   import BottomPanel, { type BottomTab } from "./BottomPanel.svelte";
   import CodeEditor from "./CodeEditor.svelte";
@@ -20,7 +21,8 @@
     registerSession,
     leading,
     assignmentHeading,
-    allowTests = true
+    allowTests = true,
+    handInTarget
   }: {
     exercise: OpenedExercise;
     /** Online mode: show "Abgeben". */
@@ -33,6 +35,8 @@
     assignmentHeading?: string;
     /** Exam mode with `allowTests: false` passes false: no "Testen", no Tests tab. */
     allowTests?: boolean;
+    /** Exam mode: the hand-in drive ("P:\"), named in the success toast. */
+    handInTarget?: string;
   } = $props();
 
   // The exercise never changes for the lifetime of this component (App re-mounts it).
@@ -87,7 +91,7 @@
         return;
       }
       const current = editableContents(session.files, session.fileContents());
-      const plan = planHandIn(exercise.hasTests, getLastTest(exercise.id), current);
+      const plan = planHandIn(exercise.hasTests && allowTests, getLastTest(exercise.id), current);
       if (plan.confirm) {
         confirming = plan;
         return;
@@ -121,7 +125,9 @@
       late = r.late;
       showToast(
         "ok",
-        r.late
+        handInTarget !== undefined
+          ? handInToast(handInTarget, r.submittedAt)
+          : r.late
           ? `Abgabe gespeichert – verspätet (${formatDateTime(r.submittedAt)})`
           : `Abgabe gespeichert – ${formatDateTime(r.submittedAt)}`
       );

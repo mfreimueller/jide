@@ -1,4 +1,7 @@
-/** Texts and small helpers of the exam screens (start screen, workspace tabs). */
+import type { SaveStatus } from "../../../shared-types/api";
+import { formatTime } from "../../../shared-types/datetime";
+
+/** Texts and small helpers of the exam screens (start screen, workspace tabs, save status). */
 
 /** Footer of the start screen (Figma 07), e.g. "2 Aufgaben · Testen ist erlaubt". */
 export function startFooter(count: number, allowTests: boolean): string {
@@ -24,4 +27,20 @@ export function stripLeadingHeading(markdown: string, title: string): string {
   const m = /^\s*#[ \t]+([^\r\n]*)(\r?\n|$)/.exec(markdown);
   if (!m || m[1]!.trim() !== title.trim()) return markdown;
   return markdown.slice(m[0].length).replace(/^\s*\n/, "");
+}
+
+/** Right side of the dark bar (Figma 08/11); undefined before the first save. */
+export function saveStatusView(
+  status: SaveStatus | undefined,
+  handInPath: string
+): { tone: "ok" | "warn"; text: string } | undefined {
+  if (!status) return undefined;
+  return status.ok
+    ? { tone: "ok", text: `● zuletzt gesichert auf ${handInPath} um ${formatTime(status.at)}` }
+    : { tone: "warn", text: `● ${handInPath} nicht erreichbar – deine Arbeit ist nur auf diesem PC gesichert` };
+}
+
+/** Toast after a successful exam hand-in. */
+export function handInToast(handInPath: string, iso: string): string {
+  return `Abgabe gespeichert auf ${handInPath} – ${formatTime(iso)}`;
 }

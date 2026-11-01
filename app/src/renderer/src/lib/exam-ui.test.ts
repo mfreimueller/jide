@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignmentHeading, startFooter, stripLeadingHeading, tabLabel } from "./exam-ui";
+import { assignmentHeading, handInToast, saveStatusView, startFooter, stripLeadingHeading, tabLabel } from "./exam-ui";
 
 describe("exam-ui", () => {
   it("startFooter: plural, singular and allowTests", () => {
@@ -21,5 +21,22 @@ describe("exam-ui", () => {
     expect(stripLeadingHeading("# Nur Titel", "Nur Titel")).toBe("");
     // a different first heading is the teacher's own and stays
     expect(stripLeadingHeading("# Hinweis\nText", "Titel")).toBe("# Hinweis\nText");
+  });
+
+  it("saveStatusView: nothing before the first save, green after a success, amber after a failure", () => {
+    expect(saveStatusView(undefined, "P:\\")).toBeUndefined();
+    // 2026-12-03 09:44 UTC = 10:44 in Vienna
+    expect(saveStatusView({ ok: true, at: "2026-12-03T09:44:12Z" }, "P:\\")).toEqual({
+      tone: "ok",
+      text: "● zuletzt gesichert auf P:\\ um 10:44"
+    });
+    expect(saveStatusView({ ok: false, at: "2026-12-03T09:45:12Z" }, "P:\\")).toEqual({
+      tone: "warn",
+      text: "● P:\\ nicht erreichbar – deine Arbeit ist nur auf diesem PC gesichert"
+    });
+  });
+
+  it("handInToast", () => {
+    expect(handInToast("P:\\", "2026-12-03T09:44:12Z")).toBe("Abgabe gespeichert auf P:\\ – 10:44");
   });
 });

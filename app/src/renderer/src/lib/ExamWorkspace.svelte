@@ -13,11 +13,17 @@
   let {
     exercises,
     allowTests,
+    handInPath,
+    autosaveMs,
     sessions
   }: {
     /** Exercises that loaded, in tab order (sorted by id). */
     exercises: ExerciseSummary[];
     allowTests: boolean;
+    /** Hand-in drive; hand-in and autosave go there. */
+    handInPath: string;
+    /** Interval of the periodic autosave. */
+    autosaveMs: number;
     /** App-level registry of the editor sessions (flush before closing). */
     sessions: Map<string, EditorSession>;
   } = $props();
@@ -35,6 +41,7 @@
       const current = sessions.get(active);
       await current?.flush();
       if (current && !current.clean) return; // saving failed: leaving would drop the unsaved text
+      if (current) void window.jide.examAutosave([active]).catch(() => undefined);
       if (!opened[id]) {
         const r = await window.jide.openExercise(id);
         if (!r.ok) {
@@ -50,8 +57,16 @@
     }
   }
 
+  /** Flushes all editors, then copies every opened exercise to the hand-in drive. */
+  async function autosaveAll(): Promise<void> {
+    await Promise.all([...sessions.values()].map((es) => es.flush().catch(() => undefined)));
+    await window.jide.examAutosave().catch(() => undefined);
+  }
+
   onMount(() => {
     if (exercises[0]) void show(exercises[0].id);
+    const timer = setInterval(() => void autosaveAll(), autosaveMs);
+    return () => clearInterval(timer);
   });
 </script>
 
@@ -78,7 +93,8 @@
       <div class="slot" class:hidden={active !== ex.id}>
         <Workspace
           exercise={opened[ex.id]!}
-          canHandIn={false}
+          canHandIn={true}
+          handInTarget={handInPath}
           onBack={() => undefined}
           registerSession={(es) => (es ? sessions.set(ex.id, es) : sessions.delete(ex.id))}
           leading={tabs}

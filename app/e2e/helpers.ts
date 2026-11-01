@@ -17,7 +17,11 @@ export function useTempApp(): void {
     mkdirSync(screenshotDir, { recursive: true });
   });
   test.afterEach(async () => {
-    for (const app of running.splice(0)) await app.close().catch(() => undefined);
+    // exit first: an exam-mode app with changes that were not handed in asks before it closes
+    for (const app of running.splice(0)) {
+      await app.evaluate(({ app: a }) => a.exit(0)).catch(() => undefined);
+      await app.close().catch(() => undefined);
+    }
     rmSync(userData, { recursive: true, force: true });
     for (const d of extraDirs.splice(0)) rmSync(d, { recursive: true, force: true });
   });
