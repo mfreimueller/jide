@@ -200,6 +200,11 @@ describe('upload validation (400, German)', () => {
   it('passes on schema errors from the parser', async () =>
     expectBad(await upload(anna, minimalZip({ 'exercise.yaml': MINIMAL['exercise.yaml']!.replace('id: mini', 'id: Mini Ex') })), 'id darf nur'));
 
+  it('rejects a broken tests.yaml with the German parser message', async () =>
+    expectBad(await upload(anna, minimalZip({ 'tests.yaml': 'tests: []\n' })), 'tests.yaml ist ungültig: tests darf nicht leer sein'));
+  it('accepts a valid tests.yaml', async () =>
+    expect((await upload(anna, minimalZip({ 'tests.yaml': 'tests:\n  - {name: a, type: io, expected: "1"}\n' }))).status).toBeLessThan(300));
+
   it('rejects zip-slip entries', async () => {
     const z = zipSync({ ...Object.fromEntries(Object.entries(MINIMAL).map(([k, v]) => [k, strToU8(v)])), '../evil.txt': strToU8('x') });
     await expectBad(await upload(anna, z), 'Ungültiger Dateipfad');
