@@ -1,0 +1,23 @@
+# Exam folder (docs/exam-mode.md): unpacked app for the Angabelaufwerk. No installer, no bundled
+# JDK (the exam PCs have JDK 25), no publishing. Standalone on purpose: the installer config
+# (electron-builder.yml) stays untouched.
+appId: io.github.mfreimueller.jide
+productName: JDE
+copyright: J;DE
+extraMetadata:
+  name: jde
+directories:
+  buildResources: resources
+  output: dist-exam
+files:
+  - out/**
+  - package.json
+asar: true
+extraResources:
+  - from: ../java-helper/target/java-helper.jar
+    to: java-helper.jar
+win:
+  target:
+    - target: dir
+      arch: x64
+  icon: resources/icon.ico

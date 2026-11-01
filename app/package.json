@@ -16,6 +16,7 @@
     "runtime": "node scripts/build-runtime.mjs",
     "verify-runtime": "node scripts/verify-runtime.mjs",
     "dist": "electron-vite build && electron-builder --win nsis --x64 --publish never",
+    "dist:exam": "electron-vite build && electron-builder --config electron-builder.exam.yml --win dir --x64 --publish never",
     "dist:publish": "electron-vite build && electron-builder --win nsis --x64 --publish always"
   },
   "dependencies": {
