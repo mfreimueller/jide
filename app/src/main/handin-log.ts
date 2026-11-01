@@ -13,10 +13,12 @@ export interface HandInEntry {
 export class HandInLog {
   private data: Record<string, HandInEntry> | undefined;
 
-  constructor(private readonly file: string) {}
+  /** `file` null: kept in memory only (exam mode: nothing may carry over from an earlier exam or student). */
+  constructor(private readonly file: string | null) {}
 
   private load(): Record<string, HandInEntry> {
     if (!this.data) {
+      if (!this.file) return (this.data = {});
       try {
         const d: unknown = JSON.parse(readFileSync(this.file, "utf8"));
         const out: Record<string, HandInEntry> = {};
@@ -44,6 +46,7 @@ export class HandInLog {
   set(id: string, submittedAt: string, late: boolean): void {
     const data = this.load();
     data[id] = { submittedAt, late };
+    if (!this.file) return;
     mkdirSync(path.dirname(this.file), { recursive: true });
     const tmp = `${this.file}.${process.pid}.tmp`;
     writeFileSync(tmp, JSON.stringify(data), "utf8");

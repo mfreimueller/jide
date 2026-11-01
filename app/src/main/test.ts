@@ -3,6 +3,7 @@ import type { TestRunResult } from "../shared-types/api";
 import { isTesting, setTesting } from "./busy";
 import { testsAllowed, TESTS_NOT_ALLOWED_MESSAGE } from "./exam-state";
 import { buildRequest, helper, helperMessage } from "./compile";
+import { examAutosaveSoon } from "./exam-session";
 import { findExercise } from "./exercises";
 import { javaExecutable } from "./java";
 import { isProgramRunning } from "./run";
@@ -44,6 +45,7 @@ export function registerTestIpc(): void {
       }
     } finally {
       e.sender.removeListener("destroyed", onDestroyed);
+      examAutosaveSoon(id);
       if (abort === controller) abort = undefined;
       setTesting(false);
     }

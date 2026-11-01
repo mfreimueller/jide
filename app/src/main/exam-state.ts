@@ -3,6 +3,7 @@ import { app, ipcMain } from "electron";
 import type { ExamSession, ExamStartResult } from "../shared-types/api";
 import { lookupJdkForReal, searchedLines } from "./jdk";
 import { cleanExamName, detectExamMode, examPaths, type ExamMode } from "./exam-mode";
+import { autosaveInterval } from "./exam-store";
 
 let detected: { value: ExamMode | undefined } | undefined;
 
@@ -53,7 +54,7 @@ export async function initExam(): Promise<void> {
   const found = await lookupJdkForReal(jdkPath);
   javaPath = found.java;
   session = found.java
-    ? { status: "ok", title, handInPath, allowTests }
+    ? { status: "ok", title, handInPath, allowTests, autosaveMs: autosaveInterval(process.env["JIDE_AUTOSAVE_MS"], app.isPackaged) }
     : { status: "no-jdk", title, handInPath, searched: searchedLines(found) };
 }
 

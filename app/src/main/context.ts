@@ -3,7 +3,9 @@ import { app, BrowserWindow } from "electron";
 import { ApiClient, SESSION_EXPIRED_MESSAGE } from "./api-client";
 import { HandInLog } from "./handin-log";
 import { OnlineSource } from "./online-source";
-import { examMode } from "./exam-state";
+import { ExamSource } from "./exam-source";
+import { examMode, examStudentName } from "./exam-state";
+import { broadcastSaveStatus } from "./save-status";
 import { PackageCache } from "./package-cache";
 import { SessionStore } from "./session-store";
 import { LocalSource, type ExerciseSource } from "./source";
@@ -39,8 +41,18 @@ let ctx: MainContext | undefined;
 export function context(): MainContext {
   if (ctx) return ctx;
   const userData = app.getPath("userData");
-  const handIns = new HandInLog(join(userData, "handins.json"));
   const exam = examMode();
+  // Exam mode: hand-in times come from the hand-in drive (ExamSource.prepareWorkspace), never from an earlier run.
+  const handIns = new HandInLog(exam ? null : join(userData, "handins.json"));
+  if (exam?.config) {
+    const source = new ExamSource(exam.exercisesDir, {
+      handInPath: exam.config.handInPath,
+      getName: examStudentName,
+      onReport: broadcastSaveStatus
+    });
+    ctx = { source, handIns };
+    return ctx;
+  }
   const dir = exam ? exam.exercisesDir : process.env["JIDE_EXERCISES_DIR"];
   if (dir) {
     ctx = { source: new LocalSource(dir), handIns };

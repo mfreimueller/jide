@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerCompileIpc } from "./compile";
+import { askToClose, examCloseNeedsConfirm, registerExamSaveIpc } from "./exam-session";
 import { examMode, initExam, redirectPathsForExamMode, registerExamIpc } from "./exam-state";
 import { registerExerciseIpc } from "./exercises";
 import { registerOnlineIpc } from "./online";
@@ -66,16 +67,30 @@ function createWindow(): BrowserWindow {
       return;
     }
     flushing = true;
-    const finish = (): void => {
+    const finish = async (): Promise<void> => {
       clearTimeout(timer);
       ipcMain.removeListener("jide:flush-done", onDone);
+      // Exam mode: save a copy to the hand-in drive and ask if the last changes were not handed in.
+      let leave = true;
+      if (examMode()?.config) {
+        try {
+          if (await examCloseNeedsConfirm()) leave = await askToClose(win);
+        } catch {
+          leave = true;
+        }
+      }
+      if (win.isDestroyed()) return;
+      if (!leave) {
+        flushing = false; // "Weiterarbeiten"
+        return;
+      }
       mayClose = true;
       win.close();
     };
     const onDone = (ev: Electron.IpcMainEvent): void => {
-      if (ev.sender === win.webContents) finish();
+      if (ev.sender === win.webContents) void finish();
     };
-    const timer = setTimeout(finish, FLUSH_TIMEOUT_MS);
+    const timer = setTimeout(() => void finish(), FLUSH_TIMEOUT_MS);
     ipcMain.on("jide:flush-done", onDone);
     win.webContents.send("jide:flush-request");
   });
@@ -105,6 +120,7 @@ app.whenReady().then(async () => {
   }
   ipcMain.on("jide:quit", () => app.quit());
   registerExamIpc();
+  registerExamSaveIpc();
   registerOnlineIpc();
   registerExerciseIpc();
   registerCompileIpc();
