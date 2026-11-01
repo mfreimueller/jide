@@ -1,0 +1,21 @@
+name: ACL probe
+on:
+  push:
+    branches: [t22-exam-folder]
+jobs:
+  p:
+    runs-on: windows-latest
+    steps:
+      - shell: pwsh
+        run: |
+          foreach ($rights in @("(W,DC,D)", "(W,DC)", "(WD,AD,WEA,WA,DC)", "(OI)(CI)(WD,AD,WEA,WA,DC)")) {
+            $d = Join-Path $env:RUNNER_TEMP ("t" + [guid]::NewGuid().ToString("N").Substring(0,6))
+            New-Item -ItemType Directory $d | Out-Null
+            Copy-Item C:\Windows\System32\whoami.exe $d
+            $spec = if ($rights.StartsWith("(OI)")) { $rights } else { "(OI)(CI)$rights" }
+            icacls $d /deny "$($env:USERDOMAIN)\$($env:USERNAME):$spec" /T /C | Out-Null
+            $w = try { "x" | Set-Content (Join-Path $d "a.txt") -ErrorAction Stop; "WRITE WORKED" } catch { "write blocked" }
+            $s = try { $p = Start-Process (Join-Path $d "whoami.exe") -RedirectStandardOutput "$d\..\o.txt" -PassThru -Wait -ErrorAction Stop; "start ok" } catch { "start FAILED: $_" }
+            $c = try { & (Join-Path $d "whoami.exe") | Out-Null; "call ok" } catch { "call FAILED: $_" }
+            "$spec => $w; $s; $c"
+          }
