@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerCompileIpc } from "./compile";
-import { examMode, redirectPathsForExamMode } from "./exam-state";
+import { examMode, initExam, redirectPathsForExamMode } from "./exam-state";
 import { registerExerciseIpc } from "./exercises";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
@@ -29,7 +29,7 @@ app.on("before-quit", () => {
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    title: "J;DE",
+    title: examMode() ? "J;DE – Prüfungsmodus" : "J;DE",
     icon,
     width: 1280,
     height: 800,
@@ -90,7 +90,9 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Exam mode: exam.json is checked and the JDK is looked up before the helper can start.
+  await initExam();
   if (smoke) {
     const timer = setTimeout(() => {
       console.error("JIDE_SMOKE_TIMEOUT");
@@ -101,6 +103,7 @@ app.whenReady().then(() => {
       process.stdout.write("JIDE_SMOKE_READY\n", () => app.exit(0));
     });
   }
+  ipcMain.on("jide:quit", () => app.quit());
   registerOnlineIpc();
   registerExerciseIpc();
   registerCompileIpc();

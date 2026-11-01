@@ -1,13 +1,14 @@
 import { app, ipcMain } from "electron";
 import type { Exercise } from "@jide/shared";
 import type { CompileResult } from "../shared-types/api";
+import { examSession } from "./exam-state";
 import { findExercise } from "./exercises";
 import { HelperClient, HelperError, type HelperCompileRequest } from "./helper";
 import { helperJarPath, javaExecutable } from "./java";
 
 const MAX_CONTENT_BYTES = 2 * 1024 * 1024;
 
-export const helper = new HelperClient(javaExecutable(), helperJarPath());
+export const helper = new HelperClient(javaExecutable, helperJarPath());
 
 /**
  * Builds the helper request from what the renderer sent: only files of the exercise are used
@@ -38,7 +39,9 @@ export function helperMessage(e: unknown): string {
 
 export function registerCompileIpc(): void {
   // Starts the helper early (and finds out about a missing Java) so the first compile is fast.
-  void helper.ping().catch(() => undefined);
+  // (Not in exam mode with a broken exam.json or without a JDK: only the error screen is shown.)
+  const exam = examSession();
+  if (!exam || exam.status === "ok") void helper.ping().catch(() => undefined);
   app.on("will-quit", () => helper.shutdown());
 
   ipcMain.handle("jide:compile", async (_e, id: unknown, files: unknown): Promise<CompileResult> => {

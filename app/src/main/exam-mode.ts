@@ -1,13 +1,16 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { ExamConfigError, parseExamConfig, type ExamConfig } from "@jide/shared";
 
-/** What T22 knows about exam mode. exam.json is only read, not validated (T23). */
+/** What the app knows about exam mode: the parsed exam.json, or why it is broken. */
 export interface ExamMode {
   /** Folder that contains exam.json and exercises/ (the folder of the exe when packaged). */
   dir: string;
   exercisesDir: string;
-  /** `title` from exam.json, if it is a string. */
-  title?: string;
+  /** The validated exam.json. Exactly one of `config` and `configError` is set. */
+  config?: ExamConfig;
+  /** German parser message; a broken exam.json is still exam mode (error screen only). */
+  configError?: string;
 }
 
 export interface DetectInput {
@@ -21,8 +24,8 @@ export interface DetectInput {
 
 /**
  * Packaged: exam mode if `exam.json` exists next to the exe. Unpackaged (dev, e2e): the folder in
- * `JIDE_EXAM_DIR`, if it contains exam.json. An unreadable or broken exam.json still means exam
- * mode in the packaged app (the folder was put there on purpose); T23 shows an error screen.
+ * `JIDE_EXAM_DIR`, if it contains exam.json. A broken exam.json still means exam
+ * mode in the packaged app (the folder was put there on purpose); the app then shows an error screen.
  */
 export function detectExamMode(input: DetectInput): ExamMode | undefined {
   const read = input.readText ?? ((p: string) => readFileSync(p, "utf8"));
@@ -37,16 +40,13 @@ export function detectExamMode(input: DetectInput): ExamMode | undefined {
   } catch {
     return undefined;
   }
-  let title: string | undefined;
+  const base = { dir, exercisesDir: join(dir, "exercises") };
   try {
-    const parsed: unknown = JSON.parse(text);
-    if (parsed && typeof parsed === "object" && typeof (parsed as { title?: unknown }).title === "string") {
-      title = (parsed as { title: string }).title;
-    }
-  } catch {
-    // broken JSON: validated in T23
+    return { ...base, config: parseExamConfig(text) };
+  } catch (e) {
+    const message = e instanceof ExamConfigError ? e.message : "exam.json konnte nicht gelesen werden.";
+    return { ...base, configError: message };
   }
-  return { dir, exercisesDir: join(dir, "exercises"), ...(title === undefined ? {} : { title }) };
 }
 
 export interface ExamPaths {

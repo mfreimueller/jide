@@ -23,7 +23,16 @@ export interface ExerciseList {
 /** Who is using the app. `student: null` = online mode without a (valid) stored code: show the login. */
 export type AppSession =
   | { mode: "local" }
-  | { mode: "online"; student: StudentInfo | null };
+  | { mode: "online"; student: StudentInfo | null }
+  | { mode: "exam"; exam: ExamSession };
+
+/** Exam mode start-up result (T23): what the exam screens show. */
+export type ExamSession =
+  | { status: "ok"; title: string; handInPath: string }
+  /** exam.json is broken (screen 09). `programDir` = folder of the exe. */
+  | { status: "config-error"; message: string; programDir: string }
+  /** No JDK 25 found (screen 10). `searched` = the lines of the "Gesucht in dieser Reihenfolge" box. */
+  | { status: "no-jdk"; title: string; handInPath: string; searched: string[] };
 
 export interface StudentInfo {
   name: string;
@@ -132,6 +141,8 @@ export interface JideApi {
   resetFile: (id: string, path: string) => Promise<SaveResult>;
   /** Local mode or online mode (with or without a stored code). */
   getSession: () => Promise<AppSession>;
+  /** Quits the app (exam error screens). */
+  quit: () => void;
   /** Online mode: checks the code (case-insensitive) with the server and stores it. */
   login: (code: string) => Promise<LoginResult>;
   /** Called when the server no longer accepts the stored code (it has been deleted by then). */

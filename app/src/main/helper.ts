@@ -34,7 +34,7 @@ export class HelperClient {
   private javaMissing = false;
 
   constructor(
-    private readonly javaPath: string,
+    private readonly javaPath: string | (() => string),
     private readonly jarPath: string
   ) {}
 
@@ -64,7 +64,7 @@ export class HelperClient {
     if (!this.limiter.tryStart()) {
       throw new HelperError("Der Java-Helfer ist mehrfach abgestürzt. Bitte starte J;DE neu.");
     }
-    const proc = spawn(this.javaPath, ["-jar", this.jarPath], { stdio: "pipe", windowsHide: true });
+    const proc = spawn(typeof this.javaPath === "function" ? this.javaPath() : this.javaPath, ["-jar", this.jarPath], { stdio: "pipe", windowsHide: true });
     this.proc = proc;
     this.buf = "";
     proc.stdout.setEncoding("utf8");

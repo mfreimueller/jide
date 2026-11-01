@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { app } from "electron";
-import { examMode } from "./exam-state";
+import { examJavaPath, examMode } from "./exam-state";
 
 export const JAVA_MISSING_MESSAGE =
   "Java wurde nicht gefunden. Bitte installiere JDK 25 oder setze die Umgebungsvariable JAVA_HOME.";
@@ -14,11 +14,11 @@ function bundledJavaExecutable(): string {
 
 /**
  * Packaged app: the bundled JDK. Dev/tests: JAVA_HOME/bin/java, otherwise `java` on the PATH.
- * Exam mode has no bundled JDK: JAVA_HOME/bin/java, otherwise `java` on the PATH.
- * (T23 adds jdkPath from exam.json first and the version check.)
+ * Exam mode has no bundled JDK: the JDK found at start-up (jdkPath -> JAVA_HOME -> PATH, Java 25+, see jdk.ts).
  */
 export function javaExecutable(): string {
-  if (app.isPackaged && !examMode()) return bundledJavaExecutable();
+  if (examMode()) return examJavaPath() ?? "java";
+  if (app.isPackaged) return bundledJavaExecutable();
   const home = process.env["JAVA_HOME"];
   if (home) return join(home, "bin", exe);
   return "java";

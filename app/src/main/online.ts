@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { ApiError, OFFLINE_MESSAGE } from "./api-client";
 import { context } from "./context";
+import { examSession } from "./exam-state";
 import type { AppSession, LoginResult } from "../shared-types/api";
 
 /** Codes are 8 characters, shown as XXXX-XXXX, case-insensitive. */
@@ -10,6 +11,8 @@ export function normaliseCode(raw: string): string {
 
 export function registerOnlineIpc(): void {
   ipcMain.handle("jide:session", (): AppSession => {
+    const exam = examSession();
+    if (exam) return { mode: "exam", exam };
     const { session } = context();
     if (!session) return { mode: "local" };
     return { mode: "online", student: session.store.get()?.student ?? null };
