@@ -10,6 +10,8 @@ import type { HelperCompileRequest, HelperCompileResponse } from "./helper";
 /** Same cap as "Ausführen" (SPEC 3.2). */
 export const MAX_OUTPUT_BYTES = 1024 * 1024;
 const CHECK_SLACK_MS = 5000;
+/** io tests time the whole process, so JVM startup (slow on school laptops with antivirus) gets extra time. */
+export const IO_STARTUP_ALLOWANCE_MS = 3000;
 const RESULTS_FILE = "__jide_results.txt";
 
 export const TIMEOUT_MESSAGE = "Dein Programm hat zu lange gebraucht (Endlosschleife?)";
@@ -202,7 +204,7 @@ function runIo(deps: TestRunDeps, dir: string, mainClass: string, test: IoTestCa
     const timer = setTimeout(() => {
       timedOut = true;
       proc.kill();
-    }, test.timeoutMs);
+    }, test.timeoutMs + IO_STARTUP_ALLOWANCE_MS);
     const onAbort = (): void => void proc.kill();
     deps.signal?.addEventListener("abort", onAbort, { once: true });
     proc.on("error", (e: NodeJS.ErrnoException) => {
@@ -268,7 +270,8 @@ function ioResult(test: IoTestCase, run: IoRun, mainFileName: string, studentLin
   const first = run.stderr.split(/\r?\n/).find((l) => l.startsWith("Exception in thread "));
   if (first !== undefined) {
     const line = studentLineFromTrace(run.stderr, mainFileName, studentLines);
-    return { name, status: "error", message: withLine(first, line), ...(line ? { line } : {}) };
+    const message = first.replace(/^Exception in thread "[^"]*" /, "");
+    return { name, status: "error", message: withLine(message, line), ...(line ? { line } : {}) };
   }
   if (matchOutput(run.stdout, test.expected, test.match)) return { name, status: "passed" };
   return { name, status: "failed", expected: test.expected, actual: run.stdout };
