@@ -71,3 +71,21 @@ Exam-mode `allowTests` waits for M4.
 - [x] **T21 Release** – v0.3.0 with tests, auto-update from 0.2.0 checked (needs the user's OK to publish).
 
 Order: T17 → T18 (spike first, biggest risk) → T19 → T20 → T21.
+
+# M4 – Exam mode (due before the 2nd exam in January; dry run in December)
+
+Decisions (2026-11-01): after a crash or on another exam PC, opening an exercise restores the newer of the autosave and the last hand-in from the hand-in drive (P: follows the student); exercises are copied by hand into `exercises/` (same folder format as for upload; no teacher-app export); no lockdown, J;DE is a normal window; closing asks for confirmation only if the code changed since the last hand-in; the start from the real Angabelaufwerk is tested early (T22), not only at the dry run.
+Exam mode is the same app as online mode, switched on by `exam.json` next to the exe (SPEC §2). It never talks to the network and never auto-updates. Hand-in folders are named after the exercise id.
+
+- [ ] **T22 Exam folder + share test** – the smallest exam mode needed to start it from a share: `exam.json` next to the exe switches to exam mode; all writable Electron dirs (user data, cache, logs) go to `%TEMP%`; Java from `JAVA_HOME`; exercises listed from `exercises/` next to the exe (reuse the local source). CI (dry-run workflow artifact, no release) builds the unpacked Windows folder without the bundled JDK, with a sample `exam.json` and both sample exercises, as `JDE-Exam-<version>.zip`.
+  - Done when: the user has started it from the real Angabelaufwerk on an exam PC and reported start-up time and any Windows warnings.
+- [ ] **T23 Exam config + JDK** – `exam.json` parsed and validated (zod, in `shared`), broken file → clear German error screen; title shown in the top bar; JDK lookup `jdkPath` → `JAVA_HOME` → `PATH`, version checked (25 or newer), clear error screen if missing or too old; nothing is ever written next to the exe; no update check and no backend calls in exam mode.
+  - Done when: unit tests for the config and the JDK lookup pass; an e2e test starts exam mode from a read-only folder and opens an exercise.
+- [ ] **T24 Name entry** – start screen "Name eingeben" (as in Figma, if designed there; otherwise ask first), then the exercise list from `exercises/`. The name is asked at every start and goes into `abgabe.json`.
+  - Done when: e2e test: name → list → open exercise.
+- [ ] **T25 Hand-in + autosave to the hand-in drive** – "Abgeben" copies the editable files to `<handInPath>\<id>\` and writes `abgabe.json` (name, exercise id, timestamp, test summary), same confirmation as online (T20); `allowTests: false` hides "Testen". Autosave to `<handInPath>\<id>\_autosave\` every ~60 s and on every run/test. Opening an exercise restores the newer of autosave and hand-in. Hand-in drive not reachable → clear message, work stays local and is retried. Closing the app asks only if the code changed since the last hand-in.
+  - Done when: e2e tests: hand-in writes files + abgabe.json; autosave appears; restore after restart with an empty user-data dir; unreachable drive shows the message; close confirmation.
+- [ ] **T26 Release + dry run** – the release also attaches `JDE-Exam-<version>.zip` (needs the user's OK to publish). Dry run in December on the exam PCs: start from the Angabelaufwerk, name, exercise, test, hand-in to P:, restart on another PC restores the work.
+  - Done when: the dry run went through end to end.
+
+Order: T22 first (biggest risk, needs the user on site), then T23 → T24 → T25, T26 last.

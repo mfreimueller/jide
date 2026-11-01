@@ -109,7 +109,7 @@ tests:
 - If the last test run failed, tests were not run yet, or the code changed since the last run: confirmation dialog "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" Exercises without tests never ask.
 - Multiple hand-ins are allowed; the last one counts.
 - **Online mode**: uploads editable files plus the test summary. The server stores a server-side timestamp. Hand-ins after the deadline are accepted and marked "verspätet".
-- **Exam mode**: copies files to `<handInPath>\<Aufgabe>\` and writes `abgabe.json` (name, timestamp, test summary). Autosave goes to `<handInPath>\<Aufgabe>\_autosave\`.
+- **Exam mode**: copies files to `<handInPath>\<Aufgabe>\` and writes `abgabe.json` (name, timestamp, test summary). Autosave goes to `<handInPath>\<Aufgabe>\_autosave\`. On opening an exercise (after a crash or on another exam PC) the newer of autosave and hand-in is restored. No lockdown: closing the app asks only if the code changed since the last hand-in. `<Aufgabe>` is the exercise id.
 
 ### 3.6 Student onboarding (online mode)
 - The teacher issues every student's token: the **personal code is the token**. No other credential is derived from it.
@@ -126,7 +126,7 @@ tests:
 - Hand-ins: matrix of students × exercises with last hand-in timestamp, late marker and test summary. Filter "only missing hand-ins". Clicking a cell opens the hand-in: code (read-only, highlighted), test summary (passed/total), history of all hand-ins of that student, previous/next student. Download all hand-ins of one exercise as zip, one folder per student.
 - Students list shows code, last activity ("noch nie angemeldet" highlighted) and hand-in count. Printable code sheet: A4 cut-out slips with name, class and code.
 - Designs: Figma file "jide – Screens" (https://www.figma.com/design/QiOYkq1KgnmpzIjeYYBCGL), pages "Schüler-App" and "Lehrer-Web".
-- Export an exercise as an exam package (folder for `exercises/` in exam mode).
+- Exam mode needs no export: the teacher copies exercise folders (§4) into `exercises/` by hand.
 
 ## 4. Exercise format
 
