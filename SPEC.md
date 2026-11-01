@@ -101,11 +101,11 @@ tests:
 - Result per test: passed / failed (expected vs. actual) / error (exception, timeout, compile error).
 - Summary:
   - all passed → **"Dein Code sieht richtig aus!"**
-  - otherwise → **"Da sind noch ein, zwei Fehler in deinem Programm."**
+  - otherwise → **"Da sind noch Fehler in deinem Programm."**
 - Tests are not secret: students run them locally and could read them. They are feedback, not grading.
 
 ### 3.5 Hand-in ("Abgeben")
-- If the last test run failed, or tests were not run yet: confirmation dialog "Da sind noch ein, zwei Fehler in deinem Programm. Möchtest du wirklich abgeben?"
+- If the last test run failed, tests were not run yet, or the code changed since the last run: confirmation dialog "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" Exercises without tests never ask.
 - Multiple hand-ins are allowed; the last one counts.
 - **Online mode**: uploads editable files plus the test summary. The server stores a server-side timestamp. Hand-ins after the deadline are accepted and marked "verspätet".
 - **Exam mode**: copies files to `<handInPath>\<Aufgabe>\` and writes `abgabe.json` (name, timestamp, test summary). Autosave goes to `<handInPath>\<Aufgabe>\_autosave\`.
@@ -122,7 +122,7 @@ tests:
 - Courses: create, archive.
 - Students: paste a list of names → personal codes generated → printable code sheet. Reset code.
 - Exercises: upload as zip (exercise folder, see §4). Unlock or hide per course. Optional soft deadline per course.
-- Hand-ins: matrix of students × exercises with last hand-in timestamp, late marker and test summary. Filter "only missing hand-ins". Clicking a cell opens the hand-in: code (read-only, highlighted), local test results, history of all hand-ins of that student, previous/next student. Download all hand-ins of one exercise as zip, one folder per student.
+- Hand-ins: matrix of students × exercises with last hand-in timestamp, late marker and test summary. Filter "only missing hand-ins". Clicking a cell opens the hand-in: code (read-only, highlighted), test summary (passed/total), history of all hand-ins of that student, previous/next student. Download all hand-ins of one exercise as zip, one folder per student.
 - Students list shows code, last activity ("noch nie angemeldet" highlighted) and hand-in count. Printable code sheet: A4 cut-out slips with name, class and code.
 - Designs: Figma file "jide – Screens" (https://www.figma.com/design/QiOYkq1KgnmpzIjeYYBCGL), pages "Schüler-App" and "Lehrer-Web".
 - Export an exercise as an exam package (folder for `exercises/` in exam mode).

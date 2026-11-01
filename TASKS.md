@@ -25,7 +25,7 @@ Windows packaging (installer + bundled JDK) moves to M2, so it's ready for 2026-
 - [x] **Rename** the tool from "jide" to **J;DE** (for Java IDE). Renamed user-visible places only: window and page title, German UI texts (Java-helper restart message), `productName` "JDE" (app data folder/installer), package description, design mockups and SPEC title. Internal identifiers (npm packages, IPC channels, JIDE_* env vars, Java package, repo name) stay "jide".
 - [x] **App icon**: design up to four icon sketches in Figma; the user picks one, then use it for the app (window, installer, logo mark). Chosen: "J;" on blue (Figma page "App-Icon"); files in `app/resources/` (svg, png 512, multi-size ico for the installer).
 
-# M2 – Backend + online mode (due 2026-11-19)
+# M2 – Backend + online mode (due 2026-11-19) – done 2026-11-01
 
 Decisions (2026-10-31): auto-update from GitHub Releases (public repo `mfreimueller/jide`); backend + teacher app on the parsonxam Uberspace account under a new subdomain, own service, port and database; domain and SMTP values stay out of the repo (gitignored `.deploy.env`, as in parsonxam); hand-ins and exercise zips are stored in MariaDB; the student app keeps working on cached exercises when the server can't be reached; no Windows machine → Windows build and smoke tests run on a GitHub Actions Windows runner.
 Copy from parsonxam (`~/git/Personal/_work/parsonxam`) rather than reinventing: config, db + migrations, errors, CORS, rate limiter, mailer, teacher auth, deploy scripts, teacher SPA shell.
@@ -45,10 +45,29 @@ Test summaries in hand-ins stay empty until M3.
   - Done when: e2e tests pass against a local backend (login, list, open, hand in, restore on a fresh user-data dir, offline start).
 - [x] **T14 Teacher app** (`teacher/`) – SvelteKit SPA from parsonxam: sign-in, courses, students + printable code sheet (A4 slips), exercises (upload, unlock, deadline, exam-package export may wait for M4), hand-in matrix with "only missing" filter, hand-in detail (highlighted read-only code, history, previous/next student), zip download. Design: `docs/design/teacher-web.html`.
   - Done when: svelte-check passes and a manual walk-through against the local backend covers every screen.
-- [ ] **T15 Deploy** – bundle the backend (e.g. esbuild) because it imports `@jide/shared` as TypeScript source; `scripts/deploy-backend.sh`, `scripts/deploy-teacher.sh`, `.deploy.env.example`, `docs/deployment.md` (one-time Uberspace setup as in parsonxam). Also a short root `README.md`: what J;DE is (one paragraph), repo layout (app, backend, teacher, shared, java-helper, examples), local dev (`docker compose up -d`, `npm install`, `npm run dev`, running the tests), links to SPEC, docs/release.md, docs/deployment.md and the exercise format (SPEC §4). The repo is public: no server values (domain, SMTP, SSH login) in the README.
+- [x] **T15 Deploy** – bundle the backend (e.g. esbuild) because it imports `@jide/shared` as TypeScript source; `scripts/deploy-backend.sh`, `scripts/deploy-teacher.sh`, `.deploy.env.example`, `docs/deployment.md` (one-time Uberspace setup as in parsonxam). Also a short root `README.md`: what J;DE is (one paragraph), repo layout (app, backend, teacher, shared, java-helper, examples), local dev (`docker compose up -d`, `npm install`, `npm run dev`, running the tests), links to SPEC, docs/release.md, docs/deployment.md and the exercise format (SPEC §4). The repo is public: no server values (domain, SMTP, SSH login) in the README.
   - Done when: the user has run the one-time setup, `/api/health` answers on the real domain and a sign-in mail arrives.
-  - Files ready (2026-10-31); waiting for the one-time server setup.
-- [ ] **T16 Rehearsal** – real server: course with two test students, both sample exercises uploaded and unlocked, the released Windows app (CI) logs in, downloads, hands in; the hand-ins show up in the teacher view.
+  - Server live 2026-10-31 (API + sign-in mail working); v0.2.0 released with the production API URL.
+- [x] **T16 Rehearsal** – real server: course with two test students, both sample exercises uploaded and unlocked, the released Windows app (CI) logs in, downloads, hands in; the hand-ins show up in the teacher view.
   - Done when: done once end to end before 2026-11-18.
+  - Done 2026-11-01 by the user (deployed and tested).
 
 Order: T8 and T9 first (T9 is the biggest risk without a Windows machine), then T10 → T11 → T12 → T13, T14 alongside, T15/T16 last.
+
+# M3 – Tests (target 2026-11-29, can slip)
+
+Decisions (2026-11-01): the teacher view keeps showing only the summary (`passed/total`), so the backend and teacher app need no change; "Abgeben" asks for confirmation if the last test run failed, tests were never run, or the code changed since the last run (exercises without `tests.yaml` never ask); both sample exercises get a `tests.yaml`.
+Exam-mode `allowTests` waits for M4.
+
+- [ ] **T17 Test format** (`shared`) – parse `tests.yaml` (SPEC §3.4) with zod: `io` (input, expected, match `exact | contains | trimmed`, default trimmed + whitespace-normalised) and `check` (`call` + `expected`, or a `code` block returning boolean); timeout like `2s`, default 2 s; German error messages. Output comparison function. The exercise loader reads `tests.yaml`, so a broken one is rejected on upload too. Write `tests.yaml` for `examples/summe` and `examples/maximum`.
+  - Done when: unit tests for parsing (valid, every invalid case, defaults) and every match mode pass; uploading a zip with a broken `tests.yaml` gives a German error.
+- [ ] **T18 Java helper `test`** – runs all tests of an exercise in a temp working dir (with `resources/`). `io`: start the main file with the input, compare stdout. `check`: generated code compiled together with the student's file, so students' methods are called directly (no JUnit, no reflection). Per test: passed / failed (expected vs. actual) / error (exception, timeout, compile error); timeout message "Dein Programm hat zu lange gebraucht (Endlosschleife?)". Errors in generated test code are reported as "Fehler im vorgegebenen Code".
+  - First a short spike: how the `check` entry point reaches methods of an implicit class (compact source file), with and without a harness `main()`. Report the approach before building it.
+  - Done when: integration tests cover pass, fail, exception, timeout and compile error for both test types, using the sample exercises.
+- [ ] **T19 "Testen" in the app** – toolbar button (only when the exercise has tests), test panel in the bottom panel (as in Figma): one row per test, expected vs. actual for failed ones, summary "Dein Code sieht richtig aus!" / "Da sind noch Fehler in deinem Programm.". Compile errors → no run, "Probleme" opens (as for "Ausführen"). The last result is kept per exercise.
+  - Done when: e2e test: a correct and a wrong solution of `summe` show the right results and summary.
+- [ ] **T20 Hand-in with tests** – confirmation dialog "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" (see decision above); the hand-in carries the test summary `{ passed, total }` (`null` when not run or no tests).
+  - Done when: e2e tests: green run → no dialog; edit after green run → dialog; the summary shows in the teacher matrix.
+- [ ] **T21 Release** – v0.3.0 with tests, auto-update from 0.2.0 checked (needs the user's OK to publish).
+
+Order: T17 → T18 (spike first, biggest risk) → T19 → T20 → T21.
