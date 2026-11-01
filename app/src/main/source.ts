@@ -89,7 +89,11 @@ export class LocalSource implements ExerciseSource {
     return null;
   }
 
-  async prepareWorkspace(): Promise<{ ok: true }> {
+  async prepareWorkspace(
+    _ex?: Exercise,
+    _workspaceRoot?: string,
+    _workspaceExists?: boolean
+  ): Promise<{ ok: true; submittedAt?: string; late?: boolean } | { ok: false; message: string }> {
     return { ok: true };
   }
 }
