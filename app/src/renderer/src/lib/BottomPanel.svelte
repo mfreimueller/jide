@@ -9,27 +9,47 @@
   import type { LiveCompiler } from "./problems.svelte";
   import type { RunController } from "./run.svelte";
   import type { EditorSession } from "./session.svelte";
+  import type { TestController } from "./test.svelte";
+  import { allPassed, countLabel, MSG_TESTS_FAILED, MSG_TESTS_OK } from "./test-state";
+  import { formatTime } from "../../../shared-types/datetime";
 
-  // Konsole (T6), Probleme (T5); Tests (M3) fills its tab later.
+  // Konsole (T6), Probleme (T5), Tests (T19, only for exercises with tests).
   let {
     tab = $bindable("Konsole"),
     problems,
     session,
-    run
-  }: { tab?: BottomTab; problems: LiveCompiler; session: EditorSession; run: RunController } = $props();
+    run,
+    tests
+  }: {
+    tab?: BottomTab;
+    problems: LiveCompiler;
+    session: EditorSession;
+    run: RunController;
+    tests?: TestController;
+  } = $props();
 
   const errors = $derived(problems.errorCount);
+  const tabs = $derived(BOTTOM_TABS.filter((t) => t !== "Tests" || tests));
+  const last = $derived(tests?.last);
+  const ok = $derived(last ? allPassed(last.summary) : false);
+  const failedCount = $derived(last ? last.summary.total - last.summary.passed : 0);
 </script>
 
 <div class="bottom">
   <div class="btabs">
-    {#each BOTTOM_TABS as t}
+    {#each tabs as t}
       <button class="btab" class:active={tab === t} onclick={() => (tab = t)} data-testid="btab-{t}">
         {t}
         {#if t === "Probleme" && errors > 0}<span class="badge" data-testid="problems-badge">{errors}</span>{/if}
+        {#if t === "Tests" && last}
+          <span class="badge" class:ok data-testid="tests-badge">{ok ? `${last.summary.passed}/${last.summary.total}` : failedCount}</span>
+        {/if}
       </button>
     {/each}
     <span class="spacer"></span>
+    {#if tab === "Tests" && last}
+      <span class="small" data-testid="tests-time">zuletzt getestet {formatTime(last.at)}</span>
+    {/if}
     {#if tab === "Konsole"}
       <button class="btn ghost clear" onclick={() => run.clear()} data-testid="clear-console">Leeren</button>
     {/if}
@@ -42,6 +62,47 @@
     <div class="console-slot" class:hidden={tab !== "Konsole"}>
       <Console term={run.console} visible={tab === "Konsole"} />
     </div>
+    {#if tab === "Tests" && tests}
+      <div class="tests" data-testid="tests">
+        {#if last}
+          <div class="banner" class:ok class:warn={!ok} data-testid="tests-banner">
+            <span>{ok ? "✓" : "!"}</span>{ok ? MSG_TESTS_OK : MSG_TESTS_FAILED}
+            <span class="spacer"></span>
+            <span class="count">{countLabel(last.summary)}</span>
+          </div>
+          {#each last.results as r}
+            {@const line = r.line}
+            <!-- svelte-ignore a11y_no_static_element_interactions, a11y_no_noninteractive_tabindex -->
+            <div
+              class="trow"
+              class:link={line !== undefined}
+              data-testid="test-row"
+              data-status={r.status}
+              role={line !== undefined ? "button" : undefined}
+              tabindex={line !== undefined ? 0 : undefined}
+              onclick={() => line !== undefined && session.openAt(tests.mainFile, line)}
+              onkeydown={(e) => e.key === "Enter" && line !== undefined && session.openAt(tests.mainFile, line)}
+            >
+              <span class={r.status === "passed" ? "pass" : "fail"}>{r.status === "passed" ? "✓" : "✗"}</span>
+              <div class="tbody">
+                <div class="tname">
+                  {r.name}
+                </div>
+                {#if r.status === "failed" && (r.expected !== undefined || r.actual !== undefined)}
+                  <div class="tdetail" data-testid="test-detail">
+                    <div><span class="lbl">erwartet:</span> <span class="val">{r.expected ?? ""}</span></div>
+                    <div><span class="lbl">dein Ergebnis:</span> <span class="val">{r.actual ?? ""}</span></div>
+                  </div>
+                {/if}
+                {#if r.message}<div class="tdetail msgline" data-testid="test-message">{r.message}</div>{/if}
+              </div>
+            </div>
+          {/each}
+        {:else}
+          <p class="empty">Noch nicht getestet.</p>
+        {/if}
+      </div>
+    {/if}
     {#if tab === "Probleme"}
       <div class="problems" data-testid="problems">
         {#if problems.systemError}
@@ -113,6 +174,89 @@
     border-radius: 999px;
     padding: 0 6px;
     font-weight: 600;
+  }
+  .badge.ok {
+    background: #30a46c;
+  }
+  .small {
+    font-size: 12px;
+    color: #80838d;
+  }
+  .tests {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .banner {
+    flex: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .banner.warn {
+    background: #fff4d5;
+    color: #ab6400;
+    border: 1px solid #ffdc8f;
+  }
+  .banner.ok {
+    background: #e6f6ec;
+    color: #18794e;
+    border: 1px solid #b4e2c4;
+  }
+  .count {
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .trow {
+    font-size: 13px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 3px 4px;
+  }
+  .pass {
+    color: #18794e;
+    font-weight: 700;
+    width: 16px;
+    flex: none;
+  }
+  .fail {
+    color: #ce2c31;
+    font-weight: 700;
+    width: 16px;
+    flex: none;
+  }
+  .tbody {
+    min-width: 0;
+    flex: 1;
+  }
+  .tdetail {
+    font-family: var(--jide-code-font);
+    font-size: 12px;
+    color: #60646c;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 5.5em;
+    overflow-y: auto;
+  }
+  .tdetail .lbl {
+    color: #80838d;
+  }
+  .msgline {
+    font-family: inherit;
+    font-size: 12.5px;
+  }
+  .trow.link {
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .trow.link:hover {
+    background: #f1f3f5;
   }
   .body {
     flex: 1;

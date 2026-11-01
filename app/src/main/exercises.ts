@@ -82,7 +82,8 @@ export function registerExerciseIpc(): void {
           files: ws.files,
           deadline: await source.deadlineOf(ex.id),
           submittedAt: handIns.get(ex.id)?.submittedAt ?? null,
-          late: handIns.get(ex.id)?.late ?? false
+          late: handIns.get(ex.id)?.late ?? false,
+          hasTests: (ex.tests?.length ?? 0) > 0
         }
       };
     } catch (e) {

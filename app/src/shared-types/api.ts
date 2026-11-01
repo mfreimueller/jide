@@ -52,6 +52,8 @@ export interface OpenedExercise {
   deadline: string | null;
   submittedAt: string | null;
   late: boolean;
+  /** The exercise has tests (tests.yaml): show "Testen". */
+  hasTests: boolean;
 }
 
 export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };

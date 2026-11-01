@@ -1,27 +1,41 @@
 <!--
   Action buttons on the right side of the workspace top bar:
-  Ausführen / Stopp (T6), Abgeben (online mode); Testen (M3) follows.
+  Ausführen / Stopp (T6), Testen (M3, only with tests), Abgeben (online mode).
 -->
 <script lang="ts">
   import type { RunController } from "./run.svelte";
+  import type { TestController } from "./test.svelte";
 
   let {
     run,
+    tests,
     handIn
   }: {
     run: RunController;
+    /** Only for exercises that have tests. */
+    tests?: TestController;
     /** Online mode only. */
     handIn?: { label: string; busy: boolean; onClick: () => void };
   } = $props();
 </script>
 
 <div class="toolbar">
-  <button class="btn run" disabled={run.state !== "idle"} onclick={() => void run.start()} data-testid="run">
+  <button class="btn run" disabled={run.state !== "idle" || tests?.state === "running"} onclick={() => void run.start()} data-testid="run">
     ▶ Ausführen
   </button>
   <button class="btn stop" disabled={run.state !== "running"} onclick={() => run.stop()} data-testid="stop">
     ■ Stopp
   </button>
+  {#if tests}
+    <button
+      class="btn"
+      disabled={run.state !== "idle" || tests.state === "running"}
+      onclick={() => void tests.start()}
+      data-testid="test"
+    >
+      ✓ Testen
+    </button>
+  {/if}
   {#if handIn}
     <button class="btn primary" disabled={handIn.busy} onclick={handIn.onClick} data-testid="hand-in">
       {handIn.busy ? "Wird abgegeben …" : handIn.label}

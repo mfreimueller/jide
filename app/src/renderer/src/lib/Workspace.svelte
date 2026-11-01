@@ -7,6 +7,7 @@
   import CodeEditor from "./CodeEditor.svelte";
   import { LiveCompiler } from "./problems.svelte";
   import { RunController } from "./run.svelte";
+  import { TestController } from "./test.svelte";
   import { EditorSession } from "./session.svelte";
   import Toolbar from "./Toolbar.svelte";
 
@@ -34,8 +35,13 @@
   let bottomTab = $state<BottomTab>("Konsole");
   // svelte-ignore state_referenced_locally
   const run = new RunController(session, problems, exercise.id, exercise.mainFile, (t) => (bottomTab = t));
+  // svelte-ignore state_referenced_locally
+  const tests = exercise.hasTests
+    ? new TestController(session, problems, run, exercise.id, exercise.mainFile, (t) => (bottomTab = t))
+    : undefined;
   const errorsByFile = $derived(problems.errorsByFile);
   onDestroy(() => {
+    tests?.dispose();
     run.dispose();
     problems.dispose();
     registerSession(undefined);
@@ -121,6 +127,7 @@
     <span class="spacer"></span>
     <Toolbar
       {run}
+      {tests}
       handIn={canHandIn
         ? { label: submittedAt ? "Erneut abgeben" : "Abgeben", busy: handInBusy, onClick: () => void handIn() }
         : undefined}
@@ -148,7 +155,7 @@
         {/each}
       </div>
       <CodeEditor {session} />
-      <BottomPanel bind:tab={bottomTab} {problems} {session} {run} />
+      <BottomPanel bind:tab={bottomTab} {problems} {session} {run} {tests} />
       {#if toast}
         <div class="toast" class:error={toast.kind === "error"} role="status" data-testid="toast">
           <span class="mark">{toast.kind === "ok" ? "✓" : "!"}</span>{toast.text}
