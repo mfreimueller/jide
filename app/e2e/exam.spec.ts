@@ -430,7 +430,15 @@ test("autosave keeps retrying: amber while the drive is away, green once it is b
   await expect(status(page)).toHaveAttribute("data-tone", "warn");
   mkdirSync(drive);
   await expect(status(page)).toHaveAttribute("data-tone", "ok");
-  await expect.poll(() => readFileSync(join(drive, "summe", "_autosave", "Summe.java"), "utf8")).toBe("// Laufwerk fehlt\n");
+  // green may come from the other tab's autosave; the summe file follows in the same pass
+  const autosaved = (): string | null => {
+    try {
+      return readFileSync(join(drive, "summe", "_autosave", "Summe.java"), "utf8");
+    } catch {
+      return null;
+    }
+  };
+  await expect.poll(autosaved, { timeout: 10_000 }).toBe("// Laufwerk fehlt\n");
 });
 
 test("closing with changes that were not handed in asks; Weiterarbeiten keeps the app; after a hand-in it does not ask", async () => {
