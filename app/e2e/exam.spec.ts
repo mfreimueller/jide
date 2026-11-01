@@ -176,7 +176,7 @@ test("allowTests: Testen and the Tests tab only when allowed; start screen says 
   await expect(off.page.getByTestId("run")).toBeVisible();
   await expect(off.page.getByTestId("test")).toHaveCount(0);
   await expect(off.page.getByTestId("btab-Tests")).toHaveCount(0);
-  const r = await off.page.evaluate(() => window.jide.test("summe", []));
+  const r = await off.page.evaluate(() => (window as unknown as { jide: { test: (id: string, files: unknown[]) => Promise<unknown> } }).jide.test("summe", []));
   expect(r).toEqual({ ok: false, message: "Testen ist in dieser Prüfung nicht erlaubt." });
 });
 

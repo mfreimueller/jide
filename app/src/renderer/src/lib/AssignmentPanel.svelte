@@ -9,7 +9,8 @@
     deadline = null,
     submittedAt = null,
     late = false,
-    heading
+    heading,
+    title = ""
   }: {
     markdown: string;
     deadline?: string | null;
@@ -17,8 +18,10 @@
     late?: boolean;
     /** Exam mode: shown as the h1 instead of the leading `# Title` of the Markdown. */
     heading?: string;
+    /** Exercise title: a leading `# <title>` is dropped when `heading` replaces it. */
+    title?: string;
   } = $props();
-  const html = $derived(renderMarkdown(heading ? stripLeadingHeading(markdown) : markdown));
+  const html = $derived(renderMarkdown(heading ? stripLeadingHeading(markdown, title) : markdown));
 
   // Links in the assignment must never navigate the app window.
   function blockLinks(e: MouseEvent): void {

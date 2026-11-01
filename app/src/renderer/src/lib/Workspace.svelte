@@ -206,7 +206,7 @@
         </div>
       {/if}
     </div>
-    <AssignmentPanel markdown={exercise.assignment} heading={assignmentHeading} deadline={exercise.deadline} {submittedAt} {late} />
+    <AssignmentPanel markdown={exercise.assignment} heading={assignmentHeading} title={exercise.title} deadline={exercise.deadline} {submittedAt} {late} />
   </div>
 </div>
 

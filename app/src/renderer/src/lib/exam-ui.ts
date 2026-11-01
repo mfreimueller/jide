@@ -16,7 +16,12 @@ export function assignmentHeading(index: number, title: string): string {
   return `${tabLabel(index)}: ${title}`;
 }
 
-/** The assignment without its leading `# Title` line (the panel shows `assignmentHeading` instead). */
-export function stripLeadingHeading(markdown: string): string {
-  return markdown.replace(/^\s*#[ \t]+[^\n]*(\r?\n|$)/, "").replace(/^\s*\n/, "");
+/**
+ * The assignment without its leading `# Title` line, but only if that line is the exercise title
+ * (the panel shows `assignmentHeading` instead). Any other first heading is the teacher's and stays.
+ */
+export function stripLeadingHeading(markdown: string, title: string): string {
+  const m = /^\s*#[ \t]+([^\r\n]*)(\r?\n|$)/.exec(markdown);
+  if (!m || m[1]!.trim() !== title.trim()) return markdown;
+  return markdown.slice(m[0].length).replace(/^\s*\n/, "");
 }
