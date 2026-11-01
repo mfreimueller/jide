@@ -20,7 +20,7 @@ describe("detectExamMode", () => {
     expect(m).toEqual({
       dir: join("share", "JDE-Exam"),
       exercisesDir: join("share", "JDE-Exam", "exercises"),
-      title: "Probe"
+      config: { mode: "exam", title: "Probe", handInPath: "P:\\", jdkPath: null, allowTests: true }
     });
   });
 
@@ -28,10 +28,12 @@ describe("detectExamMode", () => {
     expect(detectExamMode({ isPackaged: true, execPath, readText: files({}) })).toBeUndefined();
   });
 
-  it("packaged: the title is optional and a broken file is still exam mode", () => {
-    expect(detectExamMode({ isPackaged: true, execPath, readText: files({ [examJson]: "{}" }) })?.title).toBeUndefined();
-    expect(detectExamMode({ isPackaged: true, execPath, readText: files({ [examJson]: "{kaputt" }) })).toBeDefined();
-    expect(detectExamMode({ isPackaged: true, execPath, readText: files({ [examJson]: '{"title":5}' }) })?.title).toBeUndefined();
+  it("packaged: a broken exam.json is still exam mode and carries the parser message", () => {
+    const broken = detectExamMode({ isPackaged: true, execPath, readText: files({ [examJson]: "{kaputt" }) });
+    expect(broken?.config).toBeUndefined();
+    expect(broken?.configError).toMatch(/^exam\.json ist kein gültiges JSON/);
+    const invalid = detectExamMode({ isPackaged: true, execPath, readText: files({ [examJson]: "{}" }) });
+    expect(invalid?.configError).toMatch(/^exam\.json ist ungültig: /);
   });
 
   it("packaged: the environment override is ignored", () => {
@@ -41,7 +43,7 @@ describe("detectExamMode", () => {
   });
 
   it("unpackaged: only JIDE_EXAM_DIR switches it on, and only with an exam.json in it", () => {
-    const readText = files({ [join("dev", "exam.json")]: "{}" });
+    const readText = files({ [join("dev", "exam.json")]: '{"mode":"exam","title":"T"}' });
     expect(detectExamMode({ isPackaged: false, execPath: "electron", readText })).toBeUndefined();
     expect(detectExamMode({ isPackaged: false, execPath: "electron", examDirOverride: "dev", readText })?.exercisesDir).toBe(
       join("dev", "exercises")

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { AppSession, OpenedExercise, StudentInfo } from "../../shared-types/api";
+  import ExamBar from "./lib/ExamBar.svelte";
+  import ExamProblem from "./lib/ExamProblem.svelte";
   import ExerciseList from "./lib/ExerciseList.svelte";
   import Login from "./lib/Login.svelte";
   import type { EditorSession } from "./lib/session.svelte";
@@ -43,33 +45,77 @@
   }
 </script>
 
+{#snippet content(s: AppSession)}
+  {#if s.mode === "online" && !student}
+    <Login
+      notice={loginNotice}
+      onLoggedIn={(st) => {
+        student = st;
+        loginNotice = "";
+      }}
+    />
+  {:else if exercise}
+    {#key exercise.id}
+      <Workspace
+        {exercise}
+        canHandIn={s.mode === "online"}
+        onBack={() => (exercise = undefined)}
+        registerSession={(es) => (current = es)}
+      />
+    {/key}
+  {:else}
+    <ExerciseList {student} onOpen={open} />
+    {#if error}
+      <div class="toast" role="alert">{error}</div>
+    {/if}
+  {/if}
+{/snippet}
+
 {#if !session}
   <!-- waiting for main -->
-{:else if session.mode === "online" && !student}
-  <Login
-    notice={loginNotice}
-    onLoggedIn={(s) => {
-      student = s;
-      loginNotice = "";
-    }}
-  />
-{:else if exercise}
-  {#key exercise.id}
-    <Workspace
-      {exercise}
-      canHandIn={session.mode === "online"}
-      onBack={() => (exercise = undefined)}
-      registerSession={(s) => (current = s)}
-    />
-  {/key}
+{:else if session.mode === "exam"}
+  {@const exam = session.exam}
+  <div class="exam-root">
+    {#if exam.status === "config-error"}
+      <ExamBar title="J;DE" info={`Programmordner: ${exam.programDir}`} />
+      <ExamProblem
+        heading="Die Prüfung kann nicht starten"
+        text="Die Datei exam.json ist fehlerhaft. Bitte gib deiner Lehrkraft Bescheid."
+        label="Fehler in exam.json"
+        lines={[exam.message]}
+        tone="error"
+        footer="Für die Lehrkraft: exam.json im Programmordner korrigieren und J;DE neu starten."
+      />
+    {:else}
+      <ExamBar title={exam.title} info={`Abgabelaufwerk: ${exam.handInPath} · kein Internet nötig`} />
+      {#if exam.status === "no-jdk"}
+        <ExamProblem
+          heading="Java 25 wurde nicht gefunden"
+          text="J;DE braucht ein JDK 25 oder neuer, um deine Programme zu übersetzen und auszuführen. Bitte gib deiner Lehrkraft Bescheid."
+          label="Gesucht in dieser Reihenfolge"
+          lines={exam.searched}
+          tone="neutral"
+          footer="Für die Lehrkraft: JAVA_HOME auf ein JDK 25 setzen oder jdkPath in exam.json eintragen, dann J;DE neu starten."
+        />
+      {:else}
+        <div class="exam-body">{@render content(session)}</div>
+      {/if}
+    {/if}
+  </div>
 {:else}
-  <ExerciseList {student} onOpen={open} />
-  {#if error}
-    <div class="toast" role="alert">{error}</div>
-  {/if}
+  {@render content(session)}
 {/if}
 
 <style>
+  .exam-root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .exam-body {
+    flex: 1;
+    min-height: 0;
+  }
   .toast {
     position: fixed;
     right: 24px;

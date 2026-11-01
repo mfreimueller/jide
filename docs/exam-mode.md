@@ -8,7 +8,7 @@ Exam mode is the same app as online mode, switched on by an `exam.json` next to 
 
 - `JDE.exe` and the other files of the unpacked Electron app (no installer, no bundled JDK, no auto-update),
 - `resources\java-helper.jar` (compile/run/test helper),
-- `exam.json` (sample: `mode`, `title`, `handInPath`, `jdkPath`, `allowTests`; only `title` is read so far),
+- `exam.json` (sample: `mode`, `title`, `handInPath`, `jdkPath`, `allowTests`; validated at start, a broken file shows an error screen),
 - `exercises\summe` and `exercises\maximum` (the sample exercises, same folder format as for upload).
 
 Everything the app writes (settings, workspaces, caches, logs) goes to `%TEMP%\JDE-exam` on the PC. Nothing is ever written into the folder on the share.
@@ -21,7 +21,7 @@ GitHub -> Actions -> "Exam build" -> "Run workflow" -> wait for the green run ->
 
 Unzip `JDE-Exam-<version>.zip` and copy the folder `JDE-Exam` to the share (for a test: a folder the students can read but not write). To change the exercises, put exercise folders into `exercises\` (same format as for upload, SPEC section 4) and edit `exam.json`.
 
-The exam PCs need JDK 25 with `JAVA_HOME` set (otherwise `java` on the `PATH` is used). The folder bundles no JDK.
+The exam PCs need a JDK 25 or newer (with javac): found via `jdkPath` in `exam.json`, then `JAVA_HOME`, then `java` on the `PATH`; otherwise an error screen lists what was searched. The folder bundles no JDK.
 
 ## What to test and report (T22)
 

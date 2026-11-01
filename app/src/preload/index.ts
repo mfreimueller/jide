@@ -13,6 +13,7 @@ const api: JideApi = {
   saveFile: (id, path, content) => ipcRenderer.invoke("jide:save-file", id, path, content),
   resetFile: (id, path) => ipcRenderer.invoke("jide:reset-file", id, path),
   getSession: () => ipcRenderer.invoke("jide:session"),
+  quit: () => ipcRenderer.send("jide:quit"),
   login: (code) => ipcRenderer.invoke("jide:login", code),
   onSessionExpired: (handler) => {
     const listener = (_e: Electron.IpcRendererEvent, message: string): void => handler(message);
