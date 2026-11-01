@@ -5,6 +5,8 @@ name: Exam build
 # workflow artifact. Never publishes a release. See docs/exam-mode.md.
 on:
   workflow_dispatch:
+  push:
+    branches: [t22-exam-folder] # TEMP: dispatch needs the file on main
 
 jobs:
   exam:
