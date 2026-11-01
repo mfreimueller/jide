@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { stripLeadingHeading } from "./exam-ui";
   import { renderMarkdown } from "./markdown";
 
   import { formatDate, isPast } from "../../../shared-types/datetime";
@@ -7,9 +8,20 @@
     markdown,
     deadline = null,
     submittedAt = null,
-    late = false
-  }: { markdown: string; deadline?: string | null; submittedAt?: string | null; late?: boolean } = $props();
-  const html = $derived(renderMarkdown(markdown));
+    late = false,
+    heading,
+    title = ""
+  }: {
+    markdown: string;
+    deadline?: string | null;
+    submittedAt?: string | null;
+    late?: boolean;
+    /** Exam mode: shown as the h1 instead of the leading `# Title` of the Markdown. */
+    heading?: string;
+    /** Exercise title: a leading `# <title>` is dropped when `heading` replaces it. */
+    title?: string;
+  } = $props();
+  const html = $derived(renderMarkdown(heading ? stripLeadingHeading(markdown, title) : markdown));
 
   // Links in the assignment must never navigate the app window.
   function blockLinks(e: MouseEvent): void {
@@ -26,6 +38,7 @@
         >{/if}Abgabe bis {formatDate(deadline)}
     </div>
   {/if}
+  {#if heading}<h1 data-testid="assignment-heading">{heading}</h1>{/if}
   {@html html}
 </aside>
 

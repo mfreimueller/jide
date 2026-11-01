@@ -1,6 +1,7 @@
 import { app, ipcMain } from "electron";
 import type { TestRunResult } from "../shared-types/api";
 import { isTesting, setTesting } from "./busy";
+import { testsAllowed, TESTS_NOT_ALLOWED_MESSAGE } from "./exam-state";
 import { buildRequest, helper, helperMessage } from "./compile";
 import { findExercise } from "./exercises";
 import { javaExecutable } from "./java";
@@ -18,6 +19,7 @@ export function registerTestIpc(): void {
   app.on("before-quit", killTests);
 
   ipcMain.handle("jide:test", async (e, id: unknown, files: unknown): Promise<TestRunResult> => {
+    if (!testsAllowed()) return { ok: false, message: TESTS_NOT_ALLOWED_MESSAGE };
     if (isTesting() || isProgramRunning()) return { ok: false, message: "Es läuft bereits ein Programm." };
     setTesting(true);
     const controller = new AbortController();

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, type Snippet } from "svelte";
   import type { OpenedExercise } from "../../../shared-types/api";
   import { formatDate, formatDateTime, formatTime } from "../../../shared-types/datetime";
   import AssignmentPanel from "./AssignmentPanel.svelte";
@@ -17,13 +17,22 @@
     exercise,
     canHandIn,
     onBack,
-    registerSession
+    registerSession,
+    leading,
+    assignmentHeading,
+    allowTests = true
   }: {
     exercise: OpenedExercise;
     /** Online mode: show "Abgeben". */
     canHandIn: boolean;
     onBack: () => void;
     registerSession: (s: EditorSession | undefined) => void;
+    /** Exam mode: replaces "← Aufgaben" and the title in the top bar (the exercise tabs). */
+    leading?: Snippet;
+    /** Exam mode: heading of the assignment panel ("Aufgabe 1: …"). */
+    assignmentHeading?: string;
+    /** Exam mode with `allowTests: false` passes false: no "Testen", no Tests tab. */
+    allowTests?: boolean;
   } = $props();
 
   // The exercise never changes for the lifetime of this component (App re-mounts it).
@@ -38,7 +47,7 @@
   // svelte-ignore state_referenced_locally
   const run = new RunController(session, problems, exercise.id, exercise.mainFile, (t) => (bottomTab = t));
   // svelte-ignore state_referenced_locally
-  const tests = exercise.hasTests
+  const tests = exercise.hasTests && allowTests
     ? new TestController(session, problems, run, exercise.id, exercise.mainFile, (t) => (bottomTab = t))
     : undefined;
   const errorsByFile = $derived(problems.errorsByFile);
@@ -143,8 +152,12 @@
     <HandInDialog summary={confirming.summary} onCancel={() => (confirming = undefined)} onConfirm={() => void confirmHandIn()} />
   {/if}
   <div class="topbar">
-    <button class="btn ghost" onclick={back}>← Aufgaben</button>
-    <span class="title">{exercise.title}</span>
+    {#if leading}
+      {@render leading()}
+    {:else}
+      <button class="btn ghost" onclick={back}>← Aufgaben</button>
+      <span class="title">{exercise.title}</span>
+    {/if}
     {#if session.saveState === "error"}
       <span class="status err" title={session.saveError} data-testid="save-status">Speichern fehlgeschlagen</span>
     {:else if session.saveState === "saving"}
@@ -193,7 +206,7 @@
         </div>
       {/if}
     </div>
-    <AssignmentPanel markdown={exercise.assignment} deadline={exercise.deadline} {submittedAt} {late} />
+    <AssignmentPanel markdown={exercise.assignment} heading={assignmentHeading} title={exercise.title} deadline={exercise.deadline} {submittedAt} {late} />
   </div>
 </div>
 

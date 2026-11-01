@@ -28,11 +28,14 @@ export type AppSession =
 
 /** Exam mode start-up result (T23): what the exam screens show. */
 export type ExamSession =
-  | { status: "ok"; title: string; handInPath: string }
+  | { status: "ok"; title: string; handInPath: string; allowTests: boolean }
   /** exam.json is broken (screen 09). `programDir` = folder of the exe. */
   | { status: "config-error"; message: string; programDir: string }
   /** No JDK 25 found (screen 10). `searched` = the lines of the "Gesucht in dieser Reihenfolge" box. */
   | { status: "no-jdk"; title: string; handInPath: string; searched: string[] };
+
+/** Result of entering the name on the exam start screen (T24). */
+export type ExamStartResult = { ok: true; name: string } | { ok: false; message: string };
 
 export interface StudentInfo {
   name: string;
@@ -141,6 +144,10 @@ export interface JideApi {
   resetFile: (id: string, path: string) => Promise<SaveResult>;
   /** Local mode or online mode (with or without a stored code). */
   getSession: () => Promise<AppSession>;
+  /** Exam mode: stores the student's name in main (trimmed; it goes into abgabe.json in T25). */
+  startExam: (name: string) => Promise<ExamStartResult>;
+  /** Exam mode: the name given at this start, or null before "Prüfung starten". */
+  getExamName: () => Promise<string | null>;
   /** Quits the app (exam error screens). */
   quit: () => void;
   /** Online mode: checks the code (case-insensitive) with the server and stores it. */

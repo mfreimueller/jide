@@ -63,7 +63,7 @@ export async function openExercise(page: Page, title: string): Promise<void> {
 
 /** Replaces the whole content of the active editor with `text`. */
 export async function setEditorText(app: ElectronApplication, page: Page, text: string): Promise<void> {
-  await page.locator(".monaco-editor .view-lines").click();
+  await page.locator(".monaco-editor .view-lines:visible").click();
   await page.keyboard.press("ControlOrMeta+A");
   await page.keyboard.press("Delete");
   // Monaco auto-closes brackets/quotes and auto-indents when typing; paste instead.

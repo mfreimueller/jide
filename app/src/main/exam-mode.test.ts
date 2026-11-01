@@ -1,6 +1,6 @@
 import { join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
-import { detectExamMode, examPaths } from "./exam-mode";
+import { cleanExamName, detectExamMode, examPaths } from "./exam-mode";
 
 const files = (map: Record<string, string>) => (p: string) => {
   if (p in map) return map[p]!;
@@ -64,5 +64,15 @@ describe("examPaths", () => {
     const p = examPaths("tmp", "ud");
     expect(p.userData).toBe("ud");
     for (const v of Object.values(p)) expect(v.startsWith("ud")).toBe(true);
+  });
+});
+
+describe("cleanExamName", () => {
+  it("trims and rejects empty or non-text input", () => {
+    expect(cleanExamName("  Max Muster ")).toBe("Max Muster");
+    expect(cleanExamName("   ")).toBeNull();
+    expect(cleanExamName("")).toBeNull();
+    expect(cleanExamName(42)).toBeNull();
+    expect(cleanExamName(undefined)).toBeNull();
   });
 });

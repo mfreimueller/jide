@@ -80,3 +80,10 @@ export function examPaths(tmpDir: string, userDataOverride?: string): ExamPaths 
     temp: join(root, "temp")
   };
 }
+
+/** The name from the start screen: trimmed; null if it is not text or empty. */
+export function cleanExamName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const name = raw.trim();
+  return name.length > 0 ? name : null;
+}
