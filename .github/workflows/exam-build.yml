@@ -52,8 +52,9 @@ jobs:
         run: |
           function Snap($dir) { Get-ChildItem $dir -Recurse -File | Sort-Object FullName | ForEach-Object { "$($_.FullName.Substring($dir.Length)):$($_.Length)" } }
           Snap $env:JDE_EXAM_DIR | Set-Content (Join-Path $env:RUNNER_TEMP "exam-before.txt")
-          # Deny writing, appending, deleting and creating for the current user, inherited by all content.
-          icacls $env:JDE_EXAM_DIR /deny "$($env:USERDOMAIN)\$($env:USERNAME):(OI)(CI)(W,DC,D)" /T /C | Select-Object -Last 2
+          # Deny creating, writing, appending and deleting children for the current user, inherited by all
+          # content. Specific rights on purpose: the generic W also blocks starting the exe.
+          icacls $env:JDE_EXAM_DIR /deny "$($env:USERDOMAIN)\$($env:USERNAME):(OI)(CI)(WD,AD,WEA,WA,DC)" /T /C | Select-Object -Last 2
           # Prove it: writing must fail.
           $blocked = $false
           try { "x" | Set-Content (Join-Path $env:JDE_EXAM_DIR "write-test.txt") -ErrorAction Stop } catch { $blocked = $true }
