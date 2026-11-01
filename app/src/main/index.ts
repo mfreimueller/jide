@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerCompileIpc } from "./compile";
-import { examMode, initExam, redirectPathsForExamMode } from "./exam-state";
+import { examMode, initExam, redirectPathsForExamMode, registerExamIpc } from "./exam-state";
 import { registerExerciseIpc } from "./exercises";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
@@ -104,6 +104,7 @@ app.whenReady().then(async () => {
     });
   }
   ipcMain.on("jide:quit", () => app.quit());
+  registerExamIpc();
   registerOnlineIpc();
   registerExerciseIpc();
   registerCompileIpc();

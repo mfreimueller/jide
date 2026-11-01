@@ -1,8 +1,8 @@
 import { tmpdir } from "node:os";
-import { app } from "electron";
-import type { ExamSession } from "../shared-types/api";
+import { app, ipcMain } from "electron";
+import type { ExamSession, ExamStartResult } from "../shared-types/api";
 import { lookupJdkForReal, searchedLines } from "./jdk";
-import { detectExamMode, examPaths, type ExamMode } from "./exam-mode";
+import { cleanExamName, detectExamMode, examPaths, type ExamMode } from "./exam-mode";
 
 let detected: { value: ExamMode | undefined } | undefined;
 
@@ -49,11 +49,11 @@ export async function initExam(): Promise<void> {
     session = { status: "config-error", message: exam.configError ?? "exam.json konnte nicht gelesen werden.", programDir: exam.dir };
     return;
   }
-  const { title, handInPath, jdkPath } = exam.config;
+  const { title, handInPath, jdkPath, allowTests } = exam.config;
   const found = await lookupJdkForReal(jdkPath);
   javaPath = found.java;
   session = found.java
-    ? { status: "ok", title, handInPath }
+    ? { status: "ok", title, handInPath, allowTests }
     : { status: "no-jdk", title, handInPath, searched: searchedLines(found) };
 }
 
@@ -65,4 +65,30 @@ export function examSession(): ExamSession | undefined {
 /** The java executable chosen by `initExam()`. */
 export function examJavaPath(): string | undefined {
   return javaPath;
+}
+
+let studentName: string | null = null;
+
+/** The name typed on the start screen (asked at every start, never persisted); null before. */
+export function examStudentName(): string | null {
+  return studentName;
+}
+
+/** False only in exam mode with `allowTests: false`. */
+export function testsAllowed(): boolean {
+  const exam = examMode();
+  return !exam || exam.config?.allowTests !== false;
+}
+
+export const TESTS_NOT_ALLOWED_MESSAGE = "Testen ist in dieser Prüfung nicht erlaubt.";
+
+export function registerExamIpc(): void {
+  ipcMain.handle("jide:exam-start", (_e, name: unknown): ExamStartResult => {
+    if (session?.status !== "ok") return { ok: false, message: "Die Prüfung kann nicht gestartet werden." };
+    const clean = cleanExamName(name);
+    if (!clean) return { ok: false, message: "Bitte gib deinen Namen ein." };
+    studentName = clean;
+    return { ok: true, name: clean };
+  });
+  ipcMain.handle("jide:exam-name", (): string | null => studentName);
 }
