@@ -20,6 +20,18 @@ if (-not $ready) {
   if ($p.HasExited) { "exit code: $($p.ExitCode)" }
   Get-Process | Where-Object { $_.ProcessName -match "JDE|consent|dllhost|SmartScreen|explorer" } |
     Select-Object ProcessName, Id, Responding, MainWindowTitle | Format-Table | Out-String
+  # Text of any dialog the app (or Windows) is showing, e.g. a startup error or a security warning.
+  try {
+    Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+    $root = [Windows.Automation.AutomationElement]::RootElement
+    $wins = $root.FindAll([Windows.Automation.TreeScope]::Children, [Windows.Automation.Condition]::TrueCondition)
+    foreach ($w in $wins) {
+      if ($w.Current.Name -match "Error|Warning|Security|JDE|J;DE|Fehler") {
+        "window '$($w.Current.Name)' (pid $($w.Current.ProcessId)):"
+        foreach ($t in $w.FindAll([Windows.Automation.TreeScope]::Descendants, [Windows.Automation.Condition]::TrueCondition)) { "  $($t.Current.ControlType.ProgrammaticName): $($t.Current.Name)" }
+      }
+    }
+  } catch { "UI automation failed: $_" }
 }
 if (-not $p.HasExited) { $p.WaitForExit(10000) | Out-Null }
 if (-not $p.HasExited) { $p.Kill() }
