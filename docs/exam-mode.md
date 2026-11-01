@@ -1,6 +1,6 @@
 # Exam folder (exam mode)
 
-Exam mode is the same app as online mode, switched on by an `exam.json` next to `JDE.exe` (SPEC section 2). It is started from the school's read-only network share (Angabelaufwerk), needs no installation, never talks to the network and never updates itself. This page covers what exists after T22 (start from the share); name entry, hand-in to `P:` and autosave follow in T23 to T25.
+Exam mode is the same app as online mode, switched on by an `exam.json` next to `JDE.exe` (SPEC section 2). It is started from the school's read-only network share (Angabelaufwerk), needs no installation, never talks to the network and never updates itself. This page covers what exists after T22 (start from the share); name entry and the exam workspace are described below; hand-in to `P:` and autosave follow in T25.
 
 ## What the zip contains
 
@@ -12,6 +12,16 @@ Exam mode is the same app as online mode, switched on by an `exam.json` next to 
 - `exercises\summe` and `exercises\maximum` (the sample exercises, same folder format as for upload).
 
 Everything the app writes (settings, workspaces, caches, logs) goes to `%TEMP%\JDE-exam` on the PC. Nothing is ever written into the folder on the share.
+
+## Start screen and workspace
+
+After `exam.json` and the JDK are ok, the student sees the start screen: the exam title, the hand-in drive, a field "Vor- und Nachname" and "Prüfung starten" (disabled until the trimmed name is not empty; Enter also starts). The footer shows the number of exercises and whether testing is allowed. The name is asked at every start and is not stored; the main process keeps it (it goes into `abgabe.json` in T25).
+
+The workspace has no exercise list. Every exercise in `exercises\` is a tab button "Aufgabe 1", "Aufgabe 2", ... at the left of the top bar, the dark bar shows `PRÜFUNG` and the student's name, and the assignment heading reads "Aufgabe <n>: <title>" (the leading `# ...` line of `aufgabe.md` is replaced by it). Each exercise keeps its own open files, edits and last test result while the student switches tabs; the current exercise is saved before switching.
+
+**Order of the tabs = exercises sorted by exercise id** (`id` in `exercise.yaml`, which is also the folder name used for the hand-in). To fix the order, prefix the ids: `1-summe`, `2-maximum`, ... An exercise whose folder is broken is not a tab; the German loading error is shown on the start screen.
+
+`allowTests: false` in `exam.json`: no "Testen" button and no "Tests" tab, the start screen says "Testen ist nicht erlaubt", and the main process refuses a test run ("Testen ist in dieser Prüfung nicht erlaubt.").
 
 ## Get the zip
 
