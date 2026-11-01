@@ -54,7 +54,7 @@ Test summaries in hand-ins stay empty until M3.
 
 Order: T8 and T9 first (T9 is the biggest risk without a Windows machine), then T10 → T11 → T12 → T13, T14 alongside, T15/T16 last.
 
-# M3 – Tests (target 2026-11-29, can slip)
+# M3 – Tests (target 2026-11-29, can slip) – done 2026-11-01
 
 Decisions (2026-11-01): the teacher view keeps showing only the summary (`passed/total`), so the backend and teacher app need no change; "Abgeben" asks for confirmation if the last test run failed, tests were never run, or the code changed since the last run (exercises without `tests.yaml` never ask); both sample exercises get a `tests.yaml`.
 Exam-mode `allowTests` waits for M4.
@@ -68,6 +68,6 @@ Exam-mode `allowTests` waits for M4.
   - Done when: e2e test: a correct and a wrong solution of `summe` show the right results and summary.
 - [x] **T20 Hand-in with tests** – confirmation dialog "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" (see decision above); the hand-in carries the test summary `{ passed, total }` (`null` when not run or no tests).
   - Done when: e2e tests: green run → no dialog; edit after green run → dialog; the summary shows in the teacher matrix.
-- [ ] **T21 Release** – v0.3.0 with tests, auto-update from 0.2.0 checked (needs the user's OK to publish).
+- [x] **T21 Release** – v0.3.0 with tests, auto-update from 0.2.0 checked (needs the user's OK to publish).
 
 Order: T17 → T18 (spike first, biggest risk) → T19 → T20 → T21.
