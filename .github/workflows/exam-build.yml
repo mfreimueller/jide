@@ -5,6 +5,8 @@ name: Exam build
 # workflow artifact. Never publishes a release. See docs/exam-mode.md.
 on:
   workflow_dispatch:
+  # also run by release.yml, which attaches the zip to the release
+  workflow_call:
 
 jobs:
   exam:

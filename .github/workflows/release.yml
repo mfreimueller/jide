@@ -96,9 +96,15 @@ jobs:
             app/dist/latest.yml
           if-no-files-found: error
 
+  # Exam folder (unpacked app for the Angabelaufwerk), smoke-tested from a read-only folder.
+  exam:
+    uses: ./.github/workflows/exam-build.yml
+    permissions:
+      contents: read
+
   # Publishes exactly the files that were installed and smoke-tested above.
   publish:
-    needs: build
+    needs: [build, exam]
     if: startsWith(github.ref, 'refs/tags/v') && inputs.dry_run != true
     runs-on: ubuntu-latest
     permissions:
@@ -108,11 +114,15 @@ jobs:
         with:
           name: installer
           path: installer
+      - uses: actions/download-artifact@v4
+        with:
+          name: JDE-Exam
+          path: installer
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
           ls -l installer
-          gh release create "$GITHUB_REF_NAME" installer/JDE-Setup-*.exe installer/JDE-Setup-*.exe.blockmap installer/latest.yml \
+          gh release create "$GITHUB_REF_NAME" installer/JDE-Setup-*.exe installer/JDE-Setup-*.exe.blockmap installer/latest.yml installer/JDE-Exam-*.zip \
             --title "J;DE ${GITHUB_REF_NAME#v}" --generate-notes

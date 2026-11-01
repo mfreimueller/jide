@@ -1,8 +1,10 @@
 # Exam folder (exam mode)
 
-Exam mode is the same app as online mode, switched on by an `exam.json` next to `JDE.exe` (SPEC section 2). It is started from the school's read-only network share (Angabelaufwerk), needs no installation, never talks to the network and never updates itself. This page covers what exists after T22 (start from the share); name entry and the exam workspace are described below; hand-in to `P:` and autosave follow in T25.
+Exam mode is the same app as online mode, switched on by an `exam.json` next to `JDE.exe` (SPEC section 2). It is started from the school's read-only network share (Angabelaufwerk), needs no installation, never talks to the network and never updates itself. This page covers getting the folder onto the share, the start screen, the workspace, hand-in to `P:` and autosave.
 
 ## What the zip contains
+
+Every release attaches `JDE-Exam-<version>.zip` next to the installer (GitHub Releases); the manual workflow "Exam build" produces the same zip as a workflow artifact without releasing. Replace the sample `exam.json` and `exercises\` before an exam.
 
 `JDE-Exam-<version>.zip` holds one folder `JDE-Exam`:
 
@@ -15,7 +17,7 @@ Everything the app writes (settings, workspaces, caches, logs) goes to `%TEMP%\J
 
 ## Start screen and workspace
 
-After `exam.json` and the JDK are ok, the student sees the start screen: the exam title, the hand-in drive, a field "Vor- und Nachname" and "Prüfung starten" (disabled until the trimmed name is not empty; Enter also starts). The footer shows the number of exercises and whether testing is allowed. The name is asked at every start and is not stored; the main process keeps it (it goes into `abgabe.json` in T25).
+After `exam.json` and the JDK are ok, the student sees the start screen: the exam title, the hand-in drive, a field "Vor- und Nachname" and "Prüfung starten" (disabled until the trimmed name is not empty; Enter also starts). The footer shows the number of exercises and whether testing is allowed. The name is asked at every start and is not stored; the main process keeps it (it goes into `abgabe.json`).
 
 The workspace has no exercise list. Every exercise in `exercises\` is a tab button "Aufgabe 1", "Aufgabe 2", ... at the left of the top bar, the dark bar shows `PRÜFUNG` and the student's name, and the assignment heading reads "Aufgabe <n>: <title>" (the leading `# ...` line of `aufgabe.md` is replaced by it). Each exercise keeps its own open files, edits and last test result while the student switches tabs; the current exercise is saved before switching.
 
