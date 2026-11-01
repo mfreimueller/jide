@@ -87,7 +87,8 @@ Exam mode is the same app as online mode, switched on by `exam.json` next to the
   - Done when: e2e test: name → workspace → switch exercises.
 - [x] **T25 Hand-in + autosave to the hand-in drive** – "Abgeben" copies the editable files to `<handInPath>\<id>\` and writes `abgabe.json` (name, exercise id, timestamp, test summary), same confirmation as online (T20); `allowTests: false` hides "Testen". Autosave to `<handInPath>\<id>\_autosave\` every ~60 s and on every run/test. Opening an exercise restores the newer of autosave and hand-in. Status in the dark bar "● zuletzt gesichert auf P:\ um HH:MM" (Figma 08); hand-in drive not reachable → amber status + error toast (Figma 11), work stays local and is retried. Closing the app asks only if the code changed since the last hand-in.
   - Done when: e2e tests: hand-in writes files + abgabe.json; autosave appears; restore after restart with an empty user-data dir; unreachable drive shows the message; close confirmation.
-- [ ] **T26 Release + dry run** – the release also attaches `JDE-Exam-<version>.zip` (needs the user's OK to publish). Dry run in December on the exam PCs: start from the Angabelaufwerk, name, exercise, test, hand-in to P:, restart on another PC restores the work.
+- [ ] **T26 Release + dry run** – the release also attaches `JDE-Exam-<version>.zip` (needs the user's OK to publish).
+  - Workflow ready 2026-11-01: release.yml runs exam-build.yml (also on every CI run) and attaches the zip. Release waits for the user's share test (sandbox question). Dry run in December on the exam PCs: start from the Angabelaufwerk, name, exercise, test, hand-in to P:, restart on another PC restores the work.
   - Done when: the dry run went through end to end.
 
 Order: T22 first (biggest risk, needs the user on site), then T23 → T24 → T25, T26 last.
