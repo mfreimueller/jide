@@ -1,6 +1,12 @@
+<p align="center">
+  <img src="app/resources/icon.svg" alt="J;DE" width="96">
+</p>
+
 # J;DE
 
 J;DE is a small Java IDE for one school class: students write, run and test Java programs in an Electron app (online mode with a personal code, or an offline exam mode), download exercises their teacher unlocked and hand in their work. Teachers manage courses, students, exercises and hand-ins in a small web app. See [SPEC.md](SPEC.md) for the full specification.
+
+![J;DE: exercise, editor, tests](docs/images/screenshot-student-app.png)
 
 ## Layout
 
