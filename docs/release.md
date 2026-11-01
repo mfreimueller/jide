@@ -28,3 +28,4 @@ Actions -> Release -> "Run workflow" with "dry run" ticked (the default) builds,
 - The installed app is online-only: it starts with the login screen and ships no exercises. `JIDE_EXERCISES_DIR` (local folder, no login) exists for dev and e2e only.
 - Auto-update runs only in the installed app, never in dev or e2e.
 - Locally: `npm run runtime -w app` (needs `JAVA_HOME` = JDK 25) builds the bundled JDK, `npm run verify-runtime -w app` checks German javac messages and number formatting, `npm run dist -w app` builds the installer (on Windows).
+- The exam folder (`JDE-Exam-<version>.zip`, unpacked app without JDK) is built by the separate workflow `exam-build.yml` (manual run, artifact only, no release); see [exam-mode.md](exam-mode.md). The installer build is not affected.

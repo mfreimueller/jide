@@ -44,4 +44,5 @@ npm run test:e2e         # Playwright tests of the Electron app (online ones nee
 
 - [SPEC.md](SPEC.md): specification; the exercise format is in [section 4](SPEC.md#4-exercise-format)
 - [docs/release.md](docs/release.md): building and publishing the Windows app
+- [docs/exam-mode.md](docs/exam-mode.md): the exam folder for the Angabelaufwerk and how to test it
 - [docs/deployment.md](docs/deployment.md): deploying backend and teacher app to the server
