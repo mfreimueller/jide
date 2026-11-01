@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { chmodSync, cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
-import { examplesDir, launch, setEditorText, useTempApp } from "./helpers";
+import { examplesDir, launch, newUserData, setEditorText, useTempApp } from "./helpers";
 
 useTempApp();
 
@@ -65,7 +65,7 @@ test("exam mode from a read-only folder: starts, opens an exercise, writes nothi
   await startExam(page);
   await page.locator('[data-testid="exam-tab"]:visible').nth(1).click(); // summe
   await expect(page.locator(".monaco-editor .view-lines:visible")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Abgeben" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Abgeben" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ausführen" })).toBeVisible();
 
   // writable Electron paths are not inside the exam folder
@@ -77,7 +77,11 @@ test("exam mode from a read-only folder: starts, opens an exercise, writes nothi
   await page.locator('[data-testid="run"]:visible').click();
   await expect(page.locator('[data-testid="console"]:visible .xterm-rows')).toContainText("Erste Zahl:");
 
-  await app.close();
+  // un-handed-in changes: closing asks; leaving anyway writes nothing into the exam folder either
+  const closed = page.waitForEvent("close"); // macOS keeps the process alive without windows
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
+  await page.getByTestId("close-leave").click();
+  await closed;
   expect(snapshot(examDir)).toEqual(before);
 });
 
@@ -131,7 +135,7 @@ test("workspace: tabs per exercise, no list, switching keeps each exercise's edi
   await expect(tabs).toHaveText(["Aufgabe 1", "Aufgabe 2"]);
   await expect(page.getByTestId("exercise")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "← Aufgaben" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Abgeben" })).toHaveCount(0);
+  await expect(page.locator('[data-testid="exam-save-status"]')).toHaveCount(0); // nothing saved yet
 
   // sorted by id: maximum before summe
   await expect(tabs.nth(0)).toHaveAttribute("aria-pressed", "true");
@@ -156,7 +160,11 @@ test("workspace: tabs per exercise, no list, switching keeps each exercise's edi
   // both exercises were saved to the workspace on switching
   await tabs.nth(0).click();
   await page.waitForTimeout(100);
-  const ws = join(await app.evaluate(({ app: a }) => a.getPath("userData")), "workspaces");
+  // exam workspaces are scoped per exam and student: one folder below workspaces/
+  const wsBase = join(await app.evaluate(({ app: a }) => a.getPath("userData")), "workspaces");
+  const scoped = readdirSync(wsBase);
+  expect(scoped).toHaveLength(1);
+  const ws = join(wsBase, scoped[0]!);
   expect(readFileSync(join(ws, "maximum", "Maximum.java"), "utf8")).toContain("meine Aufgabe 1");
   expect(readFileSync(join(ws, "summe", "Summe.java"), "utf8")).toContain("meine Aufgabe 2");
 });
@@ -219,4 +227,260 @@ test("unset JAVA_HOME and unset jdkPath are reported as such", async () => {
   const details = page.getByTestId("exam-details");
   await expect(details).toContainText("jdkPath (exam.json): nicht gesetzt");
   await expect(details).toContainText("JAVA_HOME: nicht gesetzt");
+});
+
+// ---------------------------------------------------------------- T25: hand-in, autosave, restore, close
+
+const SUMME_RIGHT = `void main() {
+    Scanner sc = new Scanner(System.in);
+    int a = sc.nextInt();
+    int b = sc.nextInt();
+    IO.println("Summe: " + (a + b));
+}
+`;
+
+/** A hand-in drive (a temp folder) and an exam.json that points to it. */
+function useDrive(config: Record<string, unknown> = {}): string {
+  const drive = mkdtempSync(join(tmpdir(), "jide-drive-"));
+  extra.push(drive);
+  writeFileSync(join(examDir, "exam.json"), JSON.stringify({ mode: "exam", title: "Probe", handInPath: drive, ...config }));
+  return drive;
+}
+
+const editor = (page: Page) => page.locator(".monaco-editor .view-lines:visible");
+const tab = (page: Page, n: number) => page.locator('[data-testid="exam-tab"]:visible').nth(n);
+/** Clicks the tab and waits until its exercise is shown (the previous one is hidden by then). */
+async function gotoTab(page: Page, n: number): Promise<void> {
+  await tab(page, n).click();
+  await expect(tab(page, n)).toHaveAttribute("aria-pressed", "true");
+  await expect(editor(page)).toBeVisible();
+}
+const status = (page: Page) => page.getByTestId("exam-save-status");
+
+async function waitForFile(file: string): Promise<void> {
+  await expect.poll(() => existsSync(file), { timeout: 15_000 }).toBe(true);
+}
+
+test("hand-in: files + abgabe.json with name and test summary, toast, green status, chip survives a restart", async () => {
+  const drive = useDrive();
+  const { app, page } = await launch({ JIDE_EXAM_DIR: examDir });
+  await startExam(page, "Max Muster");
+  await gotoTab(page, 1); // summe
+  await setEditorText(app, page, SUMME_RIGHT);
+  await page.locator('[data-testid="test"]:visible').click();
+  await expect(page.locator('[data-testid="tests-banner"]:visible')).toContainText("3 von 3 Tests bestanden");
+
+  // all tests passed and the code is unchanged: no confirmation
+  await page.getByRole("button", { name: "Abgeben", exact: true }).click();
+  await expect(page.getByTestId("hand-in-dialog")).toHaveCount(0);
+  await expect(page.getByTestId("toast")).toHaveText(new RegExp(`Abgabe gespeichert auf ${drive.replace(/[\\/.]/g, "\\$&")} – \\d\\d:\\d\\d`));
+  await expect(status(page)).toHaveAttribute("data-tone", "ok");
+  await expect(status(page)).toHaveText(new RegExp(`^● zuletzt gesichert auf ${drive.replace(/[\\/.]/g, "\\$&")} um \\d\\d:\\d\\d$`));
+  await expect(status(page)).toHaveCSS("color", "rgb(124, 226, 166)");
+  await expect(page.getByTestId("handed-in").first()).toContainText("Abgegeben");
+  await expect(page.getByRole("button", { name: "Erneut abgeben" })).toBeVisible();
+
+  expect(readFileSync(join(drive, "summe", "Summe.java"), "utf8")).toBe(SUMME_RIGHT);
+  const abgabe = JSON.parse(readFileSync(join(drive, "summe", "abgabe.json"), "utf8"));
+  expect(abgabe).toMatchObject({ name: "Max Muster", exercise: "summe", title: "Summe zweier Zahlen", testSummary: { passed: 3, total: 3 }, files: ["Summe.java"] });
+  expect(abgabe.submittedAt).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}[+-]\d\d:\d\d$/);
+
+  // nothing changed since the hand-in: closing does not ask
+  const closed = page.waitForEvent("close");
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
+  await closed;
+
+  // restart with an empty user-data dir: "abgegeben" comes back from abgabe.json
+  const second = await launch({ JIDE_EXAM_DIR: examDir }, newUserData());
+  await startExam(second.page, "MAX muster");
+  await gotoTab(second.page, 1);
+  await expect(second.page.getByRole("button", { name: "Erneut abgeben" })).toBeVisible();
+  await expect(second.page.getByTestId("handed-in").first()).toContainText("Abgegeben");
+  await expect(editor(second.page)).toContainText("Summe: ");
+  await expect(editor(second.page)).toContainText("a + b");
+});
+
+test("hand-in of the starter code without tests run asks first; allowTests false never asks", async () => {
+  const drive = useDrive();
+  const { page } = await launch({ JIDE_EXAM_DIR: examDir });
+  await startExam(page);
+  await gotoTab(page, 1);
+  await page.getByRole("button", { name: "Abgeben", exact: true }).click();
+  await expect(page.getByTestId("hand-in-dialog")).toBeVisible();
+  await page.getByTestId("hand-in-confirm").click();
+  await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert auf");
+  expect(JSON.parse(readFileSync(join(drive, "summe", "abgabe.json"), "utf8")).testSummary).toBeNull();
+
+  // allowTests false: no tests, so no confirmation
+  writeFileSync(join(examDir, "exam.json"), JSON.stringify({ mode: "exam", title: "Probe", handInPath: drive, allowTests: false }));
+  const off = await launch({ JIDE_EXAM_DIR: examDir }, newUserData());
+  await startExam(off.page);
+  await gotoTab(off.page, 1);
+  await off.page.getByRole("button", { name: /abgeben/i }).click();
+  await expect(off.page.getByTestId("hand-in-dialog")).toHaveCount(0);
+  await expect(off.page.getByTestId("toast")).toContainText("Abgabe gespeichert auf");
+});
+
+test("autosave: after a run and on a tab switch, with name; skipped while unchanged", async () => {
+  const drive = useDrive();
+  const { app, page } = await launch({ JIDE_EXAM_DIR: examDir });
+  await startExam(page, "Erika Muster");
+  await gotoTab(page, 1); // summe
+  await setEditorText(app, page, "// nach dem Ausführen\nvoid main() {}\n");
+  await page.locator('[data-testid="run"]:visible').click();
+  const auto = join(drive, "summe", "_autosave");
+  await waitForFile(join(auto, "autosave.json"));
+  await expect(status(page)).toHaveAttribute("data-tone", "ok");
+  expect(readFileSync(join(auto, "Summe.java"), "utf8")).toBe("// nach dem Ausführen\nvoid main() {}\n");
+  const saved = JSON.parse(readFileSync(join(auto, "autosave.json"), "utf8"));
+  expect(saved).toMatchObject({ name: "Erika Muster", exercise: "summe" });
+  expect(saved.savedAt).toMatch(/^\d{4}-\d\d-\d\dT/);
+  expect(existsSync(join(drive, "summe", "abgabe.json"))).toBe(false); // an autosave is not a hand-in
+
+  // switching tabs saves the exercise that was left (and autosaves the first one for the first time)
+  await setEditorText(app, page, "// beim Wechseln\nvoid main() {}\n");
+  await gotoTab(page, 0);
+  await expect.poll(() => readFileSync(join(auto, "Summe.java"), "utf8")).toBe("// beim Wechseln\nvoid main() {}\n");
+});
+
+test("autosave runs by itself on the interval (JIDE_AUTOSAVE_MS)", async () => {
+  const drive = useDrive();
+  const { app, page } = await launch({ JIDE_EXAM_DIR: examDir, JIDE_AUTOSAVE_MS: "400" });
+  await startExam(page);
+  await gotoTab(page, 1);
+  await setEditorText(app, page, "// nur durch das Intervall\n");
+  await expect.poll(() => existsSync(join(drive, "summe", "_autosave", "Summe.java")) && readFileSync(join(drive, "summe", "_autosave", "Summe.java"), "utf8"), { timeout: 15_000 }).toBe("// nur durch das Intervall\n");
+  await expect(status(page)).toHaveAttribute("data-tone", "ok");
+});
+
+test("restore after a restart with an EMPTY user-data dir: the newest of autosave and hand-in wins", async () => {
+  const drive = useDrive();
+  const first = await launch({ JIDE_EXAM_DIR: examDir });
+  await startExam(first.page, "Max Muster");
+  await gotoTab(first.page, 1);
+  await setEditorText(first.app, first.page, "// Abgabe 1\n");
+  await first.page.getByRole("button", { name: "Abgeben", exact: true }).click();
+  await first.page.getByTestId("hand-in-confirm").click();
+  await expect(first.page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  await setEditorText(first.app, first.page, "// Autosave 2\n");
+  await gotoTab(first.page, 0); // autosave of the exercise that was left
+  await expect.poll(() => readFileSync(join(drive, "summe", "_autosave", "Summe.java"), "utf8")).toBe("// Autosave 2\n");
+  await first.app.evaluate(({ app: a }) => a.exit(0)).catch(() => undefined); // crash: no close handling
+
+  // autosave is newer than the hand-in
+  const second = await launch({ JIDE_EXAM_DIR: examDir }, newUserData());
+  await startExam(second.page, "Max Muster");
+  await gotoTab(second.page, 1);
+  await expect(editor(second.page)).toContainText("Autosave 2");
+  await expect(second.page.getByRole("button", { name: "Erneut abgeben" })).toBeVisible(); // the hand-in is known too
+  // hand in again: now the hand-in is the newest
+  await second.page.getByRole("button", { name: "Erneut abgeben" }).click();
+  await second.page.getByTestId("hand-in-confirm").click();
+  await expect(second.page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  await second.app.evaluate(({ app: a }) => a.exit(0)).catch(() => undefined);
+
+  const third = await launch({ JIDE_EXAM_DIR: examDir }, newUserData());
+  await startExam(third.page, "Max Muster");
+  await gotoTab(third.page, 1);
+  await expect(editor(third.page)).toContainText("Autosave 2");
+
+  // another name on the same drive: nothing is restored
+  const other = await launch({ JIDE_EXAM_DIR: examDir }, newUserData());
+  await startExam(other.page, "Erika Muster");
+  await gotoTab(other.page, 1);
+  await expect(editor(other.page)).not.toContainText("Autosave 2");
+  await expect(editor(other.page)).toContainText("void main()");
+});
+
+test("hand-in drive not reachable: amber status, error toast on Abgeben, work stays, retry works", async () => {
+  const drive = join(mkdtempSync(join(tmpdir(), "jide-gone-")), "P");
+  extra.push(join(drive, ".."));
+  writeFileSync(join(examDir, "exam.json"), JSON.stringify({ mode: "exam", title: "Probe", handInPath: drive }));
+  const { app, page } = await launch({ JIDE_EXAM_DIR: examDir });
+  await startExam(page);
+  await gotoTab(page, 1);
+  await setEditorText(app, page, "// bleibt lokal\n");
+  await page.getByRole("button", { name: "Abgeben", exact: true }).click();
+  await page.getByTestId("hand-in-confirm").click();
+  await expect(page.getByTestId("toast")).toHaveText(`!Abgabe nicht gespeichert – ${drive} ist nicht erreichbar. Versuch es gleich nochmal.`);
+  await expect(status(page)).toHaveAttribute("data-tone", "warn");
+  await expect(status(page)).toHaveText(`● ${drive} nicht erreichbar – deine Arbeit ist nur auf diesem PC gesichert`);
+  await expect(status(page)).toHaveCSS("color", "rgb(255, 181, 51)");
+  await expect(page.getByRole("button", { name: "Abgeben", exact: true })).toBeVisible(); // not handed in
+  await expect(editor(page)).toContainText("bleibt lokal");
+  expect(existsSync(drive)).toBe(false); // the missing drive is not invented
+
+  // the drive comes back: the student clicks again
+  mkdirSync(drive);
+  await page.getByRole("button", { name: "Abgeben", exact: true }).click();
+  await page.getByTestId("hand-in-confirm").click();
+  await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert auf");
+  await expect(status(page)).toHaveAttribute("data-tone", "ok");
+  expect(readFileSync(join(drive, "summe", "Summe.java"), "utf8")).toBe("// bleibt lokal\n");
+});
+
+test("autosave keeps retrying: amber while the drive is away, green once it is back", async () => {
+  const drive = join(mkdtempSync(join(tmpdir(), "jide-gone-")), "P");
+  extra.push(join(drive, ".."));
+  writeFileSync(join(examDir, "exam.json"), JSON.stringify({ mode: "exam", title: "Probe", handInPath: drive }));
+  const { app, page } = await launch({ JIDE_EXAM_DIR: examDir, JIDE_AUTOSAVE_MS: "400" });
+  await startExam(page);
+  await gotoTab(page, 1);
+  await setEditorText(app, page, "// Laufwerk fehlt\n");
+  await expect(status(page)).toHaveAttribute("data-tone", "warn");
+  mkdirSync(drive);
+  await expect(status(page)).toHaveAttribute("data-tone", "ok");
+  await expect.poll(() => readFileSync(join(drive, "summe", "_autosave", "Summe.java"), "utf8")).toBe("// Laufwerk fehlt\n");
+});
+
+test("closing with changes that were not handed in asks; Weiterarbeiten keeps the app; after a hand-in it does not ask", async () => {
+  const drive = useDrive();
+  const { app, page } = await launch({ JIDE_EXAM_DIR: examDir });
+  await startExam(page);
+  await gotoTab(page, 1);
+  await setEditorText(app, page, "// ungesichert\n");
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
+  const dialog = page.getByTestId("close-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Wirklich beenden?" })).toBeVisible();
+  await expect(dialog).toContainText("Du hast deine letzten Änderungen noch nicht abgegeben.");
+  // closing saved a copy to the drive first
+  expect(readFileSync(join(drive, "summe", "_autosave", "Summe.java"), "utf8")).toBe("// ungesichert\n");
+  await dialog.getByRole("button", { name: "Weiterarbeiten" }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+  await expect(editor(page)).toContainText("ungesichert");
+
+  // asking again works, too
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape"); // = Weiterarbeiten
+  await expect(dialog).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Abgeben", exact: true }).click();
+  await page.getByTestId("hand-in-confirm").click();
+  await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  const closed = page.waitForEvent("close");
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
+  await closed;
+});
+
+test("workspaces of two students (or two exams) on the same Windows account do not mix", async () => {
+  useDrive();
+  const data = newUserData();
+  const a = await launch({ JIDE_EXAM_DIR: examDir }, data);
+  await startExam(a.page, "Anna Alpha");
+  await gotoTab(a.page, 1);
+  await setEditorText(a.app, a.page, "// Annas Arbeit\n");
+  await gotoTab(a.page, 0); // saved
+  await a.app.evaluate(({ app: x }) => x.exit(0)).catch(() => undefined);
+
+  // same user-data dir, other student, other drive folder
+  const drive2 = useDrive();
+  const b = await launch({ JIDE_EXAM_DIR: examDir }, data);
+  await startExam(b.page, "Berta Beta");
+  await gotoTab(b.page, 1);
+  await expect(editor(b.page)).not.toContainText("Annas Arbeit");
+  expect(readdirSync(join(data, "workspaces")).length).toBe(2);
+  expect(existsSync(join(drive2, "summe", "abgabe.json"))).toBe(false);
 });

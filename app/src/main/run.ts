@@ -7,6 +7,7 @@ import { app, ipcMain, type WebContents } from "electron";
 import type { RunEndReason, RunEvent, RunStartResult } from "../shared-types/api";
 import { isTesting } from "./busy";
 import { buildRequest, helper, helperMessage } from "./compile";
+import { examAutosaveSoon } from "./exam-session";
 import { findExercise } from "./exercises";
 import { javaExecutable } from "./java";
 import { OutputBatcher } from "./output";
@@ -129,6 +130,7 @@ export function registerRunIpc(): void {
       return { ok: true, started: true, runId: runCounter, diagnostics: result.diagnostics };
     } finally {
       starting = false;
+      examAutosaveSoon(id);
       if (runDir) void removeDir(runDir);
     }
   });

@@ -28,11 +28,17 @@ export type AppSession =
 
 /** Exam mode start-up result (T23): what the exam screens show. */
 export type ExamSession =
-  | { status: "ok"; title: string; handInPath: string; allowTests: boolean }
+  | { status: "ok"; title: string; handInPath: string; allowTests: boolean; autosaveMs: number }
   /** exam.json is broken (screen 09). `programDir` = folder of the exe. */
   | { status: "config-error"; message: string; programDir: string }
   /** No JDK 25 found (screen 10). `searched` = the lines of the "Gesucht in dieser Reihenfolge" box. */
   | { status: "no-jdk"; title: string; handInPath: string; searched: string[] };
+
+/** Last write to the hand-in drive that was tried (autosave or hand-in); `at` is ISO 8601 UTC. */
+export interface SaveStatus {
+  ok: boolean;
+  at: string;
+}
 
 /** Result of entering the name on the exam start screen (T24). */
 export type ExamStartResult = { ok: true; name: string } | { ok: false; message: string };
@@ -148,6 +154,17 @@ export interface JideApi {
   startExam: (name: string) => Promise<ExamStartResult>;
   /** Exam mode: the name given at this start, or null before "Prüfung starten". */
   getExamName: () => Promise<string | null>;
+  /**
+   * Exam mode: copies the saved files of the given exercises (default: all opened ones) to the
+   * hand-in drive. The caller flushes the editors first.
+   */
+  examAutosave: (ids?: string[]) => Promise<void>;
+  /** Exam mode: result of every autosave / hand-in that was tried. Returns the unsubscribe function. */
+  onSaveStatus: (handler: (s: SaveStatus) => void) => () => void;
+  /** Exam mode: main asks whether to close although the last changes were not handed in. */
+  onCloseConfirm: (handler: () => void) => () => void;
+  /** Answer to `onCloseConfirm`: true = close anyway. */
+  answerClose: (leave: boolean) => void;
   /** Quits the app (exam error screens). */
   quit: () => void;
   /** Online mode: checks the code (case-insensitive) with the server and stores it. */

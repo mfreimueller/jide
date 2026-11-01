@@ -15,6 +15,18 @@ const api: JideApi = {
   getSession: () => ipcRenderer.invoke("jide:session"),
   startExam: (name) => ipcRenderer.invoke("jide:exam-start", name),
   getExamName: () => ipcRenderer.invoke("jide:exam-name"),
+  examAutosave: (ids) => ipcRenderer.invoke("jide:exam-autosave", ids),
+  onSaveStatus: (handler) => {
+    const listener = (_e: Electron.IpcRendererEvent, s: Parameters<typeof handler>[0]): void => handler(s);
+    ipcRenderer.on("jide:save-status", listener);
+    return () => ipcRenderer.removeListener("jide:save-status", listener);
+  },
+  onCloseConfirm: (handler) => {
+    const listener = (): void => handler();
+    ipcRenderer.on("jide:confirm-close", listener);
+    return () => ipcRenderer.removeListener("jide:confirm-close", listener);
+  },
+  answerClose: (leave) => ipcRenderer.send("jide:close-answer", leave),
   quit: () => ipcRenderer.send("jide:quit"),
   login: (code) => ipcRenderer.invoke("jide:login", code),
   onSessionExpired: (handler) => {

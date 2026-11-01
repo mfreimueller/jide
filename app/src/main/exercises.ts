@@ -10,12 +10,21 @@ import type {
   SaveResult
 } from "../shared-types/api";
 import { context } from "./context";
+import { examStudentName, examMode, testsAllowed } from "./exam-state";
+import { examWorkspaceKey } from "./exam-store";
 import { parseTestSummary } from "./test-summary";
 
 const MAX_CONTENT_BYTES = 2 * 1024 * 1024;
 
-function workspaceRoot(): string {
-  return join(app.getPath("userData"), "workspaces");
+/**
+ * Where the editable files live. Exam mode: one folder per exam and student below userData (in
+ * %TEMP%), so an earlier exam or another student on the same Windows account never leaks in.
+ */
+export function workspaceRoot(): string {
+  const base = join(app.getPath("userData"), "workspaces");
+  const exam = examMode();
+  if (!exam?.config) return base;
+  return join(base, examWorkspaceKey(exam.dir, exam.config.title, examStudentName() ?? ""));
 }
 
 async function dirExists(p: string): Promise<boolean> {
@@ -137,7 +146,7 @@ export function registerExerciseIpc(): void {
     } catch (e) {
       return { ok: false, message: errorMessage(e, "Deine Dateien konnten nicht gelesen werden.") };
     }
-    const r = await source.handIn(ex, files, ex.tests?.length ? parseTestSummary(testSummary) : null);
+    const r = await source.handIn(ex, files, ex.tests?.length && testsAllowed() ? parseTestSummary(testSummary) : null);
     if (r.ok) handIns.set(ex.id, r.submittedAt, r.late);
     return r;
   });

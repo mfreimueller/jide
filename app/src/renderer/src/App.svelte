@@ -1,10 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { SvelteMap } from "svelte/reactivity";
-  import type { AppSession, ExerciseList as ExerciseListData, OpenedExercise, StudentInfo } from "../../shared-types/api";
+  import type { AppSession, ExerciseList as ExerciseListData, OpenedExercise, SaveStatus, StudentInfo } from "../../shared-types/api";
+  import CloseDialog from "./lib/CloseDialog.svelte";
   import ExamBar from "./lib/ExamBar.svelte";
   import ExamProblem from "./lib/ExamProblem.svelte";
   import ExamStart from "./lib/ExamStart.svelte";
+  import { saveStatusView } from "./lib/exam-ui";
   import ExamWorkspace from "./lib/ExamWorkspace.svelte";
   import ExerciseList from "./lib/ExerciseList.svelte";
   import Login from "./lib/Login.svelte";
@@ -21,6 +23,10 @@
   // Exam mode: undefined while loading, null before "Prüfung starten".
   let examName = $state<string | null | undefined>();
   let examExercises = $state.raw<ExerciseListData | undefined>();
+  // Exam mode: result of the last write to the hand-in drive; undefined before the first one.
+  let saveStatus = $state<SaveStatus | undefined>();
+  // Exam mode: closing with changes that were not handed in (main asks).
+  let confirmClose = $state(false);
 
   async function flushAll(): Promise<void> {
     await Promise.all([...sessions.values()].map((es) => es.flush()));
@@ -49,6 +55,8 @@
     window.jide.onFlushRequest(async () => {
       await flushAll();
     });
+    const stopStatus = window.jide.onSaveStatus((s) => (saveStatus = s));
+    const stopClose = window.jide.onCloseConfirm(() => (confirmClose = true));
     // The server no longer accepts the stored code (main has deleted it): back to the login.
     const stop = window.jide.onSessionExpired(async (message) => {
       await flushAll().catch(() => undefined); // edits are local; never lose them
@@ -61,7 +69,11 @@
       if (s.mode === "online") student = s.student;
       if (s.mode === "exam" && s.exam.status === "ok") void loadExam();
     });
-    return stop;
+    return () => {
+      stop();
+      stopStatus();
+      stopClose();
+    };
   });
 
   async function open(id: string): Promise<void> {
@@ -101,6 +113,18 @@
   {/if}
 {/snippet}
 
+{#if confirmClose}
+  <CloseDialog
+    onStay={() => {
+      confirmClose = false;
+      window.jide.answerClose(false);
+    }}
+    onLeave={() => {
+      confirmClose = false;
+      window.jide.answerClose(true);
+    }}
+  />
+{/if}
 {#if !session}
   <!-- waiting for main -->
 {:else if session.mode === "exam"}
@@ -120,6 +144,7 @@
       <ExamBar
         title={typeof examName === "string" ? examName : exam.title}
         info={typeof examName === "string" ? "" : `Abgabelaufwerk: ${exam.handInPath} · kein Internet nötig`}
+        status={typeof examName === "string" ? saveStatusView(saveStatus, exam.handInPath) : undefined}
       />
       {#if exam.status === "no-jdk"}
         <ExamProblem
@@ -143,7 +168,7 @@
         />
       {:else}
         <div class="exam-body">
-          <ExamWorkspace exercises={examExercises.exercises} allowTests={exam.allowTests} {sessions} />
+          <ExamWorkspace exercises={examExercises.exercises} allowTests={exam.allowTests} handInPath={exam.handInPath} autosaveMs={exam.autosaveMs} {sessions} />
         </div>
       {/if}
     {/if}
