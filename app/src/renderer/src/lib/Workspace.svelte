@@ -8,7 +8,9 @@
   import { LiveCompiler } from "./problems.svelte";
   import { RunController } from "./run.svelte";
   import { TestController } from "./test.svelte";
+  import HandInDialog from "./HandInDialog.svelte";
   import { EditorSession } from "./session.svelte";
+  import { editableContents, getLastTest, planHandIn, type HandInPlan } from "./test-state";
   import Toolbar from "./Toolbar.svelte";
 
   let {
@@ -63,9 +65,11 @@
     toastTimer = setTimeout(() => (toast = undefined), 8000);
   }
 
-  /** Flushes pending edits, then uploads the saved files. */
+  let confirming = $state.raw<HandInPlan | undefined>();
+
+  /** Flushes pending edits; asks first if the tests do not vouch for the code (SPEC 3.5), then uploads. */
   async function handIn(): Promise<void> {
-    if (handInBusy) return;
+    if (handInBusy || confirming) return;
     handInBusy = true;
     try {
       await session.flush();
@@ -73,23 +77,47 @@
         showToast("error", "Deine Änderungen konnten nicht gespeichert werden. Versuch es gleich nochmal.");
         return;
       }
-      const r = await window.jide.handIn(exercise.id);
-      if (r.ok) {
-        submittedAt = r.submittedAt;
-        late = r.late;
-        showToast(
-          "ok",
-          r.late
-            ? `Abgabe gespeichert – verspätet (${formatDateTime(r.submittedAt)})`
-            : `Abgabe gespeichert – ${formatDateTime(r.submittedAt)}`
-        );
-      } else {
-        showToast("error", r.message);
+      const current = editableContents(session.files, session.fileContents());
+      const plan = planHandIn(exercise.hasTests, getLastTest(exercise.id), current);
+      if (plan.confirm) {
+        confirming = plan;
+        return;
       }
+      await upload(plan);
     } catch {
       showToast("error", "Das hat leider nicht geklappt.");
     } finally {
       handInBusy = false;
+    }
+  }
+
+  async function confirmHandIn(): Promise<void> {
+    const plan = confirming;
+    confirming = undefined;
+    if (!plan || handInBusy) return;
+    handInBusy = true;
+    try {
+      await upload(plan);
+    } catch {
+      showToast("error", "Das hat leider nicht geklappt.");
+    } finally {
+      handInBusy = false;
+    }
+  }
+
+  async function upload(plan: HandInPlan): Promise<void> {
+    const r = await window.jide.handIn(exercise.id, plan.summary);
+    if (r.ok) {
+      submittedAt = r.submittedAt;
+      late = r.late;
+      showToast(
+        "ok",
+        r.late
+          ? `Abgabe gespeichert – verspätet (${formatDateTime(r.submittedAt)})`
+          : `Abgabe gespeichert – ${formatDateTime(r.submittedAt)}`
+      );
+    } else {
+      showToast("error", r.message);
     }
   }
 
@@ -111,6 +139,9 @@
 </script>
 
 <div class="screen">
+  {#if confirming}
+    <HandInDialog summary={confirming.summary} onCancel={() => (confirming = undefined)} onConfirm={() => void confirmHandIn()} />
+  {/if}
   <div class="topbar">
     <button class="btn ghost" onclick={back}>← Aufgaben</button>
     <span class="title">{exercise.title}</span>

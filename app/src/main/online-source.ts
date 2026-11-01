@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import path from "node:path";
-import { loadExercise, saveFile, type Exercise, type HandInFile, type StudentExerciseSummary } from "@jide/shared";
+import { loadExercise, saveFile, type Exercise, type HandInFile, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
 import { ApiClient, ApiError } from "./api-client";
 import { isSafeExerciseId, needsDownload, PackageCache, restorableFiles } from "./package-cache";
 import type { ExerciseSource, HandInOutcome, SourceEntry, SourceListing } from "./source";
@@ -127,9 +127,9 @@ export class OnlineSource implements ExerciseSource {
     return { ok: true, submittedAt: latest.submittedAt, late };
   }
 
-  async handIn(ex: Exercise, files: HandInFile[]): Promise<HandInOutcome> {
+  async handIn(ex: Exercise, files: HandInFile[], testSummary: TestSummary | null): Promise<HandInOutcome> {
     try {
-      const r = await this.api.handIn(ex.id, { files, testSummary: null });
+      const r = await this.api.handIn(ex.id, { files, testSummary });
       return { ok: true, submittedAt: r.submittedAt, late: r.late };
     } catch (e) {
       return { ok: false, message: messageOf(e) };

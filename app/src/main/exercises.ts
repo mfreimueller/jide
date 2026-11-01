@@ -10,6 +10,7 @@ import type {
   SaveResult
 } from "../shared-types/api";
 import { context } from "./context";
+import { parseTestSummary } from "./test-summary";
 
 const MAX_CONTENT_BYTES = 2 * 1024 * 1024;
 
@@ -123,7 +124,7 @@ export function registerExerciseIpc(): void {
     }
   });
 
-  ipcMain.handle("jide:hand-in", async (_e, id: unknown): Promise<HandInResult> => {
+  ipcMain.handle("jide:hand-in", async (_e, id: unknown, testSummary: unknown): Promise<HandInResult> => {
     const { source, handIns } = context();
     if (!source.handIn) return { ok: false, message: "Abgeben ist hier nicht möglich." };
     const ex = await findExercise(id);
@@ -136,7 +137,7 @@ export function registerExerciseIpc(): void {
     } catch (e) {
       return { ok: false, message: errorMessage(e, "Deine Dateien konnten nicht gelesen werden.") };
     }
-    const r = await source.handIn(ex, files);
+    const r = await source.handIn(ex, files, ex.tests?.length ? parseTestSummary(testSummary) : null);
     if (r.ok) handIns.set(ex.id, r.submittedAt, r.late);
     return r;
   });

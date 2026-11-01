@@ -47,3 +47,22 @@ export const MSG_TESTS_FAILED = "Da sind noch Fehler in deinem Programm.";
 export function countLabel(summary: { passed: number; total: number }): string {
   return `${summary.passed} von ${summary.total} Tests bestanden`;
 }
+
+export interface HandInPlan {
+  /** Ask "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" first. */
+  confirm: boolean;
+  /** Goes with the hand-in: the last run, if the files are unchanged since then; otherwise null. */
+  summary: { passed: number; total: number } | null;
+}
+
+/** SPEC 3.5: ask if never tested, the last run failed, or the code changed since; no tests: never. */
+export function planHandIn(
+  hasTests: boolean,
+  last: LastTest | undefined,
+  currentEditable: SourceFileInput[]
+): HandInPlan {
+  if (!hasTests) return { confirm: false, summary: null };
+  if (!last) return { confirm: true, summary: null };
+  const current = sameContents(last.snapshot, currentEditable);
+  return { confirm: !current || !allPassed(last.summary), summary: current ? last.summary : null };
+}

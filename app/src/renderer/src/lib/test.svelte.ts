@@ -10,7 +10,7 @@ export type TestState = "idle" | "running";
 export class TestController {
   state = $state<TestState>("idle");
   /** Last finished run of this exercise; survives leaving and re-opening the exercise. */
-  last = $state<LastTest | undefined>();
+  last = $state.raw<LastTest | undefined>();
 
   private disposed = false;
 
