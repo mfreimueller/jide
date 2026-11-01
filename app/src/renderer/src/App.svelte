@@ -1,8 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { AppSession, OpenedExercise, StudentInfo } from "../../shared-types/api";
+  import { SvelteMap } from "svelte/reactivity";
+  import type { AppSession, ExerciseList as ExerciseListData, OpenedExercise, StudentInfo } from "../../shared-types/api";
   import ExamBar from "./lib/ExamBar.svelte";
   import ExamProblem from "./lib/ExamProblem.svelte";
+  import ExamStart from "./lib/ExamStart.svelte";
+  import ExamWorkspace from "./lib/ExamWorkspace.svelte";
   import ExerciseList from "./lib/ExerciseList.svelte";
   import Login from "./lib/Login.svelte";
   import type { EditorSession } from "./lib/session.svelte";
@@ -10,19 +13,45 @@
 
   let exercise = $state<OpenedExercise | undefined>();
   let error = $state("");
-  let current: EditorSession | undefined;
+  // Editor sessions that may hold unsaved edits: one in online mode, one per opened exercise in exam mode.
+  const sessions = new SvelteMap<string, EditorSession>();
   let session = $state<AppSession | undefined>();
   let student = $state<StudentInfo | null>(null);
   let loginNotice = $state("");
+  // Exam mode: undefined while loading, null before "Prüfung starten".
+  let examName = $state<string | null | undefined>();
+  let examExercises = $state.raw<ExerciseListData | undefined>();
+
+  async function flushAll(): Promise<void> {
+    await Promise.all([...sessions.values()].map((es) => es.flush()));
+  }
+
+  async function loadExam(): Promise<void> {
+    try {
+      const [name, list] = await Promise.all([window.jide.getExamName(), window.jide.listExercises()]);
+      examExercises = list;
+      examName = name;
+    } catch {
+      examExercises = { exercises: [], errors: ["Die Aufgaben konnten nicht geladen werden."], offline: false };
+      examName = null;
+    }
+  }
+
+  async function startExam(name: string): Promise<string | undefined> {
+    const r = await window.jide.startExam(name);
+    if (!r.ok) return r.message;
+    examName = r.name;
+    return undefined;
+  }
 
   onMount(() => {
     // Main waits for this before the window closes.
     window.jide.onFlushRequest(async () => {
-      await current?.flush();
+      await flushAll();
     });
     // The server no longer accepts the stored code (main has deleted it): back to the login.
     const stop = window.jide.onSessionExpired(async (message) => {
-      await current?.flush().catch(() => undefined); // edits are local; never lose them
+      await flushAll().catch(() => undefined); // edits are local; never lose them
       exercise = undefined;
       student = null;
       loginNotice = message;
@@ -30,6 +59,7 @@
     void window.jide.getSession().then((s) => {
       session = s;
       if (s.mode === "online") student = s.student;
+      if (s.mode === "exam" && s.exam.status === "ok") void loadExam();
     });
     return stop;
   });
@@ -60,7 +90,7 @@
         {exercise}
         canHandIn={s.mode === "online"}
         onBack={() => (exercise = undefined)}
-        registerSession={(es) => (current = es)}
+        registerSession={(es) => (es ? sessions.set("current", es) : sessions.delete("current"))}
       />
     {/key}
   {:else}
@@ -87,7 +117,10 @@
         footer="Für die Lehrkraft: exam.json im Programmordner korrigieren und J;DE neu starten."
       />
     {:else}
-      <ExamBar title={exam.title} info={`Abgabelaufwerk: ${exam.handInPath} · kein Internet nötig`} />
+      <ExamBar
+        title={typeof examName === "string" ? examName : exam.title}
+        info={typeof examName === "string" ? "" : `Abgabelaufwerk: ${exam.handInPath} · kein Internet nötig`}
+      />
       {#if exam.status === "no-jdk"}
         <ExamProblem
           heading="Java 25 wurde nicht gefunden"
@@ -97,8 +130,21 @@
           tone="neutral"
           footer="Für die Lehrkraft: JAVA_HOME auf ein JDK 25 setzen oder jdkPath in exam.json eintragen, dann J;DE neu starten."
         />
+      {:else if examName === undefined || !examExercises}
+        <!-- loading -->
+      {:else if examName === null}
+        <ExamStart
+          title={exam.title}
+          handInPath={exam.handInPath}
+          count={examExercises.exercises.length}
+          allowTests={exam.allowTests}
+          errors={examExercises.errors}
+          onStart={startExam}
+        />
       {:else}
-        <div class="exam-body">{@render content(session)}</div>
+        <div class="exam-body">
+          <ExamWorkspace exercises={examExercises.exercises} allowTests={exam.allowTests} {sessions} />
+        </div>
       {/if}
     {/if}
   </div>
