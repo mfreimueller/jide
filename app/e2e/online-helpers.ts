@@ -26,6 +26,8 @@ export interface Backend {
   stop: () => Promise<void>;
   /** Gives the student a new code (the old one stops working) and returns it. */
   resetCode: () => Promise<string>;
+  /** Count and test summary of the student's last hand-in of an exercise, as the teacher matrix reads them. */
+  handInCell: (exerciseId: string) => Promise<{ count: number; testSummary: { passed: number; total: number } | null } | null>;
 }
 
 const started: Backend[] = [];
@@ -59,6 +61,14 @@ export async function startBackend(): Promise<Backend> {
     resetCode: async () => {
       const r = await fetch(`${info.url}/__test/reset-code`, { method: "POST" });
       return ((await r.json()) as { code: string }).code;
+    },
+    handInCell: async (exerciseId) => {
+      const m = (await (await fetch(`${info.url}/__test/matrix`)).json()) as {
+        exercises: { id: string }[];
+        rows: { cells: ({ count: number; testSummary: { passed: number; total: number } | null } | null)[] }[];
+      };
+      const j = m.exercises.findIndex((e) => e.id === exerciseId);
+      return m.rows[0]?.cells[j] ?? null;
     }
   };
   started.push(backend);

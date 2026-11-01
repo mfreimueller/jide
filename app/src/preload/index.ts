@@ -19,7 +19,7 @@ const api: JideApi = {
     ipcRenderer.on("jide:session-expired", listener);
     return () => ipcRenderer.removeListener("jide:session-expired", listener);
   },
-  handIn: (id) => ipcRenderer.invoke("jide:hand-in", id),
+  handIn: (id, testSummary) => ipcRenderer.invoke("jide:hand-in", id, testSummary),
   compile: (id, files) => ipcRenderer.invoke("jide:compile", id, files),
   run: (id, files) => ipcRenderer.invoke("jide:run", id, files),
   test: (id, files) => ipcRenderer.invoke("jide:test", id, files),

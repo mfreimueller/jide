@@ -10,6 +10,7 @@ import { zipSync, type Zippable } from "fflate";
 import { app } from "../../../backend/src/app.js";
 import { createTestDb, dropTestDb, setDb } from "../../../backend/src/db/connection.js";
 import { addStudents, createCourse, resetCode } from "../../../backend/src/lib/courses.js";
+import { handInMatrix } from "../../../backend/src/lib/handins.js";
 import { validatePackage } from "../../../backend/src/lib/exercise_package.js";
 import { saveExercise, updateForCourse } from "../../../backend/src/lib/exercises.js";
 import { addTeacher } from "../../../backend/src/lib/teachers.js";
@@ -58,6 +59,10 @@ const server = serve(
       if (req.method === "POST" && url.pathname === "/__test/reset-code") {
         const s = await resetCode(db, course.id, student!.id);
         return Response.json({ code: s.code });
+      }
+      if (req.method === "GET" && url.pathname === "/__test/matrix") {
+        // what the teacher matrix shows: last hand-in (with test summary) per exercise
+        return Response.json(await handInMatrix(db, course.id, false));
       }
       return app.fetch(req);
     }

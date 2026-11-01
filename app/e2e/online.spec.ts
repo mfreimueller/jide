@@ -30,8 +30,10 @@ async function latestHandIn(backend: Backend, code: string): Promise<{ files: { 
   return r.ok ? ((await r.json()) as { files: { path: string; content: string }[] }) : undefined;
 }
 
+/** Both sample exercises have tests, so a hand-in without a green run asks first: this confirms. */
 async function handIn(page: Page): Promise<void> {
   await page.getByTestId("hand-in").click();
+  await page.getByTestId("hand-in-confirm").click();
 }
 
 test("a wrong code stays on the login with the server's message", async () => {
@@ -168,4 +170,77 @@ test("a reset code sends the student back to the login", async () => {
   // the stored code is gone; the new slip works
   await login(page, newCode);
   await expect(card(page, SUMME)).toBeVisible();
+});
+
+// ---- hand-in with tests (T20) ----
+
+const SUMME_RIGHT = `void main() {
+    Scanner sc = new Scanner(System.in);
+    int a = sc.nextInt();
+    int b = sc.nextInt();
+    IO.println("Summe: " + (a + b));
+}
+`;
+
+async function testSummeGreen(page: Page): Promise<void> {
+  await page.getByTestId("test").click();
+  await expect(page.getByTestId("tests-banner")).toContainText("Dein Code sieht richtig aus!");
+}
+
+test("after a green test run, Abgeben asks nothing and sends the test summary", async () => {
+  const backend = await startBackend();
+  const { app, page } = await loggedIn(backend);
+  await openExercise(page, SUMME);
+  await setEditorText(app, page, SUMME_RIGHT);
+  await testSummeGreen(page);
+  await page.getByTestId("hand-in").click();
+  await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  await expect(page.getByTestId("hand-in-dialog")).toHaveCount(0);
+  expect(await backend.handInCell("summe")).toMatchObject({ count: 1, testSummary: { passed: 3, total: 3 } });
+});
+
+test("editing after a green run brings the dialog; confirming hands in without a summary", async () => {
+  const backend = await startBackend();
+  const { app, page } = await loggedIn(backend);
+  await openExercise(page, SUMME);
+  await setEditorText(app, page, SUMME_RIGHT);
+  await testSummeGreen(page);
+  await setEditorText(app, page, SUMME_RIGHT + "// geändert\n");
+  await page.getByTestId("hand-in").click();
+  const dialog = page.getByTestId("hand-in-dialog");
+  await expect(dialog).toContainText("Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?");
+  await expect(dialog.getByTestId("hand-in-dialog-count")).toHaveCount(0); // the green run no longer applies
+  await page.screenshot({ path: join(screenshotDir, "handin-dialog.png") });
+  expect(await backend.handInCell("summe")).toBeNull();
+  await page.getByTestId("hand-in-confirm").click();
+  await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  await expect(dialog).toHaveCount(0);
+  expect(await backend.handInCell("summe")).toMatchObject({ count: 1, testSummary: null });
+});
+
+test("Weiterarbeiten cancels: no hand-in", async () => {
+  const backend = await startBackend();
+  const { page } = await loggedIn(backend);
+  await openExercise(page, SUMME);
+  await page.getByTestId("hand-in").click(); // never tested
+  await expect(page.getByTestId("hand-in-dialog")).toBeVisible();
+  await page.getByTestId("hand-in-cancel").click();
+  await expect(page.getByTestId("hand-in-dialog")).toHaveCount(0);
+  await expect(page.getByTestId("hand-in")).toHaveText("Abgeben");
+  await expect(page.getByTestId("toast")).toHaveCount(0);
+  expect(await backend.handInCell("summe")).toBeNull();
+});
+
+test("a failed run on unchanged code: the dialog shows the count and the summary is sent on confirm", async () => {
+  const backend = await startBackend();
+  const { app, page } = await loggedIn(backend);
+  await openExercise(page, SUMME);
+  await setEditorText(app, page, SUMME_RIGHT.replace("a + b", "a - b"));
+  await page.getByTestId("test").click();
+  await expect(page.getByTestId("tests-banner")).toContainText("Da sind noch Fehler");
+  await page.getByTestId("hand-in").click();
+  await expect(page.getByTestId("hand-in-dialog-count")).toHaveText("1 von 3 Tests bestanden");
+  await page.getByTestId("hand-in-confirm").click();
+  await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  expect(await backend.handInCell("summe")).toMatchObject({ testSummary: { passed: 1, total: 3 } });
 });

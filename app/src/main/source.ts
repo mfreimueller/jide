@@ -1,6 +1,6 @@
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { listExercises, type Exercise, type HandInFile } from "@jide/shared";
+import { listExercises, type Exercise, type HandInFile, type TestSummary } from "@jide/shared";
 
 /** One exercise as the source knows it. */
 export interface SourceEntry {
@@ -43,7 +43,7 @@ export interface ExerciseSource {
     workspaceExists: boolean
   ): Promise<{ ok: true; submittedAt?: string; late?: boolean } | { ok: false; message: string }>;
   /** Present when the source accepts hand-ins. */
-  handIn?(ex: Exercise, files: HandInFile[]): Promise<HandInOutcome>;
+  handIn?(ex: Exercise, files: HandInFile[], testSummary: TestSummary | null): Promise<HandInOutcome>;
 }
 
 async function dirExists(p: string): Promise<boolean> {

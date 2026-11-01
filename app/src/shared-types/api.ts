@@ -52,6 +52,8 @@ export interface OpenedExercise {
   deadline: string | null;
   submittedAt: string | null;
   late: boolean;
+  /** The exercise has tests (tests.yaml): show "Testen". */
+  hasTests: boolean;
 }
 
 export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };
@@ -134,8 +136,11 @@ export interface JideApi {
   login: (code: string) => Promise<LoginResult>;
   /** Called when the server no longer accepts the stored code (it has been deleted by then). */
   onSessionExpired: (handler: (message: string) => void) => () => void;
-  /** Uploads the saved editable files. The caller flushes pending edits first. */
-  handIn: (id: string) => Promise<HandInResult>;
+  /**
+   * Uploads the saved editable files. The caller flushes pending edits first.
+   * `testSummary`: result of the last test run if it is still current, otherwise null.
+   */
+  handIn: (id: string, testSummary: { passed: number; total: number } | null) => Promise<HandInResult>;
   /** Compiles all files (current editor contents) without running. */
   compile: (id: string, files: SourceFileInput[]) => Promise<CompileResult>;
   /** Compiles into a fresh run directory and, if there are no errors, starts the program. */
