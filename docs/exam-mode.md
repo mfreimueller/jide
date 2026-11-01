@@ -36,3 +36,9 @@ Start `JDE.exe` from the share on an exam PC and report:
 7. Check that nothing got written to the share (no new files or folders in `JDE-Exam`, modification times unchanged).
 
 The "Exam build" workflow already checks on a GitHub Windows runner that the app starts from a folder with write access denied, that the folder is unchanged afterwards and, where the runner allows it, that it starts from a `\\localhost\C$\...` path. That does not replace the test on the real share.
+
+## Known issue: starting from a network path
+
+On a GitHub Windows runner the app starts from a local read-only folder (about 1 s), but not from a mapped drive or a `\\<computer>\...` path through the loopback admin share: Chromium cannot launch its sandboxed GPU process from a network location ("GPU process isn't usable") and exits. The same runs succeed with the switch `--no-sandbox` (with or without `--disable-gpu`); `--disable-gpu` alone does not help. Whether the real Angabelaufwerk behaves the same is exactly what the share test has to show. If it does, exam mode needs a decision (open, see TASKS.md T22). Also note that `\\localhost\C$\...` is unusable for a different reason (Node turns `file://localhost/...` into a path without host and the app dies with a JavaScript error); test with the real server name or a drive letter.
+
+To try the switch by hand on an exam PC: `JDE.exe --no-sandbox` from a command prompt, and report whether it then starts.

@@ -70,27 +70,10 @@ jobs:
           ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $env:JDE_EXAM_DIR "JDE.exe") -Label "local, second start"
           if (-not (Test-Path (Join-Path $env:TEMP "JDE-exam"))) { throw "expected user data below %TEMP%\JDE-exam" }
           "user data below %TEMP%\JDE-exam: ok"
-      - name: Smoke test from a UNC path (admin share, optional)
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          # "localhost" comes last on purpose: Node turns file://localhost/D$/... into a path without
-          # host and the app dies with ERR_INVALID_FILE_URL_PATH. A real server name is not affected.
-          $dir = $env:JDE_EXAM_DIR
-          $done = $false
-          foreach ($h in @($env:COMPUTERNAME, "127.0.0.1", "localhost")) {
-            $unc = "\\$h\" + $dir.Substring(0, 1) + "$" + $dir.Substring(2)
-            if (-not (Test-Path (Join-Path $unc "JDE.exe"))) { "UNC admin share not usable via host '$h' ($unc)"; continue }
-            "UNC path: $unc"
-            try {
-              ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $unc "JDE.exe") -Label "UNC $h, first start" -TimeoutMs 30000
-              ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $unc "JDE.exe") -Label "UNC $h, second start" -TimeoutMs 30000
-              $done = $true
-              break
-            } catch { "UNC start via '$h' failed: $_" }
-          }
-          if (-not $done) { "no UNC start succeeded (see above); continuing" }
-      - name: EXPERIMENT start from a network drive and with Chromium switches
+      - name: Network paths (informational, never fails the build)
+        # Same folder through the loopback admin share, as a mapped drive (like the Angabelaufwerk)
+        # and as a UNC path, with and without Chromium switches. Findings so far: without
+        # --no-sandbox Chromium cannot start its GPU process from a network path.
         shell: pwsh
         continue-on-error: true
         run: |
@@ -107,9 +90,9 @@ jobs:
           foreach ($where in @(@{ n = "mapped drive Z:"; d = $zdir }, @{ n = "UNC"; d = $unc })) {
             foreach ($v in $variants) {
               try {
-                $r = ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $where.d "JDE.exe") -Label "EXPERIMENT $($where.n) [$($v.n)]" -TimeoutMs 20000 -AppArgs $v.a
+                $r = ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $where.d "JDE.exe") -Label "NETWORK $($where.n) [$($v.n)]" -TimeoutMs 20000 -AppArgs $v.a
                 $r | Select-Object -Last 1
-              } catch { "EXPERIMENT $($where.n) [$($v.n)]: FAILED" }
+              } catch { "NETWORK $($where.n) [$($v.n)]: FAILED" }
             }
           }
       - name: Folder is unchanged
