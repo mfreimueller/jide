@@ -3,6 +3,7 @@ import { app, BrowserWindow } from "electron";
 import { ApiClient, SESSION_EXPIRED_MESSAGE } from "./api-client";
 import { HandInLog } from "./handin-log";
 import { OnlineSource } from "./online-source";
+import { examMode } from "./exam-state";
 import { PackageCache } from "./package-cache";
 import { SessionStore } from "./session-store";
 import { LocalSource, type ExerciseSource } from "./source";
@@ -31,12 +32,16 @@ export interface MainContext {
 
 let ctx: MainContext | undefined;
 
-/** Chooses the exercise source: a local folder if JIDE_EXERCISES_DIR is set, otherwise the backend. */
+/**
+ * Chooses the exercise source: `exercises/` of the exam folder in exam mode, a local folder if
+ * JIDE_EXERCISES_DIR is set, otherwise the backend.
+ */
 export function context(): MainContext {
   if (ctx) return ctx;
   const userData = app.getPath("userData");
   const handIns = new HandInLog(join(userData, "handins.json"));
-  const dir = process.env["JIDE_EXERCISES_DIR"];
+  const exam = examMode();
+  const dir = exam ? exam.exercisesDir : process.env["JIDE_EXERCISES_DIR"];
   if (dir) {
     ctx = { source: new LocalSource(dir), handIns };
     return ctx;

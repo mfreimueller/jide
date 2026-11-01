@@ -11,3 +11,4 @@ app/e2e/screenshots/
 test-results/
 playwright-report/
 .deploy.env
+dist-exam/

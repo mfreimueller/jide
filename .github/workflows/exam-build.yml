@@ -1,0 +1,117 @@
+name: Exam build
+
+# Builds the exam folder (unpacked app + exam.json + sample exercises), checks that it starts from a
+# read-only folder and (if possible) from a UNC path, and uploads JDE-Exam-<version>.zip as a
+# workflow artifact. Never publishes a release. See docs/exam-mode.md.
+on:
+  workflow_dispatch:
+
+jobs:
+  exam:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w java-helper
+      - name: Build unpacked exam app
+        # JIDE_API_URL is not needed: exam mode never talks to the backend.
+        run: npm run dist:exam -w app
+      - name: Assemble the exam folder
+        shell: pwsh
+        run: |
+          $version = node -p "require('./app/package.json').version"
+          "EXAM_VERSION=$version" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          $root = Join-Path $env:RUNNER_TEMP "JDE-Exam"
+          Copy-Item -Recurse app/dist-exam/win-unpacked $root
+          '{"mode":"exam","title":"Probe – Start vom Angabelaufwerk","handInPath":"P:\\","jdkPath":null,"allowTests":true}' |
+            Set-Content -Path (Join-Path $root "exam.json") -Encoding utf8NoBOM
+          New-Item -ItemType Directory (Join-Path $root "exercises") | Out-Null
+          Copy-Item -Recurse examples/summe, examples/maximum (Join-Path $root "exercises")
+          if (-not (Test-Path (Join-Path $root "JDE.exe"))) { Get-ChildItem $root; throw "JDE.exe missing" }
+          if (-not (Test-Path (Join-Path $root "resources\java-helper.jar"))) { throw "java-helper.jar missing" }
+          if (Test-Path (Join-Path $root "resources\jdk")) { throw "a JDK must not be bundled" }
+          "JDE_EXAM_DIR=$root" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          $files = Get-ChildItem $root -Recurse -File
+          "Files in the exam folder: $($files.Count)"
+          "Size of the exam folder: $([math]::Round(($files | Measure-Object Length -Sum).Sum / 1MB, 1)) MB"
+      - name: Snapshot and make the folder read-only
+        shell: pwsh
+        run: |
+          function Snap($dir) { Get-ChildItem $dir -Recurse -File | Sort-Object FullName | ForEach-Object { "$($_.FullName.Substring($dir.Length)):$($_.Length)" } }
+          Snap $env:JDE_EXAM_DIR | Set-Content (Join-Path $env:RUNNER_TEMP "exam-before.txt")
+          # Deny creating, writing, appending and deleting children for the current user, inherited by all
+          # content. Specific rights on purpose: the generic W also blocks starting the exe.
+          icacls $env:JDE_EXAM_DIR /deny "$($env:USERDOMAIN)\$($env:USERNAME):(OI)(CI)(WD,AD,WEA,WA,DC)" /T /C | Select-Object -Last 2
+          # Prove it: writing must fail.
+          $blocked = $false
+          try { "x" | Set-Content (Join-Path $env:JDE_EXAM_DIR "write-test.txt") -ErrorAction Stop } catch { $blocked = $true }
+          if (-not $blocked) { throw "folder is not read-only: a file could be created" }
+          $blocked = $false
+          try { "x" | Add-Content (Join-Path $env:JDE_EXAM_DIR "exam.json") -ErrorAction Stop } catch { $blocked = $true }
+          if (-not $blocked) { throw "folder is not read-only: exam.json could be modified" }
+          "read-only verified (create and modify are denied)"
+      - name: Smoke test from the local read-only folder (first and second start)
+        shell: pwsh
+        run: |
+          ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $env:JDE_EXAM_DIR "JDE.exe") -Label "local, first start"
+          ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $env:JDE_EXAM_DIR "JDE.exe") -Label "local, second start"
+          if (-not (Test-Path (Join-Path $env:TEMP "JDE-exam"))) { throw "expected user data below %TEMP%\JDE-exam" }
+          "user data below %TEMP%\JDE-exam: ok"
+      - name: Network paths (informational, never fails the build)
+        # Same folder through the loopback admin share, as a mapped drive (like the Angabelaufwerk)
+        # and as a UNC path, with and without Chromium switches. Findings so far: without
+        # --no-sandbox Chromium cannot start its GPU process from a network path.
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $dir = $env:JDE_EXAM_DIR
+          $unc = "\\$($env:COMPUTERNAME)\" + $dir.Substring(0, 1) + "$" + $dir.Substring(2)
+          net use Z: "\\$($env:COMPUTERNAME)\$($dir.Substring(0, 1))$" | Out-Null
+          $zdir = "Z:" + $dir.Substring(2)
+          $variants = @(
+            @{ n = "default"; a = @() },
+            @{ n = "--disable-gpu"; a = @("--disable-gpu") },
+            @{ n = "--no-sandbox"; a = @("--no-sandbox") },
+            @{ n = "--disable-gpu --no-sandbox"; a = @("--disable-gpu", "--no-sandbox") }
+          )
+          foreach ($where in @(@{ n = "mapped drive Z:"; d = $zdir }, @{ n = "UNC"; d = $unc })) {
+            foreach ($v in $variants) {
+              try {
+                $r = ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $where.d "JDE.exe") -Label "NETWORK $($where.n) [$($v.n)]" -TimeoutMs 20000 -AppArgs $v.a
+                $r | Select-Object -Last 1
+              } catch { "NETWORK $($where.n) [$($v.n)]: FAILED" }
+            }
+          }
+      - name: Folder is unchanged
+        shell: pwsh
+        run: |
+          function Snap($dir) { Get-ChildItem $dir -Recurse -File | Sort-Object FullName | ForEach-Object { "$($_.FullName.Substring($dir.Length)):$($_.Length)" } }
+          $before = Get-Content (Join-Path $env:RUNNER_TEMP "exam-before.txt")
+          $after = Snap $env:JDE_EXAM_DIR
+          $diff = Compare-Object $before $after
+          if ($diff) { $diff; throw "the exam folder changed while the app was running" }
+          "exam folder unchanged ($($after.Count) files)"
+      - name: Zip
+        shell: pwsh
+        run: |
+          # the deny entries only exist on this runner, not in the zip
+          $zip = Join-Path $env:GITHUB_WORKSPACE "JDE-Exam-$($env:EXAM_VERSION).zip"
+          Compress-Archive -Path $env:JDE_EXAM_DIR -DestinationPath $zip -CompressionLevel Optimal
+          "Zip: $(Split-Path $zip -Leaf), $([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB"
+          "Files in the folder: $((Get-ChildItem $env:JDE_EXAM_DIR -Recurse -File).Count)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JDE-Exam
+          path: JDE-Exam-*.zip
+          if-no-files-found: error
