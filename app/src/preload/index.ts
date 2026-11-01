@@ -22,6 +22,7 @@ const api: JideApi = {
   handIn: (id) => ipcRenderer.invoke("jide:hand-in", id),
   compile: (id, files) => ipcRenderer.invoke("jide:compile", id, files),
   run: (id, files) => ipcRenderer.invoke("jide:run", id, files),
+  test: (id, files) => ipcRenderer.invoke("jide:test", id, files),
   stopRun: () => ipcRenderer.send("jide:run-stop"),
   sendInput: (text) => ipcRenderer.send("jide:run-input", text),
   onRunEvent: (handler) => {

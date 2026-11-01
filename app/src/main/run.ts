@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { app, ipcMain, type WebContents } from "electron";
 import type { RunEndReason, RunEvent, RunStartResult } from "../shared-types/api";
+import { isTesting } from "./busy";
 import { buildRequest, helper, helperMessage } from "./compile";
 import { findExercise } from "./exercises";
 import { javaExecutable } from "./java";
@@ -25,6 +26,11 @@ let runCounter = 0;
 
 function removeDir(dir: string): Promise<void> {
   return rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }).catch(() => undefined);
+}
+
+/** True while a program is starting or running. */
+export function isProgramRunning(): boolean {
+  return starting || active !== undefined;
 }
 
 /** Kills a running program (leaving the exercise, closing the app). */
@@ -96,7 +102,7 @@ export function registerRunIpc(): void {
   });
 
   ipcMain.handle("jide:run", async (e, id: unknown, files: unknown): Promise<RunStartResult> => {
-    if (starting || active) return { ok: false, message: "Es läuft bereits ein Programm." };
+    if (starting || active || isTesting()) return { ok: false, message: "Es läuft bereits ein Programm." };
     starting = true;
     let runDir: string | undefined;
     try {

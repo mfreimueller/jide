@@ -99,6 +99,27 @@ export type RunEvent =
   | { runId: number; kind: "output"; chunks: { stream: "stdout" | "stderr"; text: string }[] }
   | { runId: number; kind: "ended"; reason: RunEndReason; code: number | null; message?: string };
 
+export interface TestResult {
+  name: string;
+  status: "passed" | "failed" | "error";
+  /** Failed tests: what the test expected and what the program produced. */
+  expected?: string;
+  actual?: string;
+  /** Errors (and failed `code` tests): German explanation, e.g. exception with line number. */
+  message?: string;
+  /** Line in the student's main file where an exception was thrown, if known. */
+  line?: number;
+}
+
+/**
+ * started=false: compile errors in the student's code, no test ran.
+ * started=true: all tests ran; results are in the order of tests.yaml. `summary` fits TestSummary of the hand-in.
+ */
+export type TestRunResult =
+  | { ok: true; started: false; diagnostics: Diagnostic[] }
+  | { ok: true; started: true; results: TestResult[]; summary: { passed: number; total: number } }
+  | { ok: false; message: string };
+
 export interface JideApi {
   versions: { electron: string; chrome: string; node: string };
   /** Tells the main process that the start screen has rendered (used by the smoke test). */
@@ -119,6 +140,8 @@ export interface JideApi {
   compile: (id: string, files: SourceFileInput[]) => Promise<CompileResult>;
   /** Compiles into a fresh run directory and, if there are no errors, starts the program. */
   run: (id: string, files: SourceFileInput[]) => Promise<RunStartResult>;
+  /** Runs all tests of the exercise (tests.yaml) against the given file contents. */
+  test: (id: string, files: SourceFileInput[]) => Promise<TestRunResult>;
   /** Kills the running program (no-op if none). */
   stopRun: () => void;
   /** Sends text (a line including its newline) to the stdin of the running program. */

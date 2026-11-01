@@ -5,6 +5,7 @@ import { registerCompileIpc } from "./compile";
 import { registerExerciseIpc } from "./exercises";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
+import { registerTestIpc } from "./test";
 import { startAutoUpdate } from "./updater";
 
 const smoke = process.env.JIDE_SMOKE === "1";
@@ -101,6 +102,7 @@ app.whenReady().then(() => {
   registerExerciseIpc();
   registerCompileIpc();
   registerRunIpc();
+  registerTestIpc();
   createWindow();
   if (!smoke) startAutoUpdate();
   app.on("activate", () => {
