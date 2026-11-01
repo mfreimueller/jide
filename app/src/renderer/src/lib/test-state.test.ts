@@ -4,6 +4,7 @@ import {
   clearLastTests,
   countLabel,
   editableContents,
+  planHandIn,
   getLastTest,
   sameContents,
   setLastTest,
@@ -63,5 +64,29 @@ describe("summary helpers", () => {
   });
   it("labels the count in German", () => {
     expect(countLabel({ passed: 3, total: 4 })).toBe("3 von 4 Tests bestanden");
+  });
+});
+
+describe("planHandIn", () => {
+  const green: LastTest = { ...last, summary: { passed: 2, total: 2 } };
+  const same = [{ path: "A.java", content: "x" }];
+  const edited = [{ path: "A.java", content: "y" }];
+
+  it("never asks without tests", () => {
+    expect(planHandIn(false, undefined, same)).toEqual({ confirm: false, summary: null });
+    expect(planHandIn(false, green, same)).toEqual({ confirm: false, summary: null });
+  });
+  it("asks when never tested", () => {
+    expect(planHandIn(true, undefined, same)).toEqual({ confirm: true, summary: null });
+  });
+  it("does not ask after a green run on unchanged files and sends the summary", () => {
+    expect(planHandIn(true, green, same)).toEqual({ confirm: false, summary: { passed: 2, total: 2 } });
+  });
+  it("asks after a green run when the code changed, without summary", () => {
+    expect(planHandIn(true, green, edited)).toEqual({ confirm: true, summary: null });
+  });
+  it("asks after a failed run, sending the summary only if the code is unchanged", () => {
+    expect(planHandIn(true, last, same)).toEqual({ confirm: true, summary: { passed: 1, total: 2 } });
+    expect(planHandIn(true, last, edited)).toEqual({ confirm: true, summary: null });
   });
 });
