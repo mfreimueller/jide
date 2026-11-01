@@ -15,7 +15,7 @@ The app talks to the backend at a URL that is fixed at build time. Set the repos
    git push origin vX.Y.Z
    ```
 3. The workflow fails right away if the tag does not match `app/package.json`. Otherwise it builds the java-helper jar, jlinks the bundled JDK (`java.base`, `jdk.compiler`, `jdk.localedata`), builds `JDE-Setup-X.Y.Z.exe`, installs it silently, starts the installed app with `JIDE_SMOKE=1` (must print `JIDE_SMOKE_READY`) and only then publishes the release (not a draft, so electron-updater sees it).
-4. Check the release page: `JDE-Setup-X.Y.Z.exe`, its `.blockmap` and `latest.yml` must be attached.
+4. Check the release page: `JDE-Setup-X.Y.Z.exe`, its `.blockmap`, `latest.yml` and the exam folder `JDE-Exam-X.Y.Z.zip` (built by `exam-build.yml`, see [exam-mode.md](exam-mode.md)) must be attached.
 
 ## Dry run (no publishing)
 
