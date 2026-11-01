@@ -96,6 +96,7 @@ tests:
       return p.getName().equals("Anna");
 ```
 
+- `call` results are compared as text with `expected`: `String.valueOf(result)`, arrays as `[1, 2, 3]`. Floating-point values must match exactly; for a tolerance use a `code` block.
 - `check` tests are compiled into the same compilation unit (appended like the harness) and started by a generated entry point. Students call their methods directly, without JUnit or reflection in the test code.
 - Each test has a timeout (default 2 s). A timeout shows as "Dein Programm hat zu lange gebraucht (Endlosschleife?)".
 - Result per test: passed / failed (expected vs. actual) / error (exception, timeout, compile error).
