@@ -1,13 +1,15 @@
 # Starts the exam-folder exe with JIDE_SMOKE=1 and prints the time until JIDE_SMOKE_READY.
 # Usage: pwsh exam-smoke.ps1 -Exe <path to JDE.exe> -Label <text>
-param([Parameter(Mandatory)][string]$Exe, [Parameter(Mandatory)][string]$Label, [int]$TimeoutMs = 60000)
+param([Parameter(Mandatory)][string]$Exe, [Parameter(Mandatory)][string]$Label, [int]$TimeoutMs = 60000, [string[]]$AppArgs = @())
 $ErrorActionPreference = "Stop"
 $env:JIDE_SMOKE = "1"
 Remove-Item Env:JIDE_USER_DATA_DIR -ErrorAction SilentlyContinue   # exam mode must pick %TEMP%\JDE-exam itself
 $out = Join-Path $env:RUNNER_TEMP "exam-smoke.out"
 $err = Join-Path $env:RUNNER_TEMP "exam-smoke.err"
 $sw = [Diagnostics.Stopwatch]::StartNew()
-$p = Start-Process -FilePath $Exe -RedirectStandardOutput $out -RedirectStandardError $err -PassThru
+$sp = @{ FilePath = $Exe; RedirectStandardOutput = $out; RedirectStandardError = $err; PassThru = $true }
+if ($AppArgs.Count -gt 0) { $sp.ArgumentList = $AppArgs }
+$p = Start-Process @sp
 $ready = $false
 while ($sw.ElapsedMilliseconds -lt $TimeoutMs) {
   if ((Test-Path $out) -and ((Get-Content $out -Raw -ErrorAction SilentlyContinue) -match "JIDE_SMOKE_READY")) { $ready = $true; break }

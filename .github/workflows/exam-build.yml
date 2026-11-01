@@ -90,6 +90,28 @@ jobs:
             } catch { "UNC start via '$h' failed: $_" }
           }
           if (-not $done) { "no UNC start succeeded (see above); continuing" }
+      - name: EXPERIMENT start from a network drive and with Chromium switches
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $dir = $env:JDE_EXAM_DIR
+          $unc = "\\$($env:COMPUTERNAME)\" + $dir.Substring(0, 1) + "$" + $dir.Substring(2)
+          net use Z: "\\$($env:COMPUTERNAME)\$($dir.Substring(0, 1))$" | Out-Null
+          $zdir = "Z:" + $dir.Substring(2)
+          $variants = @(
+            @{ n = "default"; a = @() },
+            @{ n = "--disable-gpu"; a = @("--disable-gpu") },
+            @{ n = "--no-sandbox"; a = @("--no-sandbox") },
+            @{ n = "--disable-gpu --no-sandbox"; a = @("--disable-gpu", "--no-sandbox") }
+          )
+          foreach ($where in @(@{ n = "mapped drive Z:"; d = $zdir }, @{ n = "UNC"; d = $unc })) {
+            foreach ($v in $variants) {
+              try {
+                $r = ./app/scripts/exam-smoke.ps1 -Exe (Join-Path $where.d "JDE.exe") -Label "EXPERIMENT $($where.n) [$($v.n)]" -TimeoutMs 20000 -AppArgs $v.a
+                $r | Select-Object -Last 1
+              } catch { "EXPERIMENT $($where.n) [$($v.n)]: FAILED" }
+            }
+          }
       - name: Folder is unchanged
         shell: pwsh
         run: |
