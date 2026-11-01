@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerCompileIpc } from "./compile";
+import { examMode, redirectPathsForExamMode } from "./exam-state";
 import { registerExerciseIpc } from "./exercises";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
@@ -14,6 +15,8 @@ const smoke = process.env.JIDE_SMOKE === "1";
 if (process.env["JIDE_USER_DATA_DIR"]) {
   app.setPath("userData", process.env["JIDE_USER_DATA_DIR"]);
 }
+// Exam mode runs from a read-only share: nothing may be written next to the exe. Before app ready.
+redirectPathsForExamMode();
 
 const FLUSH_TIMEOUT_MS = 5000;
 
@@ -104,7 +107,7 @@ app.whenReady().then(() => {
   registerRunIpc();
   registerTestIpc();
   createWindow();
-  if (!smoke) startAutoUpdate();
+  if (!smoke && !examMode()) startAutoUpdate();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
