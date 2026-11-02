@@ -85,7 +85,7 @@ test("closing the window right after typing still saves", async () => {
 test("harness file is hidden in the file list", async () => {
   const { page } = await launch();
   await card(page, "Größere Zahl").getByRole("button", { name: "Öffnen" }).click();
-  const files = page.getByTestId("file-list").getByRole("button");
+  const files = page.getByTestId("file-list").locator("button.file");
   await expect(files).toHaveCount(1);
   await expect(files.first()).toContainText("Maximum.java");
 });
