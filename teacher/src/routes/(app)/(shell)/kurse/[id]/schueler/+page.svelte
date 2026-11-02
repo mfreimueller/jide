@@ -159,7 +159,7 @@
 	{#if removeError}<p class="alert" role="alert">{removeError}</p>{/if}
 	<div class="dialog-actions">
 		<Button onclick={() => (removeOpen = false)}>Abbrechen</Button>
-		<Button variant="primary" loading={removing} onclick={remove}>Entfernen</Button>
+		<Button variant="danger" loading={removing} onclick={remove}>Entfernen</Button>
 	</div>
 </Dialog>
 
