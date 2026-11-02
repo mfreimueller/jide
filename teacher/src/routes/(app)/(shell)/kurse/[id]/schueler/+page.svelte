@@ -21,6 +21,11 @@
 	let resetting = $state(false);
 	let resetError = $state<string | null>(null);
 
+	let removeTarget = $state<Student | null>(null);
+	let removeOpen = $state(false);
+	let removing = $state(false);
+	let removeError = $state<string | null>(null);
+
 	const nameCount = $derived(new Set(names.split('\n').map((n) => n.trim()).filter(Boolean)).size);
 
 	async function add(e: SubmitEvent) {
@@ -58,6 +63,27 @@
 			resetting = false;
 		}
 	}
+
+	function askRemove(s: Student) {
+		removeTarget = s;
+		removeError = null;
+		removeOpen = true;
+	}
+
+	async function remove() {
+		if (!removeTarget) return;
+		removing = true;
+		removeError = null;
+		try {
+			await api(`/teacher/courses/${course.id}/students/${removeTarget.id}`, { method: 'DELETE' });
+			removeOpen = false;
+			await Promise.all([invalidate('app:students'), courseStore.refresh()]);
+		} catch (err) {
+			removeError = messageOf(err);
+		} finally {
+			removing = false;
+		}
+	}
 </script>
 
 <svelte:head><title>Schüler:innen · {courseLabel(course)} · J;DE Lehrkraft</title></svelte:head>
@@ -84,7 +110,12 @@
 								<span class="dot" class:never={s.lastActivityAt === null}></span>{formatRelative(s.lastActivityAt)}
 							</td>
 							<td>{s.handInCount} / {s.unlockedExerciseCount}</td>
-							<td class="right"><Button size="sm" onclick={() => askReset(s)}>Code zurücksetzen</Button></td>
+							<td class="right">
+								<div class="actions">
+									<Button size="sm" onclick={() => askReset(s)}>Code zurücksetzen</Button>
+									<Button size="sm" onclick={() => askRemove(s)}>Entfernen</Button>
+								</div>
+							</td>
 						</tr>
 					{:else}
 						<tr><td colspan="5" class="muted empty">Noch keine Schüler:innen. Füge rechts Namen hinzu.</td></tr>
@@ -123,6 +154,15 @@
 	</div>
 </Dialog>
 
+<Dialog bind:open={removeOpen} title="{removeTarget?.name} entfernen?" width={460}>
+	<p class="muted">Die Person kann sich danach nicht mehr anmelden.</p>
+	{#if removeError}<p class="alert" role="alert">{removeError}</p>{/if}
+	<div class="dialog-actions">
+		<Button onclick={() => (removeOpen = false)}>Abbrechen</Button>
+		<Button variant="primary" loading={removing} onclick={remove}>Entfernen</Button>
+	</div>
+</Dialog>
+
 <style>
 	.table {
 		flex: 1;
@@ -133,6 +173,11 @@
 	}
 	.right {
 		text-align: right;
+	}
+	.actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
 	}
 	.empty {
 		padding: 24px 12px;
