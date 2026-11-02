@@ -13,6 +13,7 @@ import { addStudents, createCourse, resetCode } from "../../../backend/src/lib/c
 import { handInMatrix } from "../../../backend/src/lib/handins.js";
 import { validatePackage } from "../../../backend/src/lib/exercise_package.js";
 import { deleteExercise, saveExercise, updateForCourse } from "../../../backend/src/lib/exercises.js";
+import { createGroup, deleteGroup, listGroups, setExerciseGroup } from "../../../backend/src/lib/groups.js";
 import { addTeacher } from "../../../backend/src/lib/teachers.js";
 
 const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../examples");
@@ -62,6 +63,16 @@ const server = serve(
       }
       if (req.method === "POST" && url.pathname === "/__test/delete-exercise") {
         await deleteExercise(db, teacher.id, url.searchParams.get("id") ?? "");
+        return new Response(null, { status: 204 });
+      }
+      if (req.method === "POST" && url.pathname === "/__test/groups") {
+        // replaces the course's groups: [{ name, exercises: [exercise ids in order] }, ...] in the teacher's order
+        const spec = (await req.json()) as { groups: { name: string; exercises: string[] }[] };
+        for (const g of await listGroups(db, course.id)) await deleteGroup(db, course.id, g.id);
+        for (const g of spec.groups) {
+          const { id } = await createGroup(db, course.id, g.name);
+          for (const slug of g.exercises) await setExerciseGroup(db, teacher.id, course.id, slug, id);
+        }
         return new Response(null, { status: 204 });
       }
       if (req.method === "GET" && url.pathname === "/__test/matrix") {

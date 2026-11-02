@@ -28,6 +28,8 @@ export interface Backend {
   resetCode: () => Promise<string>;
   /** Deletes the teacher's exercise on the server (hand-ins and course links go with it). */
   deleteExercise: (exerciseId: string) => Promise<void>;
+  /** Replaces the course's exercise groups (names in the teacher's order, exercise ids inside each). */
+  setGroups: (groups: { name: string; exercises: string[] }[]) => Promise<void>;
   /** Count and test summary of the student's last hand-in of an exercise, as the teacher matrix reads them. */
   handInCell: (exerciseId: string) => Promise<{ count: number; testSummary: { passed: number; total: number } | null } | null>;
 }
@@ -67,6 +69,10 @@ export async function startBackend(): Promise<Backend> {
     deleteExercise: async (exerciseId) => {
       const r = await fetch(`${info.url}/__test/delete-exercise?id=${encodeURIComponent(exerciseId)}`, { method: "POST" });
       if (!r.ok) throw new Error(`delete-exercise failed: ${r.status}`);
+    },
+    setGroups: async (groups) => {
+      const r = await fetch(`${info.url}/__test/groups`, { method: "POST", body: JSON.stringify({ groups }) });
+      if (!r.ok) throw new Error(`groups failed: ${r.status}`);
     },
     handInCell: async (exerciseId) => {
       const m = (await (await fetch(`${info.url}/__test/matrix`)).json()) as {
