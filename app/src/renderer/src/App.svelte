@@ -38,7 +38,7 @@
       examExercises = list;
       examName = name;
     } catch {
-      examExercises = { exercises: [], errors: ["Die Aufgaben konnten nicht geladen werden."], offline: false };
+      examExercises = { exercises: [], groups: [], errors: ["Die Aufgaben konnten nicht geladen werden."], offline: false };
       examName = null;
     }
   }

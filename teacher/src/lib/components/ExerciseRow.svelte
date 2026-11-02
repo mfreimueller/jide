@@ -3,7 +3,8 @@
 	import Button from '#lib/components/Button.svelte';
 	import { messageOf } from '#lib/errors.js';
 	import { DEFAULT_DEADLINE_TIME, fromLocalParts, toLocalParts } from '#lib/time.js';
-	import type { CourseExercise } from '#lib/types.js';
+	import type { CourseExercise, ExerciseGroup } from '#lib/types.js';
+	import MoveButtons from '#lib/components/MoveButtons.svelte';
 
 	interface Props {
 		courseId: number;
@@ -11,10 +12,14 @@
 		/** "x / y" or null if there is nothing to count (not unlocked). */
 		handIns: string | null;
 		isNew?: boolean;
+		groups: ExerciseGroup[];
+		/** Position inside its group, or null when ungrouped (no arrows). */
+		move: { first: boolean; last: boolean } | null;
 		onchange: () => void | Promise<void>;
+		onmove: (direction: 'up' | 'down') => void;
 		ondelete: () => void;
 	}
-	let { courseId, exercise, handIns, isNew = false, onchange, ondelete }: Props = $props();
+	let { courseId, exercise, handIns, isNew = false, groups, move, onchange, onmove, ondelete }: Props = $props();
 
 	// The parent re-keys this component whenever the saved values change, so the initial values are enough.
 	// svelte-ignore state_referenced_locally
@@ -26,7 +31,7 @@
 
 	const dirty = $derived(date !== saved.date || (date !== '' && time !== (saved.time || DEFAULT_DEADLINE_TIME)));
 
-	async function put(body: { unlocked?: boolean; deadline?: string | null }) {
+	async function put(body: { unlocked?: boolean; deadline?: string | null; groupId?: number | null }) {
 		busy = true;
 		error = null;
 		try {
@@ -39,12 +44,21 @@
 		}
 	}
 
+	const setGroup = (e: Event & { currentTarget: HTMLSelectElement }) => {
+		const v = e.currentTarget.value;
+		return put({ groupId: v === '' ? null : Number(v) });
+	};
 	const toggle = () => put({ unlocked: !exercise.unlocked });
 	const saveDeadline = () => put({ deadline: fromLocalParts(date, time) });
 	const clearDeadline = () => put({ deadline: null });
 </script>
 
 <tr>
+	<td class="move">
+		{#if move}
+			<MoveButtons label="„{exercise.title}“" first={move.first} last={move.last} {onmove} />
+		{/if}
+	</td>
 	<td>
 		<div class="title">
 			<span class="stud">{exercise.title}</span>
@@ -74,6 +88,12 @@
 		{#if error}<p class="alert err" role="alert">{error}</p>{/if}
 	</td>
 	<td class:small={!handIns}>{handIns ?? 'nicht sichtbar'}</td>
+	<td>
+		<select aria-label="Gruppe von „{exercise.title}“" value={exercise.groupId === null ? '' : String(exercise.groupId)} disabled={busy} onchange={setGroup}>
+			<option value="">–</option>
+			{#each groups as g (g.id)}<option value={String(g.id)}>{g.name}</option>{/each}
+		</select>
+	</td>
 	<td class="right"><Button size="sm" onclick={ondelete}>Löschen</Button></td>
 </tr>
 
@@ -132,6 +152,19 @@
 		border-radius: 6px;
 		background: var(--surface);
 		font-size: 13px;
+	}
+	select {
+		height: 30px;
+		max-width: 160px;
+		padding: 0 6px;
+		border: 1px solid var(--border-strong);
+		border-radius: 6px;
+		background: var(--surface);
+		font-size: 13px;
+	}
+	.move {
+		width: 1%;
+		padding-right: 0;
 	}
 	input:disabled {
 		color: var(--text-ghost);

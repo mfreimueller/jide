@@ -13,7 +13,12 @@ Teacher routes need the teacher `Bearer` token, student routes the student code.
 | GET | `/api/teacher/exercises/:id` | one exercise |
 | GET | `/api/teacher/courses/:courseId/exercises` | all of the teacher's exercises with `unlocked` and `deadline` for this course |
 | PUT | `/api/teacher/courses/:courseId/exercises/:id` | JSON `{ unlocked?: boolean, deadline?: ISO string \| null }` (at least one); `null` clears the deadline |
-| GET | `/api/exercises` | student: unlocked exercises of the own course (`id, title, version, deadline`) |
+| GET / POST | `/api/teacher/courses/:courseId/groups` | groups of the course in order `{ groups: [{id, name}] }` / create `{ name }` (201 `{ group }`; 409 `Diese Gruppe gibt es schon.` for a duplicate name in the course) |
+| PUT / DELETE | `/api/teacher/courses/:courseId/groups/:groupId` | rename `{ name }` / delete (204; its exercises become ungrouped) |
+| POST | `/api/teacher/courses/:courseId/groups/:groupId/move` | `{ direction: "up" \| "down" }`: swaps with the neighbour, no-op at the edge; answers `{ groups }` |
+| PUT | `/api/teacher/courses/:courseId/exercises/:id` | also takes `groupId: number \| null` (appends to that group's end / takes it out of its group) |
+| POST | `/api/teacher/courses/:courseId/exercises/:id/move` | `{ direction }` inside its group (400 if ungrouped); answers `{ exercises, groups }` |
+| GET | `/api/exercises` | student: unlocked exercises of the own course (`id, title, version, deadline, groupId`) plus `groups` (`[{id, name}]` in order, only groups with a visible exercise) |
 | GET | `/api/exercises/:id` | student: the package zip; 404 unless unlocked; `ETag: "<version>"`, `If-None-Match` gives 304 |
 
 `:id` is the exercise id from `exercise.yaml`. Types of the student API are in `@jide/shared` (`shared/src/api.ts`).

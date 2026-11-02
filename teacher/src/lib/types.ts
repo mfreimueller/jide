@@ -41,6 +41,15 @@ export interface CourseExercise extends Exercise {
 	unlocked: boolean;
 	/** ISO instant (UTC) or null */
 	deadline: string | null;
+	/** Group of this course or null */
+	groupId: number | null;
+	/** Place inside the group, null when ungrouped */
+	position: number | null;
+}
+
+export interface ExerciseGroup {
+	id: number;
+	name: string;
 }
 
 export interface MatrixCell {

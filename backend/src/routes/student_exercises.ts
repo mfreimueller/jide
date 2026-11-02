@@ -3,14 +3,18 @@ import { EXERCISE_PACKAGE_CONTENT_TYPE, type StudentExerciseListResponse } from 
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
 import { unlockedForCourse, unlockedPackage, unlockedVersion } from '../lib/exercises.js';
+import { visibleGroups } from '../lib/groups.js';
 import { studentAuth, type StudentVariables } from '../middleware/student_auth.js';
 
 export const studentExerciseRoutes = new Hono<{ Variables: StudentVariables }>();
 studentExerciseRoutes.use('*', studentAuth);
 
 studentExerciseRoutes.get('/', async (c) => {
-  const exercises = await unlockedForCourse(getDb(), c.get('student').courseId);
-  return c.json({ exercises } satisfies StudentExerciseListResponse);
+  const db = getDb();
+  const { courseId } = c.get('student');
+  const exercises = await unlockedForCourse(db, courseId);
+  const groups = await visibleGroups(db, courseId);
+  return c.json({ exercises, groups } satisfies StudentExerciseListResponse);
 });
 
 function matchesEtag(header: string | undefined, version: string): boolean {

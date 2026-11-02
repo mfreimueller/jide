@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { unzipSync } from "fflate";
-import { loadExercise, type ExerciseFile, type HandInFile, type StudentExerciseSummary } from "@jide/shared";
+import { loadExercise, type ExerciseFile, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary } from "@jide/shared";
 
 /** Exercise ids become folder names; only what exercise.yaml allows is accepted. */
 export function isSafeExerciseId(id: unknown): id is string {
@@ -94,20 +94,35 @@ export class PackageCache {
     }
   }
 
-  async readList(): Promise<StudentExerciseSummary[] | undefined> {
+  private async readListFile(): Promise<{ exercises: StudentExerciseSummary[]; groups: StudentExerciseGroup[] } | undefined> {
     try {
       const data: unknown = JSON.parse(await readFile(path.join(this.root, "list.json"), "utf8"));
-      return Array.isArray(data) ? (data as StudentExerciseSummary[]) : undefined;
+      // Caches from before the groups are a bare array of exercises.
+      if (Array.isArray(data)) return { exercises: data as StudentExerciseSummary[], groups: [] };
+      const obj = data as { exercises?: unknown; groups?: unknown } | null;
+      if (!obj || !Array.isArray(obj.exercises)) return undefined;
+      return {
+        exercises: obj.exercises as StudentExerciseSummary[],
+        groups: Array.isArray(obj.groups) ? (obj.groups as StudentExerciseGroup[]) : []
+      };
     } catch {
       return undefined;
     }
   }
 
-  async writeList(list: StudentExerciseSummary[]): Promise<void> {
+  async readList(): Promise<StudentExerciseSummary[] | undefined> {
+    return (await this.readListFile())?.exercises;
+  }
+
+  async readGroups(): Promise<StudentExerciseGroup[]> {
+    return (await this.readListFile())?.groups ?? [];
+  }
+
+  async writeList(list: StudentExerciseSummary[], groups: StudentExerciseGroup[] = []): Promise<void> {
     await mkdir(this.root, { recursive: true });
     const target = path.join(this.root, "list.json");
     const tmp = `${target}.${process.pid}.tmp`;
-    await writeFile(tmp, JSON.stringify(list), "utf8");
+    await writeFile(tmp, JSON.stringify({ exercises: list, groups }), "utf8");
     await rename(tmp, target);
   }
 

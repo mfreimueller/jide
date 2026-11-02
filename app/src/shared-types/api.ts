@@ -10,10 +10,19 @@ export interface ExerciseSummary {
   submittedAt: string | null;
   /** The last hand-in came after the deadline. */
   late: boolean;
+  /** Exercise group of the course (see ExerciseList.groups); null = ungrouped, always null in local and exam mode. */
+  groupId: number | null;
+}
+
+export interface ExerciseGroup {
+  id: number;
+  name: string;
 }
 
 export interface ExerciseList {
   exercises: ExerciseSummary[];
+  /** Groups in the teacher's order (online mode; empty otherwise). */
+  groups: ExerciseGroup[];
   /** Loading errors, German messages. */
   errors: string[];
   /** Online mode only: the server could not be reached, the list comes from the cache. */

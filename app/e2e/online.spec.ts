@@ -151,6 +151,86 @@ test("an exercise deleted on the server is gone from the list at the next refres
   await expect(card(again.page, SUMME)).toHaveCount(0);
 });
 
+const HEADINGS = (page: Page) => page.getByTestId("group-heading");
+
+/** Hands in through the app (the list's "Abgegeben" status is the local hand-in record) and goes back to the list. */
+async function handInAndBack(l: Awaited<ReturnType<typeof loggedIn>>, title: string): Promise<void> {
+  await openExercise(l.page, title);
+  await setEditorText(l.app, l.page, "void main() {}\n");
+  await handIn(l.page);
+  await expect(l.page.getByTestId("handed-in")).toContainText("Abgegeben");
+  await l.page.getByRole("button", { name: "← Aufgaben" }).click();
+  await expect(card(l.page, title)).toBeVisible();
+}
+
+test("groups show in the teacher's order with their progress; handing in updates it", async () => {
+  const backend = await startBackend();
+  await backend.setGroups([
+    { name: "Fortgeschritten", exercises: ["summe"] },
+    { name: "Erste Schritte", exercises: ["maximum"] }
+  ]);
+  const l = await loggedIn(backend);
+  const page = l.page;
+  await expect(HEADINGS(page)).toHaveCount(2);
+  await expect(HEADINGS(page).nth(0)).toContainText("Fortgeschritten");
+  await expect(HEADINGS(page).nth(0)).toContainText("0 / 1 abgegeben");
+  await expect(HEADINGS(page).nth(1)).toContainText("Erste Schritte");
+  await expect(HEADINGS(page).nth(1)).toContainText("0 / 1 abgegeben");
+  await expect(page.getByText("Offen", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Abgegeben", { exact: true })).toHaveCount(0);
+
+  // group order beats open / handed-in order: the handed-in group of the first position stays first
+  await handInAndBack(l, SUMME);
+  await expect(HEADINGS(page).nth(0)).toContainText("1 / 1 abgegeben");
+  await expect(HEADINGS(page).nth(1)).toContainText("0 / 1 abgegeben");
+  await expect(page.getByTestId("exercise").nth(0)).toContainText(SUMME);
+  await expect(page.getByTestId("exercise").nth(1)).toContainText("Größere Zahl");
+  await page.screenshot({ path: join(screenshotDir, "online-list-groups.png") });
+});
+
+test("ungrouped exercises come last under Weitere Übungen", async () => {
+  const backend = await startBackend();
+  await backend.setGroups([{ name: "Erste Schritte", exercises: ["maximum"] }]);
+  const { page } = await loggedIn(backend);
+  await expect(HEADINGS(page)).toHaveCount(2);
+  await expect(HEADINGS(page).nth(0)).toContainText("Erste Schritte");
+  await expect(HEADINGS(page).nth(1)).toHaveText("Weitere Übungen");
+  await expect(page.getByTestId("exercise").nth(0)).toContainText("Größere Zahl");
+  await expect(page.getByTestId("exercise").nth(1)).toContainText(SUMME);
+  await page.screenshot({ path: join(screenshotDir, "online-list-groups-other.png") });
+});
+
+test("a course without groups shows a plain list without headings, open before handed in", async () => {
+  const backend = await startBackend();
+  const l = await loggedIn(backend);
+  // "Größere Zahl" is after "Summe" only once it is handed in
+  await expect(l.page.getByTestId("exercise").nth(0)).toContainText("Größere Zahl");
+  await handInAndBack(l, "Größere Zahl");
+  await expect(l.page.getByTestId("exercise")).toHaveCount(2);
+  await expect(l.page.getByTestId("exercise").nth(0)).toContainText(SUMME);
+  await expect(l.page.getByTestId("exercise").nth(1)).toContainText("Abgegeben");
+  await expect(HEADINGS(l.page)).toHaveCount(0);
+  await expect(l.page.locator(".section-title")).toHaveCount(0);
+});
+
+test("offline start keeps the groups of the cached list", async () => {
+  const backend = await startBackend();
+  await backend.setGroups([
+    { name: "Fortgeschritten", exercises: ["summe"] },
+    { name: "Erste Schritte", exercises: ["maximum"] }
+  ]);
+  const first = await loggedIn(backend);
+  await expect(HEADINGS(first.page)).toHaveCount(2);
+  await first.app.close();
+  await backend.stop();
+
+  const { page } = await launchOnline(backend);
+  await expect(page.getByTestId("offline-hint")).toBeVisible();
+  await expect(HEADINGS(page)).toHaveCount(2);
+  await expect(HEADINGS(page).nth(0)).toContainText("Fortgeschritten");
+  await expect(HEADINGS(page).nth(1)).toContainText("Erste Schritte");
+});
+
 test("handing in to an exercise deleted meanwhile shows the server's German message and nothing crashes", async () => {
   const backend = await startBackend();
   const { page } = await loggedIn(backend);
