@@ -93,8 +93,21 @@ Exam mode is the same app as online mode, switched on by `exam.json` next to the
 
 Order: T22 first (biggest risk, needs the user on site), then T23 → T24 → T25, T26 last.
 
-# Backlog (wishes 2026-11-01, not planned yet)
+# M5 – Backlog before the roll-out (target 2026-11-18)
 
-- **Movable, collapsible side panels** in the student view: at least "Dateien" and "Angabe" can be collapsed; panel widths adjustable.
-- **Exercise groups**: the teacher groups exercises under a topic (e.g. "for-Schleife" with three exercises); the student list shows them grouped, so students see at a glance what to work on now.
-- Open questions before planning: remember panel sizes/collapsed state across restarts? groups per course or per teacher? who orders groups and exercises? an exercise in several groups? where do ungrouped exercises go? groups in exam mode?
+Decisions (2026-11-02):
+- Removing a student archives them: the data stays in the database, but the student is hidden everywhere and their code stops working at once. There is no archive view and no restore; adding them again creates a new student with a new code.
+- Removing an exercise deletes it for good: from the exercise list, from every course, and with all its hand-ins. Hiding per course already exists (T11), so there is no extra hide switch.
+- Side panels are not remembered across restarts (default layout at every start) and work the same in exam mode.
+- Groups belong to a course. An exercise is in one group or in none; ungrouped exercises come last under "Weitere Übungen"; the teacher orders groups and the exercises inside them with up/down buttons. Exam mode has no groups.
+
+- [ ] **T27 Remove a student** – migration: `students.archived_at DATETIME NULL`. Teacher route `DELETE /api/teacher/courses/:courseId/students/:id` sets `archived_at`. Archived students are left out of every teacher list, the hand-in matrix, the zip download and the counts; student login and the `Bearer` middleware reject their code with the same 401 as an unknown code (the app then goes back to the code screen, T13). Teacher app: "Entfernen" per student with a confirmation ("<Name> entfernen? Die Person kann sich danach nicht mehr anmelden.").
+  - Done when: API tests: removed student's code fails at once (login and an authenticated route), the student is missing from the list, the matrix and the zip, and the hand-ins are still in the database; adding the same name again gives a new code. svelte-check passes.
+- [ ] **T28 Delete an exercise** – teacher route `DELETE /api/teacher/exercises/:id` (own exercises only); the existing `ON DELETE CASCADE` removes course links, hand-ins and hand-in files. The exercise list (or a small info route) gives the courses it is unlocked in and the number of hand-ins, for the dialog. Teacher app: "Löschen" per exercise with a confirmation naming the courses and the hand-in count ("… und N Abgaben endgültig löschen?"). Student app: the exercise disappears from the list at the next refresh; the local copy on the PC is left alone, and opening an exercise the server no longer knows doesn't crash.
+  - Done when: API tests: delete removes exercise, course links and hand-ins; another teacher's exercise gives 404. e2e: after the delete the exercise is gone from the student list. svelte-check passes.
+- [ ] **T29 Resizable, collapsible panels** – in the student workspace (online and exam mode) "Dateien", "Angabe" and the bottom panel (Ausgabe/Konsole, Tests, Probleme) get a drag handle to resize and a collapse button in the header; a collapsed panel becomes a thin strip that opens again on click; one keyboard shortcut per panel (keys proposed to the user before implementing, checked against Monaco's defaults). Minimum sizes so the editor never disappears. Layout resets at every start. Design in Figma first (user approves).
+  - Done when: e2e tests: collapse and reopen each panel by button and by shortcut, resize by dragging; the same in exam mode.
+- [ ] **T30 Exercise groups** – migration: `exercise_groups (id, course_id, name, position)`, `course_exercises.group_id NULL` + `position`. Teacher routes: create, rename, delete a group (its exercises become ungrouped), move a group up/down, put an exercise into a group or take it out, move it up/down inside the group. `GET /api/exercises` returns the groups in order with their exercises; groups whose exercises are all hidden don't show. Teacher app: groups on the course's exercise page with up/down buttons. Student app: exercise list split into the groups, ungrouped last under "Weitere Übungen". Exam mode unchanged. Design in Figma first (teacher + student view, user approves).
+  - Done when: API tests for every group route incl. ordering and "delete group keeps the exercises"; e2e: the student list shows groups in the teacher's order. svelte-check passes.
+
+Order: T27 → T28 (small, needed for daily admin) → T29 → T30.
