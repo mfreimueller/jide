@@ -28,12 +28,32 @@ const exerciseSchema = z.object({
     })
     .optional(),
   mainFile: z.string({ error: "mainFile fehlt oder ist kein Text" }),
+  images: z
+    .array(
+      z.object({
+        path: z.string({ error: "path fehlt oder ist kein Text" }),
+        title: z.string({ error: "title muss ein Text sein" }).optional(),
+      }),
+      { error: "images muss eine Liste sein" },
+    )
+    .optional(),
 });
+
+/** Maximum size of one SVG image in bytes. */
+export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 export type ExerciseConfig = z.infer<typeof exerciseSchema>;
 export type ExerciseFile = ExerciseConfig["files"][number];
+export interface ExerciseImage {
+  path: string;
+  title?: string;
+}
 
-export interface Exercise extends ExerciseConfig {
+export interface Exercise extends Omit<ExerciseConfig, "images"> {
+  /** Read-only SVG images from files/ (empty when exercise.yaml has no images:). */
+  images: ExerciseImage[];
+  /** SVG text of every image, keyed by its path. Kept apart from originals: images are never Java files. */
+  imageContents: Record<string, string>;
   /** Path of the exercise folder, as given to loadExercise. */
   dir: string;
   /** Raw content of aufgabe.md. */
@@ -60,6 +80,14 @@ function hasParentSegment(p: string): boolean {
 
 function isAbsoluteAnywhere(p: string): boolean {
   return path.posix.isAbsolute(p) || path.win32.isAbsolute(p);
+}
+
+function svgPathProblem(p: string): string | undefined {
+  if (p.length === 0) return "ist leer";
+  if (isAbsoluteAnywhere(p)) return "muss relativ sein";
+  if (hasParentSegment(p)) return 'darf kein ".." enthalten';
+  if (!p.endsWith(".svg")) return "muss auf .svg enden";
+  return undefined;
 }
 
 function javaPathProblem(p: string): string | undefined {
@@ -102,6 +130,14 @@ export function parseExerciseConfig(raw: string, name = "?"): ExerciseConfig {
   if (config.harness && !seen.has(config.harness.appendTo)) {
     fail(`harness.appendTo "${config.harness.appendTo}" ist nicht in files aufgeführt.`);
   }
+  const seenImages = new Set<string>();
+  for (const img of config.images ?? []) {
+    const problem = svgPathProblem(img.path);
+    if (problem) fail(`Bildpfad "${img.path}" ${problem}.`);
+    if (seenImages.has(img.path)) fail(`Bildpfad "${img.path}" ist doppelt aufgeführt.`);
+    if (seen.has(img.path)) fail(`Bildpfad "${img.path}" steht auch in files.`);
+    seenImages.add(img.path);
+  }
   return config;
 }
 
@@ -127,6 +163,15 @@ export async function loadExercise(dir: string): Promise<Exercise> {
     originals[f.path] = await readFile(full, "utf8");
   }
 
+  const imageContents: Record<string, string> = {};
+  for (const img of config.images ?? []) {
+    const full = path.join(dir, "files", img.path);
+    if (!(await isFile(full))) fail(`Bilddatei files/${img.path} fehlt.`);
+    const buf = await readFile(full);
+    if (buf.length > MAX_IMAGE_BYTES) fail(`Bilddatei files/${img.path} ist größer als 2 MB.`);
+    imageContents[img.path] = buf.toString("utf8");
+  }
+
   let harnessContent: string | undefined;
   if (config.harness) {
     const hp = config.harness.file;
@@ -147,7 +192,7 @@ export async function loadExercise(dir: string): Promise<Exercise> {
   const testsPath = path.join(dir, "tests.yaml");
   if (await isFile(testsPath)) tests = parseTestsConfig(await readFile(testsPath, "utf8"), name);
 
-  return { ...config, dir, assignment, harnessContent, originals, tests };
+  return { ...config, images: config.images ?? [], imageContents, dir, assignment, harnessContent, originals, tests };
 }
 
 export async function listExercises(

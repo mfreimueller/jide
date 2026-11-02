@@ -144,6 +144,71 @@ describe("loadExercise", () => {
   });
 });
 
+describe("images", () => {
+  const imgYaml = (images: string, files = "  - path: A.java\n") =>
+    `id: i\ntitle: T\nfiles:\n${files}mainFile: A.java\nimages:\n${images}`;
+  const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'/>";
+
+  it("loads images with and without title", async () => {
+    const dir = await make("i", {
+      yaml: imgYaml("  - path: a.svg\n    title: Flussdiagramm\n  - path: sub/b.svg\n"),
+      files: { "A.java": "class A {}", "a.svg": svg, "sub/b.svg": svg + " " },
+    });
+    const ex = await loadExercise(dir);
+    expect(ex.images).toEqual([{ path: "a.svg", title: "Flussdiagramm" }, { path: "sub/b.svg" }]);
+    expect(ex.imageContents["a.svg"]).toBe(svg);
+    expect(ex.files.map((f) => f.path)).toEqual(["A.java"]);
+    expect(Object.keys(ex.originals)).toEqual(["A.java"]);
+  });
+
+  it("behaves as before without images key", async () => {
+    const ex = await loadExercise(await make("n"));
+    expect(ex.images).toEqual([]);
+    expect(ex.imageContents).toEqual({});
+  });
+
+  it.each([
+    ["/abs/a.svg", "muss relativ sein"],
+    ["../a.svg", 'darf kein ".." enthalten'],
+    ["a.png", "muss auf .svg enden"],
+  ])("rejects image path %s", async (p, problem) => {
+    await expectError(
+      await make("i", { yaml: imgYaml(`  - path: "${p}"\n`) }),
+      `Aufgabe "i": Bildpfad "${p}" ${problem}.`,
+    );
+  });
+
+  it("rejects duplicate images", async () => {
+    await expectError(
+      await make("i", { yaml: imgYaml("  - path: a.svg\n  - path: a.svg\n"), files: { "A.java": "x", "a.svg": svg } }),
+      'Aufgabe "i": Bildpfad "a.svg" ist doppelt aufgeführt.',
+    );
+  });
+
+  it("rejects an image that is also a Java file", async () => {
+    // a .svg path can only collide with files when files lists it, which the Java check rejects first
+    const y = imgYaml("  - path: A.java\n");
+    await expectError(await make("i", { yaml: y }), 'Aufgabe "i": Bildpfad "A.java" muss auf .svg enden.');
+  });
+
+  it("rejects missing image file", async () => {
+    await expectError(
+      await make("i", { yaml: imgYaml("  - path: a.svg\n") }),
+      'Aufgabe "i": Bilddatei files/a.svg fehlt.',
+    );
+  });
+
+  it("rejects image over 2 MB", async () => {
+    await expectError(
+      await make("i", {
+        yaml: imgYaml("  - path: a.svg\n"),
+        files: { "A.java": "x", "a.svg": "a".repeat(2 * 1024 * 1024 + 1) },
+      }),
+      'Aufgabe "i": Bilddatei files/a.svg ist größer als 2 MB.',
+    );
+  });
+});
+
 describe("listExercises", () => {
   it("returns good exercises sorted and collects errors", async () => {
     await make("zeta");
