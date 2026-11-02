@@ -164,6 +164,10 @@
     flex-direction: column;
     gap: 4px;
   }
+  .assign :global(img) {
+    max-width: 100%;
+    height: auto;
+  }
   .assign :global(a) {
     color: #2f5bd3;
     cursor: default;
