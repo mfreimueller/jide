@@ -62,6 +62,32 @@ export async function exerciseForTeacher(db: SQLInstance, teacherId: number, slu
   return { ...toView(r), rowId: r.rowId };
 }
 
+export interface ExerciseUsage {
+  /** Courses the exercise is unlocked in. */
+  courses: { id: number; subject: string; className: string }[];
+  /** All hand-ins of the exercise, in every course, archived students included. */
+  handInCount: number;
+}
+
+/** What a hard delete would take with it (for the confirmation dialog). */
+export async function exerciseUsage(db: SQLInstance, teacherId: number, slug: string): Promise<ExerciseUsage> {
+  const { rowId } = await exerciseForTeacher(db, teacherId, slug);
+  const courses = await db<{ id: number; subject: string; className: string }[]>`
+    SELECT c.id, c.subject, c.class_name AS className
+    FROM course_exercises ce JOIN courses c ON c.id = ce.course_id
+    WHERE ce.exercise_id = ${rowId} AND ce.unlocked = 1
+    ORDER BY c.subject, c.class_name, c.id
+  `;
+  const count = await db<{ n: number | string }[]>`SELECT COUNT(*) AS n FROM handins WHERE exercise_id = ${rowId}`;
+  return { courses, handInCount: Number(count[0]!.n) };
+}
+
+/** Hard delete; the foreign keys cascade to course links, hand-ins and hand-in files. */
+export async function deleteExercise(db: SQLInstance, teacherId: number, slug: string): Promise<void> {
+  const res = await db`DELETE FROM exercises WHERE teacher_id = ${teacherId} AND slug = ${slug}`;
+  if (!res.affectedRows) throw new AppError(404, 'NOT_FOUND', 'Aufgabe nicht gefunden.');
+}
+
 /** Inserts the exercise, or replaces the package of the teacher's exercise with the same id (unlocks stay). */
 export async function saveExercise(
   db: SQLInstance,

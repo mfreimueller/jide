@@ -3,7 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
 import { MAX_UPLOAD_BYTES, validatePackage } from '../lib/exercise_package.js';
-import { exerciseForTeacher, listExercises, saveExercise } from '../lib/exercises.js';
+import { deleteExercise, exerciseForTeacher, exerciseUsage, listExercises, saveExercise } from '../lib/exercises.js';
 import { teacherAuth, type TeacherVariables } from '../middleware/teacher_auth.js';
 
 export const exerciseRoutes = new Hono<{ Variables: TeacherVariables }>();
@@ -32,4 +32,11 @@ exerciseRoutes.post(
 exerciseRoutes.get('/:id', async (c) => {
   const { rowId: _rowId, ...exercise } = await exerciseForTeacher(getDb(), c.get('teacher').id, c.req.param('id'));
   return c.json({ exercise });
+});
+
+exerciseRoutes.get('/:id/usage', async (c) => c.json(await exerciseUsage(getDb(), c.get('teacher').id, c.req.param('id'))));
+
+exerciseRoutes.delete('/:id', async (c) => {
+  await deleteExercise(getDb(), c.get('teacher').id, c.req.param('id'));
+  return c.body(null, 204);
 });

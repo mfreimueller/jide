@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { card, launch, newUserData, openExercise, screenshotDir, setEditorText, useTempApp, userDataDir } from "./helpers";
@@ -129,6 +129,36 @@ test("a hand-in after the deadline is marked verspätet, also after a restart an
   await login(second.page, backend.code);
   await openExercise(second.page, "Größere Zahl");
   await expect(second.page.getByTestId("handed-in")).toContainText("Abgegeben · verspätet");
+});
+
+test("an exercise deleted on the server is gone from the list at the next refresh; the local copy stays", async () => {
+  const backend = await startBackend();
+  const { page, app } = await loggedIn(backend);
+  await openExercise(page, SUMME); // creates the local workspace
+  await page.getByRole("button", { name: "← Aufgaben" }).click();
+  await expect(card(page, SUMME)).toBeVisible();
+
+  await backend.deleteExercise("summe");
+  await page.reload();
+  await expect(card(page, "Größere Zahl")).toBeVisible();
+  await expect(card(page, SUMME)).toHaveCount(0);
+  expect(existsSync(join(userDataDir(), "workspaces", "summe"))).toBe(true);
+
+  // also after a restart: the cached list was rewritten, not merged
+  await app.close();
+  const again = await launchOnline(backend);
+  await expect(card(again.page, "Größere Zahl")).toBeVisible();
+  await expect(card(again.page, SUMME)).toHaveCount(0);
+});
+
+test("handing in to an exercise deleted meanwhile shows the server's German message and nothing crashes", async () => {
+  const backend = await startBackend();
+  const { page } = await loggedIn(backend);
+  await openExercise(page, SUMME);
+  await backend.deleteExercise("summe");
+  await handIn(page);
+  await expect(page.getByTestId("toast")).toContainText("Diese Aufgabe ist nicht verfügbar.");
+  await expect(page.getByTestId("handed-in")).toHaveCount(0);
 });
 
 test("offline start shows the cached list; editing works; Abgeben says there is no connection", async () => {
