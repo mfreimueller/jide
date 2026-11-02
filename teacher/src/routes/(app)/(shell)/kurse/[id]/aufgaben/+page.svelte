@@ -246,13 +246,18 @@
 							{@const g = section.group}
 							<tr class="group-row">
 								<td class="narrow"><MoveButtons label="Gruppe „{g.name}“" first={si === 0} last={si === data.groups.length - 1} onmove={(d) => moveGroup(g, d)} /></td>
-								<td colspan="5">
-									<span class="group-name">{g.name}</span>
-									<span class="small count">{section.items.length} {section.items.length === 1 ? 'Aufgabe' : 'Aufgaben'}</span>
-								</td>
-								<td class="group-actions">
-									<button type="button" class="link" onclick={() => openName(g)}>Umbenennen</button>
-									<button type="button" class="link" onclick={() => askRemoveGroup(g)}>Löschen</button>
+								<!-- name and actions share one wide cell, so the actions don't widen the last column -->
+								<td colspan="6">
+									<div class="group-head">
+										<span>
+											<span class="group-name">{g.name}</span>
+											<span class="small count">{section.items.length} {section.items.length === 1 ? 'Aufgabe' : 'Aufgaben'}</span>
+										</span>
+										<span class="group-actions">
+											<button type="button" class="link" onclick={() => openName(g)}>Umbenennen</button>
+											<button type="button" class="link" onclick={() => askRemoveGroup(g)}>Löschen</button>
+										</span>
+									</div>
 								</td>
 							</tr>
 						{:else}
@@ -341,9 +346,14 @@
 	.count {
 		margin-left: 10px;
 	}
+	.group-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
 	.group-actions {
 		white-space: nowrap;
-		text-align: right;
 	}
 	.link {
 		margin-left: 14px;
