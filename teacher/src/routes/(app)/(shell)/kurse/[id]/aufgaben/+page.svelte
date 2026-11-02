@@ -30,6 +30,12 @@
 
 	const courseList = $derived(deleteUsage?.courses.map(courseLabel).join(', ') ?? '');
 	const handInText = $derived(deleteUsage?.handInCount === 1 ? '1 Abgabe wird' : `${deleteUsage?.handInCount} Abgaben werden`);
+	const deleteText = $derived(
+		deleteUsage
+			? `Die Aufgabe wird aus allen Kursen entfernt${deleteUsage.courses.length > 0 ? ` (${courseList})` : ''}.` +
+					(deleteUsage.handInCount > 0 ? ` ${handInText} endgültig gelöscht.` : '')
+			: ''
+	);
 
 	async function askDelete(ex: Exercise) {
 		deleteTarget = ex;
@@ -163,10 +169,7 @@
 
 <Dialog bind:open={deleteOpen} title="„{deleteTarget?.title}“ löschen?" width={460}>
 	{#if deleteUsage}
-		<p class="muted">
-			Die Aufgabe wird aus allen Kursen entfernt{deleteUsage.courses.length > 0 ? ` (${courseList})` : ''}.{#if deleteUsage.handInCount > 0}
-				{handInText} endgültig gelöscht.{/if}
-		</p>
+		<p class="muted">{deleteText}</p>
 	{/if}
 	{#if deleteError}<p class="alert" role="alert">{deleteError}</p>{/if}
 	<div class="dialog-actions">
