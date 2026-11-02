@@ -1,11 +1,24 @@
 <script lang="ts">
-  import { onDestroy, type Snippet } from "svelte";
+  import { onDestroy, onMount, type Snippet } from "svelte";
   import type { OpenedExercise } from "../../../shared-types/api";
   import { formatDate, formatDateTime, formatTime } from "../../../shared-types/datetime";
   import { handInToast } from "./exam-ui";
   import AssignmentPanel from "./AssignmentPanel.svelte";
   import BottomPanel, { type BottomTab } from "./BottomPanel.svelte";
   import CodeEditor from "./CodeEditor.svelte";
+  import { layout, openBottom, SHORTCUT_PANEL, togglePanel } from "./layout.svelte";
+  import {
+    BOTTOM_BAR_HEIGHT,
+    BOTTOM_MIN,
+    clampSize,
+    maxBottomHeight,
+    maxSideWidth,
+    SIDE_MIN,
+    STRIP_WIDTH
+  } from "./panel-layout";
+  import PanelButton from "./PanelButton.svelte";
+  import PanelStrip from "./PanelStrip.svelte";
+  import ResizeHandle from "./ResizeHandle.svelte";
   import { LiveCompiler } from "./problems.svelte";
   import { RunController } from "./run.svelte";
   import { TestController } from "./test.svelte";
@@ -142,6 +155,41 @@
     return `Abgegeben${late ? " · verspätet" : ""} ${today ? formatTime(iso) : formatDate(iso)}`;
   }
 
+  // Panel layout (T29): the sizes live in the shared `layout`; here are only the container sizes for the limits.
+  let screenEl: HTMLDivElement;
+  let workWidth = $state(0);
+  let centerHeight = $state(0);
+  let dragStart = 0;
+
+  const sideWidth = (collapsed: boolean, width: number): number => (collapsed ? STRIP_WIDTH : width);
+  function dragFiles(delta: number): void {
+    const max = maxSideWidth(workWidth, sideWidth(layout.assignCollapsed, layout.assignWidth));
+    layout.filesWidth = clampSize(dragStart + delta, SIDE_MIN, max);
+  }
+  function dragAssign(delta: number): void {
+    const max = maxSideWidth(workWidth, sideWidth(layout.filesCollapsed, layout.filesWidth));
+    layout.assignWidth = clampSize(dragStart - delta, SIDE_MIN, max);
+  }
+  function dragBottom(delta: number): void {
+    layout.bottomHeight = clampSize(dragStart - delta, BOTTOM_MIN, maxBottomHeight(centerHeight));
+  }
+
+  // Alt+1/2/3 toggle the panels. The listener sits on window in the capture phase, so Monaco and the
+  // console (xterm) never see the key. Every mounted Workspace listens (the exam keeps one per tab),
+  // but only the visible one reacts, so a key toggles exactly once.
+  function onShortcut(e: KeyboardEvent): void {
+    const panel = SHORTCUT_PANEL[e.code];
+    if (!panel || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (!screenEl || screenEl.getClientRects().length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!e.repeat) togglePanel(panel);
+  }
+  onMount(() => {
+    window.addEventListener("keydown", onShortcut, true);
+    return () => window.removeEventListener("keydown", onShortcut, true);
+  });
+
   let leaving = false;
   async function back(): Promise<void> {
     if (leaving) return;
@@ -153,7 +201,7 @@
   }
 </script>
 
-<div class="screen">
+<div class="screen" bind:this={screenEl}>
   {#if confirming}
     <HandInDialog summary={confirming.summary} onCancel={() => (confirming = undefined)} onConfirm={() => void confirmHandIn()} />
   {/if}
@@ -183,9 +231,16 @@
         : undefined}
     />
   </div>
-  <div class="work">
-    <div class="files" data-testid="file-list">
-      <span class="pane-title">Dateien</span>
+  <div class="work" bind:clientWidth={workWidth}>
+    {#if layout.filesCollapsed}
+      <PanelStrip side="left" label="Dateien" tip="Dateien aufklappen (Alt+1)" onclick={() => togglePanel("files")} testid="files" />
+    {/if}
+    <div class="files" class:collapsed={layout.filesCollapsed} style:width="{layout.filesWidth}px" data-testid="file-list">
+      <div class="pane-head">
+        <span class="pane-title">Dateien</span>
+        <PanelButton icon="left" tip="Dateien einklappen (Alt+1)" onclick={() => togglePanel("files")} testid="files-collapse" />
+      </div>
+      <div class="file-scroll">
       {#each session.files as f (f.path)}
         <button
           class="file"
@@ -197,22 +252,58 @@
           {#if errorsByFile.get(f.path)}<span class="err" data-testid="file-errors">{errorsByFile.get(f.path)}</span>{/if}
         </button>
       {/each}
+      </div>
     </div>
-    <div class="center-col">
+    {#if !layout.filesCollapsed}
+      <ResizeHandle dir="col" begin={() => (dragStart = layout.filesWidth)} apply={dragFiles} testid="files-handle" />
+    {/if}
+    <div class="center-col" bind:clientHeight={centerHeight}>
       <div class="tabs" data-testid="tabs">
         {#each session.openTabs as p (p)}
           <button class="tab" class:active={session.active === p} onclick={() => session.openFile(p)}>{p}</button>
         {/each}
       </div>
       <CodeEditor {session} />
-      <BottomPanel bind:tab={bottomTab} {problems} {session} {run} {tests} />
+      {#if !layout.bottomCollapsed}
+        <ResizeHandle dir="row" begin={() => (dragStart = layout.bottomHeight)} apply={dragBottom} testid="bottom-handle" />
+      {/if}
+      <BottomPanel
+        bind:tab={bottomTab}
+        {problems}
+        {session}
+        {run}
+        {tests}
+        collapsed={layout.bottomCollapsed}
+        height={layout.bottomHeight}
+        ontoggle={() => togglePanel("bottom")}
+        onopen={openBottom}
+      />
       {#if toast}
-        <div class="toast" class:error={toast.kind === "error"} role="status" data-testid="toast">
+        <div
+          class="toast"
+          class:error={toast.kind === "error"}
+          style:bottom="{(layout.bottomCollapsed ? BOTTOM_BAR_HEIGHT : layout.bottomHeight) + 20}px"
+          role="status"
+          data-testid="toast"
+        >
           <span class="mark">{toast.kind === "ok" ? "✓" : "!"}</span>{toast.text}
         </div>
       {/if}
     </div>
-    <AssignmentPanel markdown={exercise.assignment} heading={assignmentHeading} title={exercise.title} deadline={exercise.deadline} {submittedAt} {late} />
+    {#if !layout.assignCollapsed}
+      <ResizeHandle dir="col" begin={() => (dragStart = layout.assignWidth)} apply={dragAssign} testid="assign-handle" />
+    {/if}
+    <AssignmentPanel
+      markdown={exercise.assignment}
+      heading={assignmentHeading}
+      title={exercise.title}
+      deadline={exercise.deadline}
+      {submittedAt}
+      {late}
+      collapsed={layout.assignCollapsed}
+      width={layout.assignWidth}
+      ontoggle={() => togglePanel("assign")}
+    />
   </div>
 </div>
 
@@ -236,7 +327,6 @@
     min-height: 0;
   }
   .files {
-    width: 210px;
     flex: none;
     box-sizing: border-box;
     background: #fff;
@@ -244,16 +334,32 @@
     padding: 14px 10px;
     display: flex;
     flex-direction: column;
+  }
+  .files.collapsed {
+    display: none;
+  }
+  .file-scroll {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     gap: 2px;
     overflow-y: auto;
   }
+  .pane-head {
+    display: flex;
+    align-items: center;
+    padding: 0 0 4px;
+  }
   .pane-title {
+    flex: 1;
     font-size: 11px;
     font-weight: 600;
+    line-height: 16px;
     color: #80838d;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    padding: 4px 8px 8px;
+    padding: 4px 8px;
   }
   .file {
     font: inherit;
@@ -315,7 +421,6 @@
   .toast {
     position: absolute;
     right: 24px;
-    bottom: 250px;
     background: #1c2024;
     color: #fff;
     border-radius: 10px;

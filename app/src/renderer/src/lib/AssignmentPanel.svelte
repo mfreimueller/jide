@@ -1,6 +1,8 @@
 <script lang="ts">
   import { stripLeadingHeading } from "./exam-ui";
   import { renderMarkdown } from "./markdown";
+  import PanelButton from "./PanelButton.svelte";
+  import PanelStrip from "./PanelStrip.svelte";
 
   import { formatDate, isPast } from "../../../shared-types/datetime";
 
@@ -10,7 +12,10 @@
     submittedAt = null,
     late = false,
     heading,
-    title = ""
+    title = "",
+    collapsed = false,
+    width = 330,
+    ontoggle
   }: {
     markdown: string;
     deadline?: string | null;
@@ -20,6 +25,10 @@
     heading?: string;
     /** Exercise title: a leading `# <title>` is dropped when `heading` replaces it. */
     title?: string;
+    /** T29: collapsed to a strip / width of the open panel / expand-collapse (button and Alt+2). */
+    collapsed?: boolean;
+    width?: number;
+    ontoggle: () => void;
   } = $props();
   const html = $derived(renderMarkdown(heading ? stripLeadingHeading(markdown, title) : markdown));
 
@@ -29,8 +38,16 @@
   }
 </script>
 
+{#if collapsed}
+  <PanelStrip side="right" label="Angabe" tip="Angabe aufklappen (Alt+2)" onclick={ontoggle} testid="assign" />
+{/if}
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<aside class="assign" data-testid="assignment" onclick={blockLinks}>
+<aside class="assign" class:collapsed style:width="{width}px" data-testid="assignment" onclick={blockLinks}>
+  <div class="head">
+    <span class="pane-title">Angabe</span>
+    <PanelButton icon="right" tip="Angabe einklappen (Alt+2)" place="below-right" onclick={ontoggle} testid="assign-collapse" />
+  </div>
+  <div class="body">
   {#if deadline}
     <div class="deadline" data-testid="deadline">
       {#if submittedAt}<span class="chip" class:done={!late} class:late-hand={late}>{late ? "Abgegeben · verspätet" : "Abgegeben"}</span>{:else if isPast(deadline)}<span class="chip late"
@@ -40,22 +57,47 @@
   {/if}
   {#if heading}<h1 data-testid="assignment-heading">{heading}</h1>{/if}
   {@html html}
+  </div>
 </aside>
 
 <style>
   .assign {
-    width: 330px;
     flex: none;
     box-sizing: border-box;
     background: #fff;
     border-left: 1px solid #e3e6e8;
-    padding: 18px 20px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
     font-size: 14px;
     line-height: 21px;
     color: #3a3f45;
+  }
+  /* collapsed: stays mounted (and in the DOM for the tests' sake) but takes no room */
+  .assign.collapsed {
+    display: none;
+  }
+  .head {
+    flex: none;
+    display: flex;
+    align-items: center;
+    padding: 14px 10px 4px 20px;
+  }
+  .head .pane-title {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    color: #80838d;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .body {
+    flex: 1;
+    min-height: 0;
+    padding: 8px 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     overflow-y: auto;
   }
   .deadline {

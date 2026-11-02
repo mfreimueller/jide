@@ -5,6 +5,7 @@
 
 <script lang="ts">
   import Console from "./Console.svelte";
+  import PanelButton from "./PanelButton.svelte";
   import { locationLabel } from "./diagnostics";
   import type { LiveCompiler } from "./problems.svelte";
   import type { RunController } from "./run.svelte";
@@ -19,13 +20,22 @@
     problems,
     session,
     run,
-    tests
+    tests,
+    collapsed = false,
+    height = 230,
+    ontoggle,
+    onopen
   }: {
     tab?: BottomTab;
     problems: LiveCompiler;
     session: EditorSession;
     run: RunController;
     tests?: TestController;
+    /** T29: only the tab bar stays / height of the open panel / button and Alt+3 / a tab was clicked. */
+    collapsed?: boolean;
+    height?: number;
+    ontoggle: () => void;
+    onopen: () => void;
   } = $props();
 
   const errors = $derived(problems.errorCount);
@@ -35,10 +45,10 @@
   const failedCount = $derived(last ? last.summary.total - last.summary.passed : 0);
 </script>
 
-<div class="bottom">
+<div class="bottom" class:collapsed style:height={collapsed ? undefined : `${height}px`}>
   <div class="btabs">
     {#each tabs as t}
-      <button class="btab" class:active={tab === t} onclick={() => (tab = t)} data-testid="btab-{t}">
+      <button class="btab" class:active={tab === t} onclick={() => { tab = t; onopen(); }} data-testid="btab-{t}">
         {t}
         {#if t === "Probleme" && errors > 0}<span class="badge" data-testid="problems-badge">{errors}</span>{/if}
         {#if t === "Tests" && last}
@@ -50,17 +60,24 @@
     {#if tab === "Tests" && last}
       <span class="small" data-testid="tests-time">zuletzt getestet {formatTime(last.at)}</span>
     {/if}
-    {#if tab === "Konsole"}
+    {#if tab === "Konsole" && !collapsed}
       <button class="btn ghost clear" onclick={() => run.clear()} data-testid="clear-console">Leeren</button>
     {/if}
+    <PanelButton
+      icon={collapsed ? "up" : "down"}
+      tip={collapsed ? "Ausgabe aufklappen (Alt+3)" : "Ausgabe einklappen (Alt+3)"}
+      place="above-right"
+      onclick={ontoggle}
+      testid="bottom-toggle"
+    />
   </div>
-  <div class="body" class:console={tab === "Konsole"} data-testid="bottom-{tab}">
+  <div class="body" class:hidden={collapsed} class:console={tab === "Konsole"} data-testid="bottom-{tab}">
     <!-- always mounted so the output survives tab switches -->
     {#if tab === "Konsole" && problems.systemError}
       <div class="system-error strip" role="alert" data-testid="system-error-console">{problems.systemError}</div>
     {/if}
     <div class="console-slot" class:hidden={tab !== "Konsole"}>
-      <Console term={run.console} visible={tab === "Konsole"} />
+      <Console term={run.console} visible={tab === "Konsole" && !collapsed} />
     </div>
     {#if tab === "Tests" && tests}
       <div class="tests" data-testid="tests">
@@ -129,12 +146,17 @@
 
 <style>
   .bottom {
-    height: 230px;
     flex: none;
     border-top: 1px solid #e3e6e8;
     background: #fff;
     display: flex;
     flex-direction: column;
+  }
+  .bottom.collapsed .btabs {
+    border-bottom: none;
+  }
+  .body.hidden {
+    display: none;
   }
   .btabs {
     height: 36px;
