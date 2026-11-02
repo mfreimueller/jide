@@ -365,6 +365,15 @@ test("restore after a restart with an EMPTY user-data dir: the newest of autosav
   await setEditorText(first.app, first.page, "// Autosave 2\n");
   await gotoTab(first.page, 0); // autosave of the exercise that was left
   await expect.poll(() => readFileSync(join(drive, "summe", "_autosave", "Summe.java"), "utf8")).toBe("// Autosave 2\n");
+  // autosave.json is written right after the files: wait until its time is past the hand-in before the crash
+  const time = (file: string, key: string): number => {
+    try {
+      return Date.parse(JSON.parse(readFileSync(join(drive, "summe", file), "utf8"))[key]);
+    } catch {
+      return Number.NaN;
+    }
+  };
+  await expect.poll(() => time("_autosave/autosave.json", "savedAt") > time("abgabe.json", "submittedAt")).toBe(true);
   await first.app.evaluate(({ app: a }) => a.exit(0)).catch(() => undefined); // crash: no close handling
 
   // autosave is newer than the hand-in
