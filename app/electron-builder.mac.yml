@@ -1,0 +1,27 @@
+# Local macOS build for the developer's own Mac (npm run dist:mac): unpacked JDE.app, not signed
+# or notarized, no publishing. Bundles a macOS JDK from build/jdk-mac so the Windows runtime in
+# build/jdk stays untouched. Standalone on purpose: the installer config stays untouched.
+appId: io.github.mfreimueller.jide
+productName: JDE
+copyright: J;DE
+extraMetadata:
+  name: jde
+directories:
+  buildResources: resources
+  output: dist-mac
+files:
+  - out/**
+  - package.json
+asar: true
+extraResources:
+  - from: build/jdk-mac
+    to: jdk
+  - from: ../java-helper/target/java-helper.jar
+    to: java-helper.jar
+mac:
+  target:
+    - target: dir
+  icon: resources/icon.png
+  # No Developer ID: ad-hoc signature, enough to run on the machine that built it.
+  identity: "-"
+  hardenedRuntime: false

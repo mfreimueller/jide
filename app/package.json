@@ -17,7 +17,8 @@
     "verify-runtime": "node scripts/verify-runtime.mjs",
     "dist": "electron-vite build && electron-builder --win nsis --x64 --publish never",
     "dist:exam": "electron-vite build && electron-builder --config electron-builder.exam.yml --win dir --x64 --publish never",
-    "dist:publish": "electron-vite build && electron-builder --win nsis --x64 --publish always"
+    "dist:publish": "electron-vite build && electron-builder --win nsis --x64 --publish always",
+    "dist:mac": "node -e \"if(!process.env.JIDE_API_URL){console.error('JIDE_API_URL is not set. The URL is compiled into the app, e.g.: JIDE_API_URL=https://jide.example.org npm run dist:mac');process.exit(1)}\" && node scripts/build-runtime.mjs build/jdk-mac && electron-vite build && electron-builder --config electron-builder.mac.yml --mac dir --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.8.11",

@@ -16,6 +16,7 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "smoke": "npm run smoke -w app",
-    "test:e2e": "npm run test:e2e -w app"
+    "test:e2e": "npm run test:e2e -w app",
+    "dist:mac": "npm run build -w java-helper && npm run dist:mac -w app"
   }
 }
