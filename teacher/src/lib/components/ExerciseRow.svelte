@@ -12,8 +12,9 @@
 		handIns: string | null;
 		isNew?: boolean;
 		onchange: () => void | Promise<void>;
+		ondelete: () => void;
 	}
-	let { courseId, exercise, handIns, isNew = false, onchange }: Props = $props();
+	let { courseId, exercise, handIns, isNew = false, onchange, ondelete }: Props = $props();
 
 	// The parent re-keys this component whenever the saved values change, so the initial values are enough.
 	// svelte-ignore state_referenced_locally
@@ -73,6 +74,7 @@
 		{#if error}<p class="alert err" role="alert">{error}</p>{/if}
 	</td>
 	<td class:small={!handIns}>{handIns ?? 'nicht sichtbar'}</td>
+	<td class="right"><Button size="sm" onclick={ondelete}>Löschen</Button></td>
 </tr>
 
 <style>
@@ -134,6 +136,9 @@
 	input:disabled {
 		color: var(--text-ghost);
 		background: var(--bg);
+	}
+	.right {
+		text-align: right;
 	}
 	.err {
 		margin-top: 6px;

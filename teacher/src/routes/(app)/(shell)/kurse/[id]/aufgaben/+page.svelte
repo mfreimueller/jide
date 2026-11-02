@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
-	import { upload } from '#lib/api.js';
+	import { api, upload } from '#lib/api.js';
 	import Button from '#lib/components/Button.svelte';
+	import Dialog from '#lib/components/Dialog.svelte';
 	import ExerciseRow from '#lib/components/ExerciseRow.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { courseLabel, courseStore } from '#lib/course.svelte.js';
@@ -16,6 +17,46 @@
 	let uploading = $state(false);
 	let uploadError = $state<string | null>(null);
 	let result = $state<{ exercise: Exercise; replaced: boolean } | null>(null);
+
+	interface Usage {
+		courses: { id: number; subject: string; className: string }[];
+		handInCount: number;
+	}
+	let deleteTarget = $state<Exercise | null>(null);
+	let deleteUsage = $state<Usage | null>(null);
+	let deleteOpen = $state(false);
+	let deleting = $state(false);
+	let deleteError = $state<string | null>(null);
+
+	const courseList = $derived(deleteUsage?.courses.map(courseLabel).join(', ') ?? '');
+	const handInText = $derived(deleteUsage?.handInCount === 1 ? '1 Abgabe wird' : `${deleteUsage?.handInCount} Abgaben werden`);
+
+	async function askDelete(ex: Exercise) {
+		deleteTarget = ex;
+		deleteUsage = null;
+		deleteError = null;
+		deleteOpen = true;
+		try {
+			deleteUsage = await api<Usage>(`/teacher/exercises/${encodeURIComponent(ex.id)}/usage`);
+		} catch (err) {
+			deleteError = messageOf(err);
+		}
+	}
+
+	async function remove() {
+		if (!deleteTarget) return;
+		deleting = true;
+		deleteError = null;
+		try {
+			await api(`/teacher/exercises/${encodeURIComponent(deleteTarget.id)}`, { method: 'DELETE' });
+			deleteOpen = false;
+			await invalidate('app:exercises');
+		} catch (err) {
+			deleteError = messageOf(err);
+		} finally {
+			deleting = false;
+		}
+	}
 
 	$effect(() => {
 		courseStore.exerciseCount = data.exercises.length;
@@ -97,7 +138,7 @@
 	<div class="panel table">
 		<table class="data">
 			<thead>
-				<tr><th>Aufgabe</th><th>Freigeschaltet</th><th>Frist (Wiener Zeit)</th><th>Abgaben</th></tr>
+				<tr><th>Aufgabe</th><th>Freigeschaltet</th><th>Frist (Wiener Zeit)</th><th>Abgaben</th><th></th></tr>
 			</thead>
 			<tbody>
 				{#each data.exercises as ex (ex.id)}
@@ -108,10 +149,11 @@
 							handIns={ex.unlocked ? (data.handIns[ex.id] ?? null) : null}
 							isNew={result?.exercise.id === ex.id && !result.replaced}
 							onchange={() => invalidate('app:exercises')}
+							ondelete={() => askDelete(ex)}
 						/>
 					{/key}
 				{:else}
-					<tr><td colspan="4" class="muted empty">Noch keine Aufgaben. Lade oben die erste hoch.</td></tr>
+					<tr><td colspan="5" class="muted empty">Noch keine Aufgaben. Lade oben die erste hoch.</td></tr>
 				{/each}
 			</tbody>
 		</table>
@@ -119,7 +161,26 @@
 	<span class="small">Die Frist ist weich: Abgaben danach werden angenommen und als „verspätet“ markiert.</span>
 </div>
 
+<Dialog bind:open={deleteOpen} title="„{deleteTarget?.title}“ löschen?" width={460}>
+	{#if deleteUsage}
+		<p class="muted">
+			Die Aufgabe wird aus allen Kursen entfernt{deleteUsage.courses.length > 0 ? ` (${courseList})` : ''}.{#if deleteUsage.handInCount > 0}
+				{handInText} endgültig gelöscht.{/if}
+		</p>
+	{/if}
+	{#if deleteError}<p class="alert" role="alert">{deleteError}</p>{/if}
+	<div class="dialog-actions">
+		<Button onclick={() => (deleteOpen = false)}>Abbrechen</Button>
+		<Button variant="danger" loading={deleting} disabled={!deleteUsage} onclick={remove}>Löschen</Button>
+	</div>
+</Dialog>
+
 <style>
+	.dialog-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 10px;
+	}
 	.drop {
 		display: flex;
 		align-items: center;
