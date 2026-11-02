@@ -4,7 +4,7 @@
   import { CODE_FONT_FAMILY, codeFontReady, monaco } from "./monaco";
   import type { EditorSession } from "./session.svelte";
 
-  let { session }: { session: EditorSession } = $props();
+  let { session, hidden = false }: { session: EditorSession; hidden?: boolean } = $props();
   let container: HTMLDivElement;
 
   onMount(() => {
@@ -39,12 +39,16 @@
   });
 </script>
 
-<div class="editor" bind:this={container}></div>
+<div class="editor" class:hidden bind:this={container}></div>
 
 <style>
   .editor {
     flex: 1;
     min-height: 0;
     background: #fff;
+  }
+  /* Hidden, not unmounted, while an image is shown: models, undo history and view state stay alive. */
+  .editor.hidden {
+    display: none;
   }
 </style>

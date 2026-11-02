@@ -6,6 +6,7 @@
   import AssignmentPanel from "./AssignmentPanel.svelte";
   import BottomPanel, { type BottomTab } from "./BottomPanel.svelte";
   import CodeEditor from "./CodeEditor.svelte";
+  import ImageViewer from "./ImageViewer.svelte";
   import { layout, openBottom, SHORTCUT_PANEL, togglePanel } from "./layout.svelte";
   import {
     BOTTOM_BAR_HEIGHT,
@@ -252,6 +253,21 @@
           {#if errorsByFile.get(f.path)}<span class="err" data-testid="file-errors">{errorsByFile.get(f.path)}</span>{/if}
         </button>
       {/each}
+      {#each session.images as img (img.path)}
+        <button
+          class="file"
+          class:active={session.active === img.path}
+          onclick={() => session.openFile(img.path)}
+          data-testid="image-file"
+        >
+          <span class="java img">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true">
+              <rect x="0.8" y="0.8" width="8.4" height="8.4" rx="1" />
+              <path d="M1.5 8 L4 4.8 L5.8 6.8 L7 5.6 L8.6 8" />
+            </svg>
+          </span>{session.label(img.path)}
+        </button>
+      {/each}
       </div>
     </div>
     {#if !layout.filesCollapsed}
@@ -260,10 +276,15 @@
     <div class="center-col" bind:clientHeight={centerHeight}>
       <div class="tabs" data-testid="tabs">
         {#each session.openTabs as p (p)}
-          <button class="tab" class:active={session.active === p} onclick={() => session.openFile(p)}>{p}</button>
+          <button class="tab" class:active={session.active === p} onclick={() => session.openFile(p)}>{session.label(p)}</button>
         {/each}
       </div>
-      <CodeEditor {session} />
+      <CodeEditor {session} hidden={!session.editorVisible} />
+      {#if !session.editorVisible}
+        {#each session.images.filter((i) => i.path === session.active) as img (img.path)}
+          <ImageViewer path={img.path} svg={img.svg} />
+        {/each}
+      {/if}
       {#if !layout.bottomCollapsed}
         <ResizeHandle dir="row" begin={() => (dragStart = layout.bottomHeight)} apply={dragBottom} testid="bottom-handle" />
       {/if}
@@ -407,6 +428,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  .java.img {
+    background: #8e8c99;
   }
   .java.ro {
     background: #b0b4ba;

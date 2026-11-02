@@ -1,5 +1,5 @@
 import { monaco } from "./monaco";
-import type { OpenedExercise, OpenedFile } from "../../../shared-types/api";
+import type { OpenedExercise, OpenedFile, OpenedImage } from "../../../shared-types/api";
 import type { MarkerData } from "./diagnostics";
 
 export const AUTOSAVE_DELAY_MS = 800;
@@ -13,6 +13,8 @@ type Editor = monaco.editor.IStandaloneCodeEditor;
  */
 export class EditorSession {
   readonly files: OpenedFile[];
+  /** Read-only SVG images; their paths can be open tabs (and `active`) next to the Java files. */
+  readonly images: OpenedImage[];
   openTabs = $state<string[]>([]);
   active = $state<string>("");
   saveState = $state<"saved" | "saving" | "error">("saved");
@@ -29,6 +31,7 @@ export class EditorSession {
 
   constructor(private readonly exercise: OpenedExercise) {
     this.files = exercise.files;
+    this.images = exercise.images;
     for (const f of this.files) {
       const uri = monaco.Uri.from({ scheme: "jide", path: `/${exercise.id}/${f.path}` });
       const model = monaco.editor.createModel(f.content, "java", uri);
@@ -48,13 +51,40 @@ export class EditorSession {
     return this.files.find((f) => f.path === path)?.editable ?? false;
   }
 
-  openFile(path: string): void {
-    const model = this.models.get(path);
-    if (!model || !this.editor) return;
-    if (this.active && this.active !== path) {
+  isImage(path: string): boolean {
+    return this.images.some((i) => i.path === path);
+  }
+
+  /** Active tab is a Java file (the editor is shown), not an image. */
+  get editorVisible(): boolean {
+    return !this.isImage(this.active);
+  }
+
+  /** Tab / list label of a file or image. */
+  label(path: string): string {
+    return this.images.find((i) => i.path === path)?.title || path;
+  }
+
+  /** Shows an image in place of the editor. The editor and its models stay as they are. */
+  private openImage(path: string): void {
+    this.leaveJava();
+    if (!this.openTabs.includes(path)) this.openTabs.push(path);
+    this.active = path;
+  }
+
+  /** Remembers view state and saves the current Java file before another tab takes over. */
+  private leaveJava(): void {
+    if (this.active && !this.isImage(this.active) && this.editor) {
       this.viewStates.set(this.active, this.editor.saveViewState());
       void this.flush(this.active); // save immediately when switching tabs
     }
+  }
+
+  openFile(path: string): void {
+    if (this.isImage(path)) return this.openImage(path);
+    const model = this.models.get(path);
+    if (!model || !this.editor) return;
+    if (this.active !== path) this.leaveJava();
     if (!this.openTabs.includes(path)) this.openTabs.push(path);
     this.active = path;
     this.editor.setModel(model);

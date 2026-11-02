@@ -91,6 +91,8 @@ export function registerExerciseIpc(): void {
           assignment: ex.assignment,
           mainFile: ex.mainFile,
           files: ws.files,
+          // Images come from the exercise package, not from the student's workspace.
+          images: ex.images.map((i) => ({ path: i.path, title: i.title, svg: ex.imageContents[i.path] ?? "" })),
           deadline: await source.deadlineOf(ex.id),
           submittedAt: handIns.get(ex.id)?.submittedAt ?? null,
           late: handIns.get(ex.id)?.late ?? false,

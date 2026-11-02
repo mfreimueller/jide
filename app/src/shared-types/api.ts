@@ -69,6 +69,14 @@ export interface OpenedFile {
   editable: boolean;
 }
 
+/** Read-only SVG diagram of an exercise (not a Java file, never handed in). */
+export interface OpenedImage {
+  path: string;
+  title?: string;
+  /** SVG text; the renderer shows it as an <img> data URL only. */
+  svg: string;
+}
+
 export interface OpenedExercise {
   id: string;
   title: string;
@@ -76,6 +84,8 @@ export interface OpenedExercise {
   assignment: string;
   mainFile: string;
   files: OpenedFile[];
+  /** Read-only SVG diagrams, shown below the Java files. */
+  images: OpenedImage[];
   deadline: string | null;
   submittedAt: string | null;
   late: boolean;
