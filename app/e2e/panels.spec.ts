@@ -278,3 +278,25 @@ test.describe("exam mode", () => {
     expect((await vis(page, "file-list").boundingBox())!.width).toBe(270);
   });
 });
+
+test("code blocks in a long assignment keep their full height", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "jide-long-"));
+  try {
+    cpSync(join(examplesDir, "summe"), join(dir, "summe"), { recursive: true });
+    const filler = Array.from({ length: 60 }, (_, i) => `Absatz ${i + 1}.`).join("\n\n");
+    writeFileSync(
+      join(dir, "summe", "aufgabe.md"),
+      `# Summe zweier Zahlen\n\n${filler}\n\n## Beispielablauf\n\n\`\`\`text\nZahl 1: 3\nZahl 2: 4\nSumme: 7\n\`\`\`\n\n${filler}\n`
+    );
+    const { page } = await launch({ JIDE_EXERCISES_DIR: dir });
+    await openExercise(page, "Summe zweier Zahlen");
+    const pre = assign(page).locator("pre");
+    await expect(pre).toBeVisible();
+    // all three lines are shown: the block does not scroll vertically
+    const { scroll, client } = await pre.evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight }));
+    expect(scroll).toBeLessThanOrEqual(client);
+    expect(await height(pre)).toBeGreaterThan(3 * 19);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

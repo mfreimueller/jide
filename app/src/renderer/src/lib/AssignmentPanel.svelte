@@ -100,6 +100,11 @@
     gap: 12px;
     overflow-y: auto;
   }
+  /* The body scrolls, so its children must keep their full height. Without this a
+     long assignment squeezes code blocks (overflow-x: auto lets them shrink) to one line. */
+  .body > :global(*) {
+    flex-shrink: 0;
+  }
   .deadline {
     font-size: 12px;
     display: flex;
