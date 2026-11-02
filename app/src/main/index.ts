@@ -5,6 +5,7 @@ import { registerCompileIpc } from "./compile";
 import { askToClose, examCloseNeedsConfirm, registerExamSaveIpc } from "./exam-session";
 import { examMode, initExam, redirectPathsForExamMode, registerExamIpc } from "./exam-state";
 import { registerExerciseIpc } from "./exercises";
+import { installAppMenu } from "./menu";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
 import { registerTestIpc } from "./test";
@@ -108,6 +109,7 @@ function createWindow(): BrowserWindow {
 app.whenReady().then(async () => {
   // Exam mode: exam.json is checked and the JDK is looked up before the helper can start.
   await initExam();
+  installAppMenu();
   if (smoke) {
     const timer = setTimeout(() => {
       console.error("JIDE_SMOKE_TIMEOUT");

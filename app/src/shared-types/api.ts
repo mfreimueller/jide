@@ -180,6 +180,8 @@ export interface JideApi {
   login: (code: string) => Promise<LoginResult>;
   /** Called when the server no longer accepts the stored code (it has been deleted by then). */
   onSessionExpired: (handler: (message: string) => void) => () => void;
+  /** Called after the student chose "Abmelden" in the menu (main has deleted the code). */
+  onLoggedOut: (handler: () => void) => () => void;
   /**
    * Uploads the saved editable files. The caller flushes pending edits first.
    * `testSummary`: result of the last test run if it is still current, otherwise null.

@@ -58,12 +58,14 @@
     const stopStatus = window.jide.onSaveStatus((s) => (saveStatus = s));
     const stopClose = window.jide.onCloseConfirm(() => (confirmClose = true));
     // The server no longer accepts the stored code (main has deleted it): back to the login.
-    const stop = window.jide.onSessionExpired(async (message) => {
+    const leaveToLogin = async (notice: string): Promise<void> => {
       await flushAll().catch(() => undefined); // edits are local; never lose them
       exercise = undefined;
       student = null;
-      loginNotice = message;
-    });
+      loginNotice = notice;
+    };
+    const stop = window.jide.onSessionExpired(leaveToLogin);
+    const stopLoggedOut = window.jide.onLoggedOut(() => leaveToLogin(""));
     void window.jide.getSession().then((s) => {
       session = s;
       if (s.mode === "online") student = s.student;
@@ -71,6 +73,7 @@
     });
     return () => {
       stop();
+      stopLoggedOut();
       stopStatus();
       stopClose();
     };

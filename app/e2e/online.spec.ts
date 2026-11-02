@@ -282,6 +282,21 @@ test("a reset code sends the student back to the login", async () => {
   await expect(card(page, SUMME)).toBeVisible();
 });
 
+test("Abmelden in the menu deletes the code and shows the login", async () => {
+  const backend = await startBackend();
+  const { app, page } = await loggedIn(backend);
+  await app.evaluate(({ dialog, Menu }) => {
+    dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+    Menu.getApplicationMenu()?.getMenuItemById("logout")?.click();
+  });
+  await expect(page.getByRole("heading", { name: "Willkommen!" })).toBeVisible();
+  await expect(page.getByTestId("login-notice")).toHaveCount(0);
+  expect(existsSync(join(userDataDir(), "session.json"))).toBe(false);
+  await app.close();
+  const again = await launchOnline(backend);
+  await expect(again.page.getByRole("heading", { name: "Willkommen!" })).toBeVisible();
+});
+
 // ---- hand-in with tests (T20) ----
 
 const SUMME_RIGHT = `void main() {
