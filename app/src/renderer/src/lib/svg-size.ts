@@ -34,14 +34,14 @@ export function svgSize(svg: string): Size | undefined {
   return undefined;
 }
 
-/** Next zoom step above `scale`, or the largest step. */
+/** Next zoom step above `scale`; stays put when already above the largest step. */
 export function zoomIn(scale: number): number {
-  return ZOOM_STEPS.find((s) => s > scale + 0.005) ?? ZOOM_STEPS[ZOOM_STEPS.length - 1]!;
+  return ZOOM_STEPS.find((s) => s > scale + 0.005) ?? Math.max(scale, ZOOM_STEPS[ZOOM_STEPS.length - 1]!);
 }
 
-/** Next zoom step below `scale`, or the smallest step. */
+/** Next zoom step below `scale`; stays put when already below the smallest step. */
 export function zoomOut(scale: number): number {
-  return [...ZOOM_STEPS].reverse().find((s) => s < scale - 0.005) ?? ZOOM_STEPS[0]!;
+  return [...ZOOM_STEPS].reverse().find((s) => s < scale - 0.005) ?? Math.min(scale, ZOOM_STEPS[0]!);
 }
 
 /** Scale that shows the whole image in the box, never above 100 %. */

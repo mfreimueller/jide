@@ -14,7 +14,7 @@
   let { path, svg }: { path: string; svg: string } = $props();
 
   const PAD = 24;
-  // The viewer is re-created for every image ({#key} in Workspace), so reading the props once is fine.
+  // Workspace re-creates the viewer for every image (keyed each), so reading the props once is fine.
   // svelte-ignore state_referenced_locally
   let size = $state<Size | undefined>(svgSize(svg));
   // svelte-ignore state_referenced_locally

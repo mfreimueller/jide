@@ -22,6 +22,8 @@ describe("zoom", () => {
     expect(zoomOut(0.62)).toBe(0.5);
     expect(zoomOut(1)).toBe(0.9);
     expect(zoomOut(0.25)).toBe(0.25);
+    expect(zoomOut(0.12)).toBe(0.12); // fitted giant diagram: "−" must not zoom in
+    expect(zoomIn(6)).toBe(6);
   });
   it("fits without enlarging", () => {
     expect(fitScale({ width: 1000, height: 500 }, { width: 500, height: 500 })).toBe(0.5);

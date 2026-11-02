@@ -1,3 +1,4 @@
+import { flushSync } from "svelte";
 import { monaco } from "./monaco";
 import type { OpenedExercise, OpenedFile, OpenedImage } from "../../../shared-types/api";
 import type { MarkerData } from "./diagnostics";
@@ -85,8 +86,14 @@ export class EditorSession {
     const model = this.models.get(path);
     if (!model || !this.editor) return;
     if (this.active !== path) this.leaveJava();
+    const fromImage = this.isImage(this.active);
     if (!this.openTabs.includes(path)) this.openTabs.push(path);
     this.active = path;
+    if (fromImage) {
+      // Show the editor again before restoring the view, so scrolling to a line uses the real size.
+      flushSync();
+      this.editor.layout();
+    }
     this.editor.setModel(model);
     this.editor.updateOptions({
       readOnly: !this.isEditable(path),
