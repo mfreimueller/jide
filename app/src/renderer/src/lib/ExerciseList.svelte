@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import iconUrl from "../assets/icon.svg";
   import { formatDate, formatDateTime, isPast } from "../../../shared-types/datetime";
+  import { sectionExercises } from "../../../shared-types/grouping";
   import type { ExerciseList, ExerciseSummary, StudentInfo } from "../../../shared-types/api";
 
   let { student, onOpen }: { student: StudentInfo | null; onOpen: (id: string) => void } = $props();
@@ -17,8 +18,7 @@
       .map((p) => p[0]!.toUpperCase())
       .join("")
   );
-  const open = $derived((list?.exercises ?? []).filter((e) => e.status !== "abgegeben"));
-  const handedIn = $derived((list?.exercises ?? []).filter((e) => e.status === "abgegeben"));
+  const sections = $derived(sectionExercises(list?.exercises ?? [], list?.groups ?? []));
 
   onMount(async () => {
     // Opening the list is also the quiet retry after being offline.
@@ -26,7 +26,7 @@
       list = await window.jide.listExercises();
     } catch {
       failure = "Die Aufgaben konnten nicht geladen werden.";
-      list = { exercises: [], errors: [], offline: false };
+      list = { exercises: [], groups: [], errors: [], offline: false };
     }
     // Tell main that the start screen is on screen (smoke test).
     requestAnimationFrame(() => window.jide.notifyEditorReady());
@@ -91,18 +91,17 @@
       {#if list.offline}
         <div class="notice" data-testid="offline-hint">Offline – du siehst die zuletzt geladenen Aufgaben.</div>
       {/if}
-      {#if open.length > 0}
-        <span class="section-title">Offen</span>
-        {#each open as ex (ex.id)}
+      {#each sections as section (section.key)}
+        {#if section.title}
+          <div class="section-head" data-testid="group-heading">
+            <span class="section-title">{section.title}</span>
+            {#if section.progress}<span class="progress">{section.progress}</span>{/if}
+          </div>
+        {/if}
+        {#each section.exercises as ex (ex.id)}
           {@render row(ex)}
         {/each}
-      {/if}
-      {#if handedIn.length > 0}
-        <span class="section-title">Abgegeben</span>
-        {#each handedIn as ex (ex.id)}
-          {@render row(ex)}
-        {/each}
-      {/if}
+      {/each}
       {#if list.exercises.length === 0 && !failure && list.errors.length === 0}
         <p class="muted">Keine Aufgaben vorhanden.</p>
       {/if}
@@ -142,6 +141,19 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-top: 8px;
+  }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .section-head .section-title {
+    margin-top: 0;
+  }
+  .progress {
+    font-size: 13px;
+    color: #80838d;
   }
   .ex {
     background: #fff;

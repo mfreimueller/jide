@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { zipSync, strToU8 } from "fflate";
@@ -117,5 +117,17 @@ describe("PackageCache", () => {
     expect(await cache.readList()).toBeUndefined();
     await cache.writeList([{ id: "summe", title: "Summe", version: "v1", deadline: null }]);
     expect((await cache.readList())?.[0]?.id).toBe("summe");
+    expect(await cache.readGroups()).toEqual([]);
+  });
+
+  it("stores the groups with the list and still reads a list from before the groups", async () => {
+    const cache = new PackageCache(dir);
+    const ex = { id: "summe", title: "Summe", version: "v1", deadline: null, groupId: 4 };
+    await cache.writeList([ex], [{ id: 4, name: "Schleifen" }]);
+    expect(await cache.readList()).toEqual([ex]);
+    expect(await cache.readGroups()).toEqual([{ id: 4, name: "Schleifen" }]);
+    await writeFile(path.join(dir, "list.json"), JSON.stringify([ex]), "utf8");
+    expect(await cache.readList()).toEqual([ex]);
+    expect(await cache.readGroups()).toEqual([]);
   });
 });

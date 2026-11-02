@@ -25,7 +25,10 @@ describe("ApiClient", () => {
   it("sends the code as Bearer token and parses the list", async () => {
     const f = vi.fn(async () => json(200, { exercises: [{ id: "a", title: "A", version: "v1", deadline: null }] }));
     const { api } = client(f as unknown as typeof fetch);
-    expect(await api.exercises()).toEqual([{ id: "a", title: "A", version: "v1", deadline: null }]);
+    expect(await api.exercises()).toEqual({
+      exercises: [{ id: "a", title: "A", version: "v1", deadline: null }],
+      groups: []
+    });
     const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("http://srv/api/exercises");
     expect((init.headers as Record<string, string>)["Authorization"]).toBe("Bearer ABCD2345");

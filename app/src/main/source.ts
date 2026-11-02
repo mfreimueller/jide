@@ -1,6 +1,6 @@
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { listExercises, type Exercise, type HandInFile, type TestSummary } from "@jide/shared";
+import { listExercises, type Exercise, type HandInFile, type StudentExerciseGroup, type TestSummary } from "@jide/shared";
 
 /** One exercise as the source knows it. */
 export interface SourceEntry {
@@ -8,10 +8,14 @@ export interface SourceEntry {
   title: string;
   /** ISO 8601 UTC or null. */
   deadline: string | null;
+  /** Exercise group of the course, null = none. */
+  groupId: number | null;
 }
 
 export interface SourceListing {
   exercises: SourceEntry[];
+  /** Groups in the teacher's order (remote source only). */
+  groups: StudentExerciseGroup[];
   /** German loading errors. */
   errors: string[];
   /** The source is remote and could not be reached; the entries come from its cache. */
@@ -74,7 +78,8 @@ export class LocalSource implements ExerciseSource {
   async list(): Promise<SourceListing> {
     const { exercises, errors } = await this.loadAll();
     return {
-      exercises: exercises.map((e) => ({ id: e.id, title: e.title, deadline: null })),
+      exercises: exercises.map((e) => ({ id: e.id, title: e.title, deadline: null, groupId: null })),
+      groups: [],
       errors,
       offline: false
     };

@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import path from "node:path";
-import { loadExercise, saveFile, type Exercise, type HandInFile, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
+import { loadExercise, saveFile, type Exercise, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
 import { ApiClient, ApiError } from "./api-client";
 import { isSafeExerciseId, needsDownload, PackageCache, restorableFiles } from "./package-cache";
 import type { ExerciseSource, HandInOutcome, SourceEntry, SourceListing } from "./source";
@@ -12,7 +12,7 @@ function messageOf(e: unknown): string {
 }
 
 function toEntries(list: StudentExerciseSummary[]): SourceEntry[] {
-  return list.map((e) => ({ id: e.id, title: e.title, deadline: e.deadline ?? null }));
+  return list.map((e) => ({ id: e.id, title: e.title, deadline: e.deadline ?? null, groupId: e.groupId ?? null }));
 }
 
 /** Exercises from the backend, cached in userData/cache (see PackageCache). */
@@ -38,15 +38,15 @@ export class OnlineSource implements ExerciseSource {
 
   private async cached(offline: boolean, errors: string[] = []): Promise<SourceListing> {
     const list = (await this.cache.readList()) ?? [];
-    return { exercises: toEntries(list), errors, offline };
+    return { exercises: toEntries(list), groups: await this.cache.readGroups(), errors, offline };
   }
 
   private async refresh(): Promise<SourceListing> {
-    let remote: StudentExerciseSummary[];
+    let remote: { exercises: StudentExerciseSummary[]; groups: StudentExerciseGroup[] };
     try {
       remote = await this.api.exercises();
     } catch (e) {
-      if (e instanceof ApiError && e.kind === "unauthorized") return { exercises: [], errors: [], offline: false };
+      if (e instanceof ApiError && e.kind === "unauthorized") return { exercises: [], groups: [], errors: [], offline: false };
       if (e instanceof ApiError && e.kind === "offline") return this.cached(true);
       return this.cached(false, [messageOf(e)]);
     }
@@ -54,11 +54,11 @@ export class OnlineSource implements ExerciseSource {
     const errors: string[] = [];
     const usable: StudentExerciseSummary[] = [];
     let offline = false;
-    for (const ex of remote.filter((x) => isSafeExerciseId(x.id))) {
+    for (const ex of remote.exercises.filter((x) => isSafeExerciseId(x.id))) {
       try {
         await this.sync(ex);
       } catch (e) {
-        if (e instanceof ApiError && e.kind === "unauthorized") return { exercises: [], errors: [], offline: false };
+        if (e instanceof ApiError && e.kind === "unauthorized") return { exercises: [], groups: [], errors: [], offline: false };
         if (e instanceof ApiError && e.kind === "offline") offline = true;
         else errors.push(`Aufgabe „${ex.title}“: ${e instanceof ApiError ? e.message : "Das Paket ist ungültig."}`);
       }
@@ -69,8 +69,8 @@ export class OnlineSource implements ExerciseSource {
       // Nothing from this refresh is usable; fall back to what was cached before.
       return this.cached(true, errors);
     }
-    await this.cache.writeList(usable);
-    return { exercises: toEntries(usable), errors, offline };
+    await this.cache.writeList(usable, remote.groups);
+    return { exercises: toEntries(usable), groups: remote.groups, errors, offline };
   }
 
   /** Downloads the package unless the cached one has the announced version. */

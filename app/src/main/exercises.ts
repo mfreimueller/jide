@@ -51,7 +51,7 @@ const UNKNOWN_EXERCISE = "Diese Aufgabe gibt es nicht.";
 export function registerExerciseIpc(): void {
   ipcMain.handle("jide:list-exercises", async (): Promise<ExerciseList> => {
     const { source, handIns } = context();
-    const { exercises, errors, offline } = await source.list();
+    const { exercises, groups, errors, offline } = await source.list();
     const summaries: ExerciseSummary[] = [];
     for (const ex of exercises) {
       const started = await dirExists(join(workspaceRoot(), ex.id));
@@ -63,10 +63,11 @@ export function registerExerciseIpc(): void {
         status: submittedAt ? "abgegeben" : started ? "in-arbeit" : "neu",
         deadline: ex.deadline,
         submittedAt,
-        late: handIn?.late ?? false
+        late: handIn?.late ?? false,
+        groupId: ex.groupId
       });
     }
-    return { exercises: summaries, errors, offline };
+    return { exercises: summaries, groups, errors, offline };
   });
 
   ipcMain.handle("jide:open-exercise", async (_e, id: unknown): Promise<OpenResult> => {

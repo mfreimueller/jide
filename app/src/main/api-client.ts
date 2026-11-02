@@ -2,6 +2,7 @@ import type {
   HandInRequest,
   HandInResponse,
   LatestHandInResponse,
+  StudentExerciseGroup,
   StudentExerciseListResponse,
   StudentExerciseSummary,
   StudentSession
@@ -75,10 +76,11 @@ export class ApiClient {
     return this.json<StudentSession>("POST", "/api/student/login", { auth: false, body: { code } });
   }
 
-  async exercises(): Promise<StudentExerciseSummary[]> {
+  /** `groups` is missing in answers of older backends: no groups then. */
+  async exercises(): Promise<{ exercises: StudentExerciseSummary[]; groups: StudentExerciseGroup[] }> {
     const r = await this.json<StudentExerciseListResponse>("GET", "/api/exercises");
     if (!Array.isArray(r?.exercises)) throw new ApiError("offline", OFFLINE_MESSAGE);
-    return r.exercises;
+    return { exercises: r.exercises, groups: Array.isArray(r.groups) ? r.groups : [] };
   }
 
   /** `cachedVersion` is sent as `If-None-Match`; 304 yields `{ notModified: true }`. */
