@@ -21,11 +21,24 @@ export interface StudentExerciseSummary {
   version: string;
   /** Soft deadline as ISO 8601 instant (UTC), or null. */
   deadline: string | null;
+  /** Group of the course (see `groups`), null = ungrouped. Missing in answers of older backends. */
+  groupId?: number | null;
 }
 
-/** GET /api/exercises */
+/** An exercise group of the course, as the students see it. */
+export interface StudentExerciseGroup {
+  id: number;
+  name: string;
+}
+
+/**
+ * GET /api/exercises. `exercises` come in the teacher's order (grouped ones first, then the ungrouped).
+ * `groups` are in the teacher's order and only those with at least one visible exercise.
+ * Older backends omit `groups`; treat that as "no groups".
+ */
 export interface StudentExerciseListResponse {
   exercises: StudentExerciseSummary[];
+  groups?: StudentExerciseGroup[];
 }
 
 /**

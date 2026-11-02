@@ -2,6 +2,7 @@ import type { SQLInstance } from '../db/sql.js';
 import { sql } from '../db/sql.js';
 import { AppError } from '../errors.js';
 import type { ValidatedPackage } from './exercise_package.js';
+import { setExerciseGroup } from './groups.js';
 
 export interface ExerciseView {
   id: string; // exercise id from exercise.yaml
@@ -14,6 +15,10 @@ export interface ExerciseView {
 export interface CourseExerciseView extends ExerciseView {
   unlocked: boolean;
   deadline: string | null;
+  /** Group of the course the exercise is in, or null. */
+  groupId: number | null;
+  /** Place inside the group (0-based), null when ungrouped. */
+  position: number | null;
 }
 
 interface ExerciseRow {
@@ -27,6 +32,8 @@ interface ExerciseRow {
 interface CourseExerciseRow extends ExerciseRow {
   unlocked: number | null;
   deadline: Date | null;
+  groupId: number | null;
+  position: number | null;
 }
 
 const toView = (r: ExerciseRow): ExerciseView => ({
@@ -41,6 +48,8 @@ const toCourseView = (r: CourseExerciseRow): CourseExerciseView => ({
   ...toView(r),
   unlocked: r.unlocked === 1,
   deadline: r.deadline ? r.deadline.toISOString() : null,
+  groupId: r.groupId ?? null,
+  position: r.position ?? null,
 });
 
 export async function listExercises(db: SQLInstance, teacherId: number): Promise<ExerciseView[]> {
@@ -112,11 +121,13 @@ export async function saveExercise(
 /** All of the teacher's exercises with unlock state and deadline for one course. */
 export async function listForCourse(db: SQLInstance, teacherId: number, courseId: number): Promise<CourseExerciseView[]> {
   const rows = await db<CourseExerciseRow[]>`
-    SELECT e.slug AS id, e.title, e.version, e.uploaded_at AS uploadedAt, e.size, ce.unlocked, ce.deadline
+    SELECT e.slug AS id, e.title, e.version, e.uploaded_at AS uploadedAt, e.size, ce.unlocked, ce.deadline,
+           ce.group_id AS groupId, ce.position
     FROM exercises e
     LEFT JOIN course_exercises ce ON ce.exercise_id = e.id AND ce.course_id = ${courseId}
+    LEFT JOIN exercise_groups g ON g.id = ce.group_id
     WHERE e.teacher_id = ${teacherId}
-    ORDER BY e.title, e.slug
+    ORDER BY g.position IS NULL, g.position, ce.position, e.title, e.slug
   `;
   return rows.map(toCourseView);
 }
@@ -124,6 +135,8 @@ export async function listForCourse(db: SQLInstance, teacherId: number, courseId
 export interface CourseExerciseChange {
   unlocked?: boolean;
   deadline?: Date | null;
+  /** Group of the course; null takes the exercise out of its group. */
+  groupId?: number | null;
 }
 
 export async function updateForCourse(
@@ -135,6 +148,7 @@ export async function updateForCourse(
 ): Promise<CourseExerciseView> {
   const { rowId } = await exerciseForTeacher(db, teacherId, slug);
   await db`INSERT IGNORE INTO course_exercises (course_id, exercise_id, unlocked, deadline) VALUES (${courseId}, ${rowId}, 0, NULL)`;
+  if (change.groupId !== undefined) await setExerciseGroup(db, teacherId, courseId, slug, change.groupId);
   const set: Record<string, unknown> = {};
   if (change.unlocked !== undefined) set.unlocked = change.unlocked ? 1 : 0;
   if (change.deadline !== undefined) set.deadline = change.deadline;
@@ -152,14 +166,16 @@ export interface StudentExerciseRow {
   title: string;
   version: string;
   deadline: string | null;
+  groupId: number | null;
 }
 
 export async function unlockedForCourse(db: SQLInstance, courseId: number): Promise<StudentExerciseRow[]> {
-  const rows = await db<{ id: string; title: string; version: string; deadline: Date | null }[]>`
-    SELECT e.slug AS id, e.title, e.version, ce.deadline
+  const rows = await db<{ id: string; title: string; version: string; deadline: Date | null; groupId: number | null }[]>`
+    SELECT e.slug AS id, e.title, e.version, ce.deadline, ce.group_id AS groupId
     FROM course_exercises ce JOIN exercises e ON e.id = ce.exercise_id
+    LEFT JOIN exercise_groups g ON g.id = ce.group_id
     WHERE ce.course_id = ${courseId} AND ce.unlocked = 1
-    ORDER BY e.title, e.slug
+    ORDER BY g.position IS NULL, g.position, ce.position, e.title, e.slug
   `;
   return rows.map((r) => ({ ...r, deadline: r.deadline ? r.deadline.toISOString() : null }));
 }
