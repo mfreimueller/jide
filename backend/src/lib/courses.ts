@@ -37,7 +37,7 @@ function toCourse(r: CourseRow): Course {
 export async function listCourses(db: SQLInstance, teacherId: number, includeArchived: boolean): Promise<Course[]> {
   const rows = await db<CourseRow[]>`
     SELECT c.id, c.subject, c.class_name AS className, c.archived, c.created_at AS createdAt,
-           (SELECT COUNT(*) FROM students s WHERE s.course_id = c.id) AS studentCount
+           (SELECT COUNT(*) FROM students s WHERE s.course_id = c.id AND s.archived_at IS NULL) AS studentCount
     FROM courses c
     WHERE c.teacher_id = ${teacherId} AND (${includeArchived ? 1 : 0} = 1 OR c.archived = 0)
     ORDER BY c.archived, c.subject, c.class_name, c.id
@@ -49,7 +49,7 @@ export async function listCourses(db: SQLInstance, teacherId: number, includeArc
 export async function courseForTeacher(db: SQLInstance, teacherId: number, courseId: number): Promise<Course> {
   const rows = await db<CourseRow[]>`
     SELECT c.id, c.subject, c.class_name AS className, c.archived, c.created_at AS createdAt,
-           (SELECT COUNT(*) FROM students s WHERE s.course_id = c.id) AS studentCount
+           (SELECT COUNT(*) FROM students s WHERE s.course_id = c.id AND s.archived_at IS NULL) AS studentCount
     FROM courses c WHERE c.id = ${courseId} AND c.teacher_id = ${teacherId}
   `;
   if (!rows[0]) throw new AppError(404, 'NOT_FOUND', 'Kurs nicht gefunden.');
@@ -114,7 +114,7 @@ export async function listStudents(db: SQLInstance, courseId: number): Promise<S
               JOIN course_exercises ce ON ce.exercise_id = h.exercise_id AND ce.course_id = s.course_id AND ce.unlocked = 1
               WHERE h.student_id = s.id) AS handInCount,
            (SELECT COUNT(*) FROM course_exercises ce WHERE ce.course_id = s.course_id AND ce.unlocked = 1) AS unlockedExerciseCount
-    FROM students s WHERE s.course_id = ${courseId} ORDER BY s.name, s.id
+    FROM students s WHERE s.course_id = ${courseId} AND s.archived_at IS NULL ORDER BY s.name, s.id
   `;
   return rows.map(toStudentView);
 }
@@ -165,7 +165,7 @@ export async function addStudents(db: SQLInstance, courseId: number, names: stri
 }
 
 export async function resetCode(db: SQLInstance, courseId: number, studentId: number): Promise<StudentView> {
-  const owned = await db<{ id: number }[]>`SELECT id FROM students WHERE id = ${studentId} AND course_id = ${courseId}`;
+  const owned = await db<{ id: number }[]>`SELECT id FROM students WHERE id = ${studentId} AND course_id = ${courseId} AND archived_at IS NULL`;
   if (!owned[0]) throw new AppError(404, 'NOT_FOUND', 'Schüler:in nicht gefunden.');
   for (let attempt = 0; attempt < 10; attempt++) {
     try {
@@ -184,4 +184,13 @@ export async function resetCode(db: SQLInstance, courseId: number, studentId: nu
     }
   }
   throw new Error('could not generate a unique student code');
+}
+
+/** Archives the student: data and hand-ins stay, but the code stops working and every list leaves them out. */
+export async function removeStudent(db: SQLInstance, courseId: number, studentId: number): Promise<void> {
+  const res = await db`
+    UPDATE students SET archived_at = ${new Date()}
+    WHERE id = ${studentId} AND course_id = ${courseId} AND archived_at IS NULL
+  `;
+  if (!res.affectedRows) throw new AppError(404, 'NOT_FOUND', 'Schüler:in nicht gefunden.');
 }

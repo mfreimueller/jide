@@ -9,6 +9,7 @@ import {
   listCourses,
   listStudents,
   parseNames,
+  removeStudent,
   resetCode,
   setArchived,
 } from '../lib/courses.js';
@@ -128,4 +129,13 @@ courseRoutes.post('/:id/students/:studentId/reset-code', async (c) => {
   const studentId = parseId(c.req.param('studentId'));
   await courseForTeacher(db, c.get('teacher').id, id);
   return c.json({ student: await resetCode(db, id, studentId) });
+});
+
+courseRoutes.delete('/:id/students/:studentId', async (c) => {
+  const db = getDb();
+  const id = parseId(c.req.param('id'));
+  const studentId = parseId(c.req.param('studentId'));
+  await courseForTeacher(db, c.get('teacher').id, id);
+  await removeStudent(db, id, studentId);
+  return c.body(null, 204);
 });

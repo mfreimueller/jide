@@ -145,7 +145,7 @@ export async function handInMatrix(db: SQLInstance, courseId: number, onlyMissin
     ORDER BY e.title, e.slug
   `;
   const students = await db<{ id: number; name: string }[]>`
-    SELECT id, name FROM students WHERE course_id = ${courseId} ORDER BY name, id
+    SELECT id, name FROM students WHERE course_id = ${courseId} AND archived_at IS NULL ORDER BY name, id
   `;
   const last = await db<
     { id: number; studentId: number; exerciseId: number; submittedAt: Date; passed: number | null; total: number | null; cnt: number | string }[]
@@ -154,7 +154,7 @@ export async function handInMatrix(db: SQLInstance, courseId: number, onlyMissin
            h.tests_passed AS passed, h.tests_total AS total,
            (SELECT COUNT(*) FROM handins x WHERE x.student_id = h.student_id AND x.exercise_id = h.exercise_id) AS cnt
     FROM handins h
-    JOIN students s ON s.id = h.student_id AND s.course_id = ${courseId}
+    JOIN students s ON s.id = h.student_id AND s.course_id = ${courseId} AND s.archived_at IS NULL
     WHERE h.id = (SELECT MAX(y.id) FROM handins y WHERE y.student_id = h.student_id AND y.exercise_id = h.exercise_id)
   `;
   const byKey = new Map(last.map((h) => [`${h.studentId}:${h.exerciseId}`, h]));
@@ -208,7 +208,7 @@ export async function handInDetail(db: SQLInstance, teacherId: number, handinId:
            h.submitted_at AS submittedAt, h.exercise_version AS version, h.tests_passed AS passed, h.tests_total AS total,
            (SELECT ce.deadline FROM course_exercises ce WHERE ce.course_id = s.course_id AND ce.exercise_id = e.id) AS deadline
     FROM handins h
-    JOIN students s ON s.id = h.student_id
+    JOIN students s ON s.id = h.student_id AND s.archived_at IS NULL
     JOIN courses c ON c.id = s.course_id AND c.teacher_id = ${teacherId}
     JOIN exercises e ON e.id = h.exercise_id
     WHERE h.id = ${handinId}
@@ -224,7 +224,7 @@ export async function handInDetail(db: SQLInstance, teacherId: number, handinId:
   const handedIn = await db<{ studentId: number; handinId: number }[]>`
     SELECT s.id AS studentId, MAX(x.id) AS handinId
     FROM students s JOIN handins x ON x.student_id = s.id AND x.exercise_id = ${h.exerciseRowId}
-    WHERE s.course_id = ${h.courseId}
+    WHERE s.course_id = ${h.courseId} AND s.archived_at IS NULL
     GROUP BY s.id, s.name ORDER BY s.name, s.id
   `;
   const at = handedIn.findIndex((r) => r.studentId === h.studentId);
@@ -275,7 +275,7 @@ export async function lastHandInsZip(db: SQLInstance, courseId: number, exercise
   const last = await db<{ id: number; name: string }[]>`
     SELECT MAX(h.id) AS id, s.name
     FROM students s JOIN handins h ON h.student_id = s.id AND h.exercise_id = ${exerciseRowId}
-    WHERE s.course_id = ${courseId}
+    WHERE s.course_id = ${courseId} AND s.archived_at IS NULL
     GROUP BY s.id, s.name ORDER BY s.name, s.id
   `;
   const folders = uniqueFolderNames(last.map((l) => l.name));

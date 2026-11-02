@@ -33,7 +33,7 @@ export async function authenticateStudent(c: Context, rawCode: string | null | u
     ? await getDb()<(Student & { archived: number })[]>`
         SELECT s.id, s.name, s.course_id AS courseId, c.subject, c.class_name AS className, c.archived
         FROM students s JOIN courses c ON c.id = s.course_id
-        WHERE s.code = ${code}
+        WHERE s.code = ${code} AND s.archived_at IS NULL
       `
     : [];
   const student = rows[0];
