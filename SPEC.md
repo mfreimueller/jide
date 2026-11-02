@@ -157,6 +157,9 @@ harness:
   appendTo: Summe.java
   file: harness/Summe.main.java
 mainFile: Summe.java   # file that is launched
+images:                # optional, read-only SVG diagrams in files/, viewed in the middle area
+  - path: klassendiagramm.svg
+    title: Klassendiagramm   # optional label in the file list
 ```
 
 Working directory for running and testing: a temp copy of the exercise with `resources/` in it.
