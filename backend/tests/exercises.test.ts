@@ -282,7 +282,7 @@ describe('per-course unlock and deadline', () => {
     const { exercises } = await json(res);
     expect(exercises.length).toBeGreaterThanOrEqual(2);
     for (const e of exercises) expect(e).toMatchObject({ unlocked: false, deadline: null });
-    expect(Object.keys(exercises[0]).sort()).toEqual(['deadline', 'id', 'size', 'title', 'unlocked', 'uploadedAt', 'version']);
+    expect(Object.keys(exercises[0]).sort()).toEqual(['deadline', 'groupId', 'id', 'position', 'size', 'title', 'unlocked', 'uploadedAt', 'version']);
   });
 
   it('unlocks, hides, sets and clears the deadline independently', async () => {
@@ -335,7 +335,7 @@ describe('student API', () => {
     expect(l1.exercises).toHaveLength(1);
     expect(l1.exercises[0]).toMatchObject({ id: 'summe', title: 'Summe zweier Zahlen', deadline: '2026-12-01T22:59:00.000Z' });
     expect(l1.exercises[0].version).toMatch(/^[0-9a-f]{64}$/);
-    expect(Object.keys(l1.exercises[0]).sort()).toEqual(['deadline', 'id', 'title', 'version']);
+    expect(Object.keys(l1.exercises[0]).sort()).toEqual(['deadline', 'groupId', 'id', 'title', 'version']);
 
     const l2 = await json(await s2.call('/api/exercises'));
     expect(l2.exercises.map((e: { id: string }) => e.id)).toEqual(['maximum']);
