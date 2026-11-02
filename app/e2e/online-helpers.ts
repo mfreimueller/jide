@@ -26,6 +26,8 @@ export interface Backend {
   stop: () => Promise<void>;
   /** Gives the student a new code (the old one stops working) and returns it. */
   resetCode: () => Promise<string>;
+  /** Deletes the teacher's exercise on the server (hand-ins and course links go with it). */
+  deleteExercise: (exerciseId: string) => Promise<void>;
   /** Count and test summary of the student's last hand-in of an exercise, as the teacher matrix reads them. */
   handInCell: (exerciseId: string) => Promise<{ count: number; testSummary: { passed: number; total: number } | null } | null>;
 }
@@ -61,6 +63,10 @@ export async function startBackend(): Promise<Backend> {
     resetCode: async () => {
       const r = await fetch(`${info.url}/__test/reset-code`, { method: "POST" });
       return ((await r.json()) as { code: string }).code;
+    },
+    deleteExercise: async (exerciseId) => {
+      const r = await fetch(`${info.url}/__test/delete-exercise?id=${encodeURIComponent(exerciseId)}`, { method: "POST" });
+      if (!r.ok) throw new Error(`delete-exercise failed: ${r.status}`);
     },
     handInCell: async (exerciseId) => {
       const m = (await (await fetch(`${info.url}/__test/matrix`)).json()) as {

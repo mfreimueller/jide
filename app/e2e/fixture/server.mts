@@ -12,7 +12,7 @@ import { createTestDb, dropTestDb, setDb } from "../../../backend/src/db/connect
 import { addStudents, createCourse, resetCode } from "../../../backend/src/lib/courses.js";
 import { handInMatrix } from "../../../backend/src/lib/handins.js";
 import { validatePackage } from "../../../backend/src/lib/exercise_package.js";
-import { saveExercise, updateForCourse } from "../../../backend/src/lib/exercises.js";
+import { deleteExercise, saveExercise, updateForCourse } from "../../../backend/src/lib/exercises.js";
 import { addTeacher } from "../../../backend/src/lib/teachers.js";
 
 const examples = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../examples");
@@ -59,6 +59,10 @@ const server = serve(
       if (req.method === "POST" && url.pathname === "/__test/reset-code") {
         const s = await resetCode(db, course.id, student!.id);
         return Response.json({ code: s.code });
+      }
+      if (req.method === "POST" && url.pathname === "/__test/delete-exercise") {
+        await deleteExercise(db, teacher.id, url.searchParams.get("id") ?? "");
+        return new Response(null, { status: 204 });
       }
       if (req.method === "GET" && url.pathname === "/__test/matrix") {
         // what the teacher matrix shows: last hand-in (with test summary) per exercise
