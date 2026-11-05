@@ -27,7 +27,20 @@ npm install
 npm run dev              # starts the Electron app (electron-vite dev), nothing else
 ```
 
-`npm run dev` only runs the app. It starts in online mode against the local backend (`http://localhost:3000`); with `JIDE_EXERCISES_DIR=examples npm run dev` it uses a local exercise folder instead, without login. The server side runs separately, each in its own terminal:
+`npm run dev` only runs the app. It starts in online mode against the local backend (`http://localhost:3000`); with `JIDE_EXERCISES_DIR=examples npm run dev` it uses a local exercise folder instead, without login. Two more variants (both env vars only work in the unpackaged dev app):
+
+```bash
+# online mode against another backend (the default is http://localhost:3000)
+JIDE_API_URL=https://jide.example.org npm run dev
+
+# exam mode: a folder with exam.json and exercises/ (handInPath is a local folder standing in for P:)
+mkdir -p /tmp/jde-exam/exercises /tmp/jde-abgabe
+cp -r examples/summe examples/maximum /tmp/jde-exam/exercises/
+echo '{"mode":"exam","title":"Probe","handInPath":"/tmp/jde-abgabe","jdkPath":null,"allowTests":true}' > /tmp/jde-exam/exam.json
+JIDE_EXAM_DIR=/tmp/jde-exam npm run dev
+```
+
+The server side runs separately, each in its own terminal:
 
 ```bash
 cp backend/.env.example backend/.env   # optional, the defaults match docker-compose.yml
