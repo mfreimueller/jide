@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { launch, openExercise, screenshotDir, setEditorText, useTempApp } from "./helpers";
+import { launch, newUserData, openExercise, screenshotDir, setEditorText, useTempApp } from "./helpers";
 
 useTempApp();
 
@@ -53,7 +54,93 @@ test("a wrong solution shows the warning and expected vs. actual", async () => {
   await expect(failed.getByTestId("test-detail")).toContainText("erwartet: Summe: 7");
   await expect(failed.getByTestId("test-detail")).toContainText("dein Ergebnis: Summe: -1");
   await expect(page.getByTestId("tests-badge")).toHaveText("2");
+  // match: contains has no line diff: today's view plus a note
+  await expect(failed.getByTestId("test-diff")).toHaveCount(0);
+  await expect(failed.getByTestId("test-note")).toHaveText("Dieser Text kommt in deiner Ausgabe nicht vor.");
   await page.screenshot({ path: join(screenshotDir, "tests-failed.png") });
+});
+
+const SCHNITT_CODE = `void main() {
+    Scanner sc = new Scanner(System.in);
+    int a = sc.nextInt();
+    int b = sc.nextInt();
+    IO.println("Debug: a=" + a);
+    IO.println("Summe: " + (a + b));
+    IO.println("Durchschnitt: " + (a + b) / 2);
+}
+`;
+
+/** A temp exercises folder with one exercise that has a trimmed and a lines test (the examples only use contains). */
+function schnittExercises(): string {
+  const root = newUserData();
+  const dir = join(root, "schnitt");
+  mkdirSync(join(dir, "files"), { recursive: true });
+  writeFileSync(join(dir, "exercise.yaml"), 'id: schnitt\ntitle: "Durchschnitt"\nfiles:\n  - path: Schnitt.java\n    editable: true\nmainFile: Schnitt.java\n');
+  writeFileSync(join(dir, "aufgabe.md"), "Gib Summe und Durchschnitt aus.\n");
+  writeFileSync(join(dir, "files", "Schnitt.java"), "void main() {\n}\n");
+  writeFileSync(
+    join(dir, "tests.yaml"),
+    `tests:
+  - name: "3 und 4 genau"
+    type: io
+    input: "3\\n4\\n"
+    expected: "Summe: 7\\nDurchschnitt: 3.5"
+  - name: "3 und 4 Summe 8"
+    type: io
+    input: "3\\n4\\n"
+    expected: "Summe: 8"
+    match: lines
+  - name: "3 und 4 Summe 7"
+    type: io
+    input: "3\\n4\\n"
+    expected: "Summe: 7"
+    match: lines
+`
+  );
+  return root;
+}
+
+test("a failed io test shows the line diff; the first one is open, rows toggle", async () => {
+  const { app, page } = await launch({ JIDE_EXERCISES_DIR: schnittExercises() });
+  await openExercise(page, "Durchschnitt");
+  await setEditorText(app, page, SCHNITT_CODE);
+  await page.getByTestId("test").click();
+  await expect(page.getByTestId("tests-banner")).toContainText("1 von 3 Tests bestanden");
+
+  const first = page.getByTestId("test-row").nth(0);
+  const second = page.getByTestId("test-row").nth(1);
+  await expect(first.getByTestId("test-head")).toContainText("Eingabe: 3 ⏎ 4 ⏎ · Ausgabe stimmt nicht");
+  await expect(first.getByTestId("test-head")).toHaveAttribute("aria-expanded", "true");
+  await expect(first.getByTestId("diff-row")).toHaveCount(3);
+  expect(await first.getByTestId("diff-row").evaluateAll((els) => els.map((e) => e.getAttribute("data-kind")))).toEqual([
+    "extra",
+    "equal",
+    "different",
+  ]);
+  await expect(first.getByTestId("diff-tag")).toHaveText(["zu viel", "", "anders"]);
+  await expect(first.getByTestId("diff-note")).toContainText("3,5 und 3.5 gelten als gleich.");
+  await page.screenshot({ path: join(screenshotDir, "tests-diff.png") });
+
+  // the second failed test starts closed
+  await expect(second.getByTestId("test-head")).toHaveAttribute("aria-expanded", "false");
+  await expect(second.getByTestId("test-diff")).toHaveCount(0);
+  await second.getByTestId("test-head").click();
+  expect(await second.getByTestId("diff-row").evaluateAll((els) => els.map((e) => e.getAttribute("data-kind")))).toEqual([
+    "missing",
+    "ignored",
+    "ignored",
+    "ignored",
+  ]);
+  await expect(second.getByTestId("diff-tag")).toHaveText(["fehlt", "ignoriert", "ignoriert", "ignoriert"]);
+
+  // clicking the row collapses it again
+  await first.getByTestId("test-head").click();
+  await expect(first.getByTestId("test-diff")).toHaveCount(0);
+  await first.getByTestId("test-head").click();
+  await expect(first.getByTestId("test-diff")).toBeVisible();
+
+  // the passing test has no diff
+  await expect(page.getByTestId("test-row").nth(2)).toHaveAttribute("data-status", "passed");
 });
 
 test("an exception is an error row with a link to the line", async () => {
