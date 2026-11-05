@@ -43,19 +43,26 @@ const timeoutSchema = z
   .refine((ms) => ms <= MAX_TEST_TIMEOUT_MS, { error: "timeout darf höchstens 30s sein" })
   .default(DEFAULT_TEST_TIMEOUT_MS);
 
-const ioSchema = z.strictObject(
-  {
-    name: nameSchema,
-    type: z.literal("io"),
-    input: z.string({ error: "input muss Text sein" }).default(""),
-    expected: expectedSchema,
-    match: z
-      .enum(["exact", "contains", "trimmed", "lines"], { error: "match muss exact, contains, trimmed oder lines sein" })
-      .default("trimmed"),
-    timeout: timeoutSchema,
-  },
-  { error: unknownKeys },
-);
+const ioSchema = z
+  .strictObject(
+    {
+      name: nameSchema,
+      type: z.literal("io"),
+      input: z.string({ error: "input muss Text sein" }).default(""),
+      expected: expectedSchema,
+      match: z
+        .enum(["exact", "contains", "trimmed", "lines"], { error: "match muss exact, contains, trimmed oder lines sein" })
+        .default("trimmed"),
+      timeout: timeoutSchema,
+    },
+    { error: unknownKeys },
+  )
+  .superRefine((t, ctx) => {
+    // An empty expected would match any output in contains/lines; in exact/trimmed it means "prints nothing".
+    if ((t.match === "contains" || t.match === "lines") && normaliseLoose(t.expected) === "") {
+      ctx.addIssue({ code: "custom", message: "expected darf bei match: contains oder lines nicht leer sein", path: ["expected"] });
+    }
+  });
 
 const checkSchema = z
   .strictObject(

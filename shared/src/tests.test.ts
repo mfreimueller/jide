@@ -106,6 +106,18 @@ describe("parseTestsConfig", () => {
     expect(err(io("    match: regex\n"))).toContain("match muss exact, contains, trimmed oder lines sein (tests.0.match)");
   });
 
+  it.each(["contains", "lines"])("rejects an empty expected with match: %s", (m) => {
+    for (const e of ['""', '"  \\n "']) {
+      expect(err(`tests:\n  - {name: a, type: io, expected: ${e}, match: ${m}}\n`)).toContain(
+        "expected darf bei match: contains oder lines nicht leer sein (tests.0.expected)",
+      );
+    }
+  });
+
+  it.each(["trimmed", "exact"])("accepts an empty expected with match: %s", (m) => {
+    expect(parseTestsConfig(`tests:\n  - {name: a, type: io, expected: "", match: ${m}}\n`)[0]).toMatchObject({ expected: "", match: m });
+  });
+
   it("accepts match: lines", () => {
     expect(parseTestsConfig(io("    match: lines\n"))[0]).toMatchObject({ type: "io", match: "lines" });
   });
