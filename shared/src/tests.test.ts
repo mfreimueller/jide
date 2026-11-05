@@ -103,7 +103,11 @@ describe("parseTestsConfig", () => {
 
   it("rejects bad input and match values", () => {
     expect(err(io("    input: 5\n"))).toContain("input muss Text sein (tests.0.input)");
-    expect(err(io("    match: regex\n"))).toContain("match muss exact, contains oder trimmed sein (tests.0.match)");
+    expect(err(io("    match: regex\n"))).toContain("match muss exact, contains, trimmed oder lines sein (tests.0.match)");
+  });
+
+  it("accepts match: lines", () => {
+    expect(parseTestsConfig(io("    match: lines\n"))[0]).toMatchObject({ type: "io", match: "lines" });
   });
 
   it("checks the call/code/expected combinations of check tests", () => {
@@ -158,6 +162,33 @@ describe("matchOutput", () => {
     expect(matchOutput("x", "\n x \n", "contains")).toBe(true);
     // exact would have failed for the same input
     expect(matchOutput("Summe: 7\n", "Summe: 7", "exact")).toBe(false);
+  });
+
+  it("lines: expected lines appear as whole actual lines, in order", () => {
+    const exp = "Summe: 7\nFertig";
+    expect(matchOutput("Summe: 7\nFertig", exp, "lines")).toBe(true);
+    // extra lines before, between and after
+    expect(matchOutput("Zahl 1?\nZahl 2?\nSumme: 7\ndebug\nFertig\nbye", exp, "lines")).toBe(true);
+    expect(matchOutput("Fertig\nSumme: 7", exp, "lines")).toBe(false); // wrong order
+    expect(matchOutput("Summe: 7\n", exp, "lines")).toBe(false); // missing line
+    expect(matchOutput("Summe: 7\nFertg", exp, "lines")).toBe(false); // typo
+    expect(matchOutput("Summe: 7", "7", "lines")).toBe(false); // partial line
+    expect(matchOutput("Summe: 7\r\n\r\nFertig\r\n", exp, "lines")).toBe(true); // CRLF, empty lines
+    expect(matchOutput("  Summe:   7 \t\nFertig  ", exp, "lines")).toBe(true); // whitespace
+    expect(matchOutput("a\nb", "a\n\nb", "lines")).toBe(true); // empty expected lines are skipped
+    expect(matchOutput("a", "a\na", "lines")).toBe(false); // each expected line needs its own actual line
+  });
+
+  it("decimal rule: comma and dot between two digits are the same", () => {
+    for (const mode of ["trimmed", "contains", "lines"] as const) {
+      expect(matchOutput("Pi: 3,14", "Pi: 3.14", mode)).toBe(true);
+      expect(matchOutput("Pi: 3.14", "Pi: 3,14", mode)).toBe(true);
+      expect(matchOutput("1,2,3", "1.2.3", mode)).toBe(true);
+      expect(matchOutput("[1, 2]", "[1,2]", mode)).toBe(false); // comma + space is not changed
+      expect(matchOutput("a,b", "a.b", mode)).toBe(false); // not between digits
+      expect(matchOutput("3,14", "3.15", mode)).toBe(false);
+    }
+    expect(matchOutput("3,14", "3.14", "exact")).toBe(false);
   });
 });
 
