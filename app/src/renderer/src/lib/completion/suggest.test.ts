@@ -136,6 +136,11 @@ describe("general completion", () => {
     const fors = at("void main() { fo| }").items.filter((i) => i.label === "for");
     expect(fors.map((i) => i.kind)).toEqual(["snippet", "snippet"]);
   });
+  it("sout expands to System.out.println", () => {
+    const sout = at("void main() { sou| }").items.filter((i) => i.label === "sout");
+    expect(sout).toHaveLength(1);
+    expect(sout[0]).toMatchObject({ kind: "snippet", insert: "System.out.println($0);", snippet: true });
+  });
   it("after new: constructors", () => {
     const r = at("Scanner sc = new Sc|");
     expect(r.items.map((i) => [i.label, i.kind, i.insert])).toEqual([["Scanner", "constructor", "Scanner(${1:System.in})"]]);

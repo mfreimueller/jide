@@ -126,6 +126,12 @@ export const SNIPPETS: readonly Snippet[] = [
       "class ${1:Name} {\n\tprivate ${2:String} ${3:name};\n\n\tpublic ${1:Name}(${2:String} ${3:name}) {\n\t\tthis.${3:name} = ${3:name};\n\t}\n\n\t$0\n}"
   },
   {
+    label: "sout",
+    detail: "System.out.println(…)",
+    doc: "Gibt Text in der Konsole aus.",
+    insert: "System.out.println($0);"
+  },
+  {
     label: "Scanner",
     detail: "Scanner sc = new Scanner(System.in);",
     doc: "Erstellt einen Scanner, mit dem du Eingaben von der Tastatur liest.",
