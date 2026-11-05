@@ -1,10 +1,13 @@
 import * as monaco from "monaco-editor/editor/editor.api";
-// editor.api is the bare core: the suggest widget, snippet insertion and the read-only message
-// (contribution + the MessageController it shows it with, which imports its own CSS) are opt-in.
+// editor.api is the bare core: the suggest widget, snippet insertion, the read-only message
+// (contribution + the MessageController it shows it with, which imports its own CSS), toggle
+// comment (Ctrl+/) and word-wise cursor movement (Ctrl/Alt+Left/Right) are opt-in.
+import "monaco-editor/editor/contrib/comment/browser/comment";
 import "monaco-editor/editor/contrib/message/browser/messageController";
 import "monaco-editor/editor/contrib/readOnlyMessage/browser/contribution";
 import "monaco-editor/editor/contrib/snippet/browser/snippetController2";
 import "monaco-editor/editor/contrib/suggest/browser/suggestController";
+import "monaco-editor/editor/contrib/wordOperations/browser/wordOperations";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import { registerJavaCompletion } from "./completion/provider";
 import { registerJava } from "./java-language";
@@ -18,6 +21,14 @@ export { monaco };
 
 registerJava(monaco);
 registerJavaCompletion(monaco);
+
+// On a German keyboard "/" is Shift+7, so students press Ctrl+Shift+7 for toggle comment. Monaco keeps
+// its own Ctrl+/ (nothing else in Monaco or the app binds Ctrl/Cmd+Shift+7).
+monaco.editor.addKeybindingRule({
+  keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit7,
+  command: "editor.action.commentLine",
+  when: "editorTextFocus && !editorReadonly"
+});
 
 // Brackets are plain dark text in the design. The editor option `bracketPairColorization` only
 // reaches models the editor creates itself; ours are created by the session, so switch it off
