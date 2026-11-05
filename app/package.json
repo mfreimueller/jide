@@ -1,6 +1,6 @@
 {
   "name": "@jide/app",
-  "version": "0.6.0",
+  "version": "0.7.3",
   "private": true,
   "productName": "JDE",
   "description": "J;DE Electron app",
