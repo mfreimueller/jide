@@ -27,6 +27,7 @@ const api: JideApi = {
     return () => ipcRenderer.removeListener("jide:confirm-close", listener);
   },
   answerClose: (leave) => ipcRenderer.send("jide:close-answer", leave),
+  zoomStep: (steps) => ipcRenderer.send("jide:zoom-step", steps),
   quit: () => ipcRenderer.send("jide:quit"),
   login: (code) => ipcRenderer.invoke("jide:login", code),
   onSessionExpired: (handler) => {

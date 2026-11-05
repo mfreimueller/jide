@@ -187,6 +187,8 @@ export interface JideApi {
   onCloseConfirm: (handler: () => void) => () => void;
   /** Answer to `onCloseConfirm`: true = close anyway. */
   answerClose: (leave: boolean) => void;
+  /** Ctrl + wheel: zoom the whole window by this many menu-sized steps (+ bigger, - smaller). */
+  zoomStep: (steps: number) => void;
   /** Quits the app (exam error screens). */
   quit: () => void;
   /** Online mode: checks the code (case-insensitive) with the server and stores it. */

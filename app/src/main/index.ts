@@ -11,6 +11,7 @@ import { registerRunIpc } from "./run";
 import { registerTestIpc } from "./test";
 import { applyTheme, storedTheme, watchWindowBackground, windowBackground } from "./theme";
 import { startAutoUpdate } from "./updater";
+import { registerZoomIpc, resetZoomOnLoad } from "./zoom";
 
 const smoke = process.env.JIDE_SMOKE === "1";
 
@@ -48,6 +49,7 @@ function createWindow(): BrowserWindow {
     }
   });
   win.once("ready-to-show", () => win.show());
+  resetZoomOnLoad(win.webContents);
 
   // The renderer must never navigate away or open windows (e.g. links in the assignment).
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
@@ -133,6 +135,7 @@ app.whenReady().then(async () => {
   registerCompileIpc();
   registerRunIpc();
   registerTestIpc();
+  registerZoomIpc();
   createWindow();
   if (!smoke && !examMode()) startAutoUpdate();
   app.on("activate", () => {

@@ -93,7 +93,7 @@
     <button class="btn" onclick={() => setZoom(1)} data-testid="zoom-100">100 %</button>
     <button class="btn" class:active={fit} onclick={() => (fit = true)} data-testid="zoom-fit">Einpassen</button>
   </div>
-  <div class="area" bind:clientWidth={areaW} bind:clientHeight={areaH}>
+  <div class="area" data-own-zoom bind:clientWidth={areaW} bind:clientHeight={areaH}>
     <div
       class="scroller"
       class:panning
