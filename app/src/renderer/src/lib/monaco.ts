@@ -10,6 +10,7 @@ import "monaco-editor/editor/contrib/suggest/browser/suggestController";
 import "monaco-editor/editor/contrib/wordOperations/browser/wordOperations";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import { registerJavaCompletion } from "./completion/provider";
+import { isDarkScheme, onColorSchemeChange } from "./color-scheme";
 import { registerJava } from "./java-language";
 
 // Only the core editor worker is needed (no TS/JSON/CSS/HTML language services).
@@ -79,3 +80,38 @@ monaco.editor.defineTheme("jide-light", {
     "editor.lineHighlightBorder": "#f5f8ff"
   }
 });
+
+// The same design in dark (Figma screens 17-19): the text colours of the light theme mapped to
+// their dark counterparts.
+monaco.editor.defineTheme("jide-dark", {
+  base: "vs-dark",
+  inherit: true,
+  rules: [
+    { token: "", foreground: "edeef0" },
+    { token: "identifier", foreground: "edeef0" },
+    { token: "type.identifier", foreground: "70b8ff" },
+    { token: "entity.name.function.declaration", foreground: "edeef0", fontStyle: "bold" },
+    { token: "keyword", foreground: "d19dff" },
+    { token: "delimiter", foreground: "edeef0" },
+    { token: "string", foreground: "3dd68c" },
+    { token: "number", foreground: "ffca16" },
+    { token: "comment", foreground: "8b8d98", fontStyle: "italic" }
+  ],
+  colors: {
+    "editor.background": "#18191b",
+    "editor.foreground": "#edeef0",
+    "editorLineNumber.foreground": "#5b5f66",
+    "editorLineNumber.activeForeground": "#edeef0",
+    "editor.lineHighlightBackground": "#1f2330",
+    "editor.lineHighlightBorder": "#1f2330"
+  }
+});
+
+/** Name of the Monaco theme for the current colour scheme. */
+export function monacoThemeName(): string {
+  return isDarkScheme() ? "jide-dark" : "jide-light";
+}
+
+// Monaco themes are global: one call restyles every editor.
+monaco.editor.setTheme(monacoThemeName());
+onColorSchemeChange(() => monaco.editor.setTheme(monacoThemeName()));

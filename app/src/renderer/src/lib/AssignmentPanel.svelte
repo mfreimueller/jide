@@ -167,6 +167,7 @@
   .assign :global(img) {
     max-width: 100%;
     height: auto;
+    background: #fff; /* drawn for white paper: transparent diagrams stay readable in dark mode */
   }
   .assign :global(a) {
     color: var(--text-link);

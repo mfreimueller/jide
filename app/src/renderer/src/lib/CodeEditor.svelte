@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { expandSuggestDetailsOnce } from "./completion/widget";
-  import { CODE_FONT_FAMILY, codeFontReady, monaco } from "./monaco";
+  import { CODE_FONT_FAMILY, codeFontReady, monaco, monacoThemeName } from "./monaco";
   import type { EditorSession } from "./session.svelte";
 
   let { session, hidden = false }: { session: EditorSession; hidden?: boolean } = $props();
@@ -16,7 +16,7 @@
       if (cancelled) return;
       editor = monaco.editor.create(container, {
         model: null,
-        theme: "jide-light",
+        theme: monacoThemeName(),
         fontFamily: CODE_FONT_FAMILY,
         fontSize: 14,
         lineHeight: 22,

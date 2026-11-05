@@ -1,10 +1,16 @@
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
+import { isDarkScheme, onColorSchemeChange } from "./color-scheme";
 import { RESET, processInput } from "./console-input";
 import { findStackLinks, type KnownFile } from "./stacktrace";
 
 const SYSTEM_COLOR = "\x1b[38;2;139;141;152m"; // .console .sys
 const ERROR_COLOR = "\x1b[38;2;255;99;105m";
+
+/** Console colours: #1c2024 in light, #0b0c0e in dark (the text stays the same). */
+function consoleTheme(dark: boolean): { background: string; foreground: string; cursor: string } {
+  return { background: dark ? "#0b0c0e" : "#1c2024", foreground: "#e8e8e8", cursor: "#e8e8e8" };
+}
 
 /** The xterm console: program output, line-based input with local echo and clickable stack frames. */
 export class ConsoleTerm {
@@ -14,6 +20,7 @@ export class ConsoleTerm {
   private inputEnabled = false;
   private atLineStart = true;
   private opened = false;
+  private readonly stopSchemeWatch: () => void;
   private onLine: (line: string) => void = () => undefined;
 
   constructor(
@@ -28,8 +35,9 @@ export class ConsoleTerm {
       fontSize: 13,
       lineHeight: 1.6,
       scrollback: 5000,
-      theme: { background: "#1c2024", foreground: "#e8e8e8", cursor: "#e8e8e8" }
+      theme: consoleTheme(isDarkScheme())
     });
+    this.stopSchemeWatch = onColorSchemeChange((dark) => (this.term.options.theme = consoleTheme(dark)));
     this.term.loadAddon(this.fit);
     this.term.write("\x1b[?25l"); // no cursor while nothing runs
     this.term.onData((data) => this.onData(data));
@@ -110,6 +118,7 @@ export class ConsoleTerm {
   }
 
   dispose(): void {
+    this.stopSchemeWatch();
     this.term.dispose();
   }
 
