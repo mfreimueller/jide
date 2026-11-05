@@ -1,6 +1,7 @@
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { ExerciseError } from "./errors.js";
+import { normaliseLoose, normaliseNewlines, normaliseNumeric } from "./output-normalise.js";
 
 export type MatchMode = "exact" | "contains" | "trimmed" | "lines";
 
@@ -143,27 +144,6 @@ export function parseTestsConfig(raw: string, name = "?"): TestCase[] {
     }
   }
   return result;
-}
-
-function normaliseNewlines(s: string): string {
-  return s.replace(/\r\n?/g, "\n");
-}
-
-function normaliseLoose(s: string): string {
-  return normaliseNewlines(s)
-    .split("\n")
-    .map((line) => line.replace(/[ \t]+/g, " ").replace(/\s+$/, ""))
-    .join("\n")
-    .trim();
-}
-
-/** A comma or dot between two digits counts as the same (printf uses the locale's decimal separator). Lookarounds keep `1,2,3` consistent. */
-function normaliseDecimal(s: string): string {
-  return s.replace(/(?<=\d)[,.](?=\d)/g, ".");
-}
-
-function normaliseNumeric(s: string): string {
-  return normaliseDecimal(normaliseLoose(s));
 }
 
 /** True if every non-empty expected line equals a whole actual line, in order; other actual lines are ignored. */
