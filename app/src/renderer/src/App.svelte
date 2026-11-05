@@ -194,7 +194,7 @@
     position: fixed;
     right: 24px;
     bottom: 24px;
-    background: #1c2024;
+    background: var(--bg-dark);
     color: #fff;
     border-radius: 10px;
     padding: 12px 16px;

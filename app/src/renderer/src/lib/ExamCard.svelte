@@ -33,11 +33,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f8f9fa;
+    background: var(--bg-app);
   }
   .card {
-    background: #fff;
-    border: 1px solid #e3e6e8;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
     border-radius: 14px;
     padding: 40px;
     width: 440px;
@@ -70,13 +70,13 @@
   }
   .muted {
     margin: 0;
-    color: #60646c;
+    color: var(--text-muted);
     font-size: 14px;
     line-height: 20px;
   }
   .small {
     margin: 0;
     font-size: 12px;
-    color: #80838d;
+    color: var(--text-faint);
   }
 </style>

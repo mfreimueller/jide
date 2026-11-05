@@ -64,13 +64,13 @@
   .assign {
     flex: none;
     box-sizing: border-box;
-    background: #fff;
-    border-left: 1px solid #e3e6e8;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     font-size: 14px;
     line-height: 21px;
-    color: #3a3f45;
+    color: var(--text-2);
   }
   /* collapsed: stays mounted (and in the DOM for the tests' sake) but takes no room */
   .assign.collapsed {
@@ -87,7 +87,7 @@
     font-size: 11px;
     font-weight: 600;
     line-height: 16px;
-    color: #80838d;
+    color: var(--text-faint);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -110,13 +110,13 @@
     display: flex;
     gap: 6px;
     align-items: center;
-    color: #60646c;
+    color: var(--text-muted);
   }
   .assign :global(h1) {
     font-size: 18px;
     line-height: 24px;
     font-weight: 600;
-    color: #1c2024;
+    color: var(--text);
     margin: 0;
   }
   .assign :global(h2),
@@ -124,7 +124,7 @@
   .assign :global(h4) {
     font-size: 14px;
     font-weight: 600;
-    color: #1c2024;
+    color: var(--text);
     margin: 4px 0 0;
   }
   .assign :global(p) {
@@ -134,21 +134,21 @@
     font-family: var(--jide-code-font);
     font-variant-ligatures: none;
     font-size: 12.5px;
-    background: #f1f3f5;
+    background: var(--bg-subtle);
     padding: 1px 5px;
     border-radius: 4px;
-    color: #1c2024;
+    color: var(--text);
   }
   .assign :global(pre) {
     margin: 0;
     font-family: var(--jide-code-font);
     font-variant-ligatures: none;
     font-size: 12.5px;
-    background: #f1f3f5;
+    background: var(--bg-subtle);
     padding: 10px 12px;
     border-radius: 8px;
     line-height: 19px;
-    color: #1c2024;
+    color: var(--text);
     overflow-x: auto;
   }
   .assign :global(pre code) {
@@ -169,7 +169,7 @@
     height: auto;
   }
   .assign :global(a) {
-    color: #2f5bd3;
+    color: var(--text-link);
     cursor: default;
   }
 </style>

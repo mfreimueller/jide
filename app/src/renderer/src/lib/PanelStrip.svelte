@@ -28,7 +28,7 @@
     width: 32px;
     flex: none;
     box-sizing: border-box;
-    background: #fff;
+    background: var(--bg-panel);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -36,16 +36,16 @@
     padding: 10px 0;
   }
   .strip.left {
-    border-right: 1px solid #e3e6e8;
+    border-right: 1px solid var(--border);
   }
   .strip.right {
-    border-left: 1px solid #e3e6e8;
+    border-left: 1px solid var(--border);
   }
   .label {
     writing-mode: vertical-rl;
     font-size: 11px;
     font-weight: 600;
-    color: #80838d;
+    color: var(--text-faint);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }

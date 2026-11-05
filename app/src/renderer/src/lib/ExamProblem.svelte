@@ -36,23 +36,23 @@
     gap: 6px;
     padding: 12px 14px;
     border-radius: 8px;
-    background: #f3f4f6;
-    border: 1px solid #dee2e6;
+    background: var(--bg-neutral);
+    border: 1px solid var(--border-neutral);
   }
   .details.error {
-    background: #fdecee;
-    border-color: #f8c4cc;
+    background: var(--bg-err-alt);
+    border-color: var(--border-err-alt);
   }
   .label {
     font-size: 12px;
     font-weight: 500;
-    color: #3a3f45;
+    color: var(--text-2);
   }
   .mono {
     font-family: var(--jide-code-font);
     font-size: 12px;
     line-height: 18px;
-    color: #1c2024;
+    color: var(--text);
     overflow-wrap: anywhere;
   }
   .line {
@@ -63,6 +63,6 @@
     font-size: 16px;
     padding: 0 22px;
     justify-content: center;
-    border-color: #d1d5db;
+    border-color: var(--border-neutral-2);
   }
 </style>

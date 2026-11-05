@@ -33,11 +33,11 @@
     border: none;
     border-radius: 4px;
     background: none;
-    color: #80838d;
+    color: var(--text-faint);
     cursor: pointer;
   }
   .pbtn:hover {
-    background: #f1f3f5;
+    background: var(--bg-subtle);
   }
   .pbtn::after {
     content: attr(data-tip);
@@ -45,7 +45,7 @@
     display: none;
     z-index: 30;
     white-space: nowrap;
-    background: #1c2024;
+    background: var(--bg-dark);
     color: #fff;
     font-size: 12px;
     line-height: 16px;

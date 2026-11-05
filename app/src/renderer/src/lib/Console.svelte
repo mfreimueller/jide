@@ -27,7 +27,7 @@
 <style>
   .console {
     height: 100%;
-    background: #1c2024;
+    background: var(--bg-dark);
     padding: 10px 0 6px 16px;
   }
   .console.hidden {

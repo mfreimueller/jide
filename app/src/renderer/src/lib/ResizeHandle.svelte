@@ -89,7 +89,7 @@
   .handle::after {
     content: "";
     position: absolute;
-    background: #2f5bd3;
+    background: var(--primary);
     opacity: 0;
   }
   .handle.col::after {

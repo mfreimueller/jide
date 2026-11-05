@@ -182,8 +182,8 @@
 <style>
   .bottom {
     flex: none;
-    border-top: 1px solid #e3e6e8;
-    background: #fff;
+    border-top: 1px solid var(--border);
+    background: var(--bg-panel);
     display: flex;
     flex-direction: column;
   }
@@ -196,7 +196,7 @@
   .btabs {
     height: 36px;
     flex: none;
-    border-bottom: 1px solid #e3e6e8;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     padding: 0 10px;
@@ -209,15 +209,15 @@
     border: none;
     background: none;
     border-radius: 6px;
-    color: #60646c;
+    color: var(--text-muted);
     cursor: pointer;
     display: flex;
     gap: 6px;
     align-items: center;
   }
   .btab.active {
-    background: #f1f3f5;
-    color: #1c2024;
+    background: var(--bg-subtle);
+    color: var(--text);
     font-weight: 500;
   }
   .clear {
@@ -237,7 +237,7 @@
   }
   .small {
     font-size: 12px;
-    color: #80838d;
+    color: var(--text-faint);
   }
   .tests {
     padding: 10px 14px;
@@ -256,14 +256,14 @@
     font-weight: 600;
   }
   .banner.warn {
-    background: #fff4d5;
-    color: #ab6400;
-    border: 1px solid #ffdc8f;
+    background: var(--bg-warn);
+    color: var(--text-warn);
+    border: 1px solid var(--border-warn);
   }
   .banner.ok {
-    background: #e6f6ec;
-    color: #18794e;
-    border: 1px solid #b4e2c4;
+    background: var(--bg-ok);
+    color: var(--text-ok);
+    border: 1px solid var(--border-ok);
   }
   .count {
     font-weight: 500;
@@ -277,13 +277,13 @@
     padding: 3px 4px;
   }
   .pass {
-    color: #18794e;
+    color: var(--text-ok);
     font-weight: 700;
     width: 16px;
     flex: none;
   }
   .fail {
-    color: #ce2c31;
+    color: var(--text-err);
     font-weight: 700;
     width: 16px;
     flex: none;
@@ -295,18 +295,18 @@
   .tdetail {
     font-family: var(--jide-code-font);
     font-size: 12px;
-    color: #60646c;
+    color: var(--text-muted);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     max-height: 5.5em;
     overflow-y: auto;
   }
   .tdetail .lbl {
-    color: #80838d;
+    color: var(--text-faint);
   }
   .tnote {
     font-size: 12px;
-    color: #80838d;
+    color: var(--text-faint);
     margin-top: 2px;
   }
   .thead {
@@ -325,12 +325,12 @@
   .chev {
     width: 10px;
     flex: none;
-    color: #80838d;
+    color: var(--text-faint);
   }
   .tsum {
     font-family: var(--jide-code-font);
     font-size: 12px;
-    color: #80838d;
+    color: var(--text-faint);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -345,7 +345,7 @@
     border-radius: 6px;
   }
   .trow.link:hover {
-    background: #f1f3f5;
+    background: var(--bg-subtle);
   }
   .body {
     flex: 1;
@@ -366,7 +366,7 @@
     flex: none;
   }
   .body.console {
-    background: #1c2024;
+    background: var(--bg-dark);
   }
   .problems {
     padding: 8px 12px;
@@ -380,7 +380,7 @@
     text-align: left;
     border: none;
     background: none;
-    color: #1c2024;
+    color: var(--text);
     padding: 6px 10px;
     border-radius: 6px;
     display: flex;
@@ -389,7 +389,7 @@
     cursor: pointer;
   }
   .prob:hover:not(:disabled) {
-    background: #f1f3f5;
+    background: var(--bg-subtle);
   }
   .prob:disabled {
     cursor: default;
@@ -398,23 +398,23 @@
     color: #e5484d;
   }
   .icon.warning {
-    color: #ab6400;
+    color: var(--text-warn);
   }
   .msg {
     flex: 1;
   }
   .loc {
-    color: #80838d;
+    color: var(--text-faint);
     font-size: 12px;
   }
   .empty {
     margin: 4px 10px;
     font-size: 13px;
-    color: #80838d;
+    color: var(--text-faint);
   }
   .system-error {
-    background: #feebec;
-    color: #ce2c31;
+    background: var(--bg-err);
+    color: var(--text-err);
     border-radius: 8px;
     padding: 10px 12px;
     font-size: 13px;

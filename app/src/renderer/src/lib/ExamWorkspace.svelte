@@ -131,21 +131,21 @@
     font: inherit;
     font-size: 14px;
     font-weight: 500;
-    border: 1px solid #d9dcdf;
-    background: #fff;
-    color: #1c2024;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-panel);
+    color: var(--text);
     cursor: pointer;
   }
   .exam-tab.active {
-    background: #e8eefb;
-    border-color: #c5d3f5;
-    color: #2f5bd3;
+    background: var(--bg-selected-alt);
+    border-color: var(--border-selected);
+    color: var(--text-link);
   }
   .toast {
     position: fixed;
     right: 24px;
     bottom: 24px;
-    background: #1c2024;
+    background: var(--bg-dark);
     color: #fff;
     border-radius: 10px;
     padding: 12px 16px;

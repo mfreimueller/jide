@@ -98,7 +98,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #f8f9fa;
+    background: var(--bg-app);
   }
   .center {
     flex: 1;
@@ -107,8 +107,8 @@
     justify-content: center;
   }
   .card {
-    background: #fff;
-    border: 1px solid #e3e6e8;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
     border-radius: 14px;
     padding: 40px;
     width: 440px;
@@ -141,14 +141,14 @@
   }
   .muted {
     margin: 0;
-    color: #60646c;
+    color: var(--text-muted);
     font-size: 14px;
     line-height: 20px;
   }
   .small {
     margin: 0;
     font-size: 12px;
-    color: #80838d;
+    color: var(--text-faint);
   }
   .field {
     display: flex;
@@ -158,7 +158,7 @@
   .label {
     font-size: 13px;
     font-weight: 500;
-    color: #3a3f45;
+    color: var(--text-2);
   }
   .codeinput {
     position: relative;
@@ -169,7 +169,7 @@
   .codebox {
     width: 44px;
     height: 52px;
-    border: 1.5px solid #d9dcdf;
+    border: 1.5px solid var(--border-strong);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -177,14 +177,14 @@
     font-size: 22px;
     font-weight: 600;
     font-family: var(--jide-code-font);
-    background: #fff;
+    background: var(--bg-panel);
   }
   .codebox.focus {
-    border-color: #2f5bd3;
-    box-shadow: 0 0 0 3px rgba(47, 91, 211, 0.15);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
   .dash {
-    color: #b0b4ba;
+    color: var(--text-disabled);
     font-size: 22px;
   }
   /* The real input lies invisibly over the boxes: typing, pasting and focus all just work. */
@@ -206,8 +206,8 @@
     justify-content: center;
   }
   .btn:disabled {
-    background: #a9bdf0;
-    border-color: #a9bdf0;
+    background: var(--primary-off);
+    border-color: var(--primary-off);
     cursor: default;
   }
   .error,
@@ -219,13 +219,13 @@
     line-height: 19px;
   }
   .error {
-    background: #feebec;
-    border: 1px solid #f5c2c4;
-    color: #ce2c31;
+    background: var(--bg-err);
+    border: 1px solid var(--border-err);
+    color: var(--text-err);
   }
   .notice {
-    background: #fff4d5;
-    border: 1px solid #ffdc8f;
-    color: #ab6400;
+    background: var(--bg-warn);
+    border: 1px solid var(--border-warn);
+    color: var(--text-warn);
   }
 </style>

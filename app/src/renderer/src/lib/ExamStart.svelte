@@ -91,22 +91,22 @@
   .label {
     font-size: 13px;
     font-weight: 500;
-    color: #3a3f45;
+    color: var(--text-2);
   }
   .input {
     height: 44px;
-    border: 1.5px solid #d9dcdf;
+    border: 1.5px solid var(--border-strong);
     border-radius: 8px;
     padding: 0 12px;
     font: inherit;
     font-size: 15px;
-    color: #1c2024;
-    background: #fff;
+    color: var(--text);
+    background: var(--bg-panel);
   }
   .input:focus {
     outline: none;
-    border-color: #2f5bd3;
-    box-shadow: 0 0 0 3px rgba(47, 91, 211, 0.15);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
   .btn.big {
     height: 44px;
@@ -115,8 +115,8 @@
     justify-content: center;
   }
   .btn:disabled {
-    background: #a9bdf0;
-    border-color: #a9bdf0;
+    background: var(--primary-off);
+    border-color: var(--primary-off);
     cursor: default;
   }
   .problem {
@@ -125,9 +125,9 @@
     border-radius: 8px;
     font-size: 13px;
     line-height: 19px;
-    background: #feebec;
-    border: 1px solid #f5c2c4;
-    color: #ce2c31;
+    background: var(--bg-err);
+    border: 1px solid var(--border-err);
+    color: var(--text-err);
   }
   .problem p {
     margin: 0;

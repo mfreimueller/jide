@@ -50,19 +50,19 @@
     gap: 10px;
   }
   .btn.run {
-    background: #e6f6ec;
-    border-color: #b4e2c4;
-    color: #18794e;
+    background: var(--bg-ok);
+    border-color: var(--border-ok);
+    color: var(--text-ok);
   }
   .btn.primary:disabled {
     color: #fff;
-    background: #a9bdf0;
-    border-color: #a9bdf0;
+    background: var(--primary-off);
+    border-color: var(--primary-off);
   }
   .btn:disabled:not(.primary) {
-    color: #b0b4ba;
-    background: #f1f3f5;
-    border-color: #d9dcdf;
+    color: var(--text-disabled);
+    background: var(--bg-subtle);
+    border-color: var(--border-strong);
     cursor: default;
   }
 </style>

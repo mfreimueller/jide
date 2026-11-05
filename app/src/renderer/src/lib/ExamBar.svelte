@@ -38,7 +38,7 @@
     align-items: center;
     gap: 16px;
     padding: 0 16px;
-    background: #1c2024;
+    background: var(--bg-dark);
     color: #fff;
     font-size: 12px;
   }

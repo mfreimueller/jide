@@ -24,17 +24,17 @@
 
 <style>
   .diff {
-    --diff-border: #e3e6e8;
-    --diff-bg: #fff;
-    --diff-head-bg: #f8f9fa;
-    --diff-head-text: #80838d;
-    --diff-text: #1c2024;
-    --diff-muted: #80838d;
-    --diff-empty-bg: #f8f9fa;
-    --diff-extra-bg: #fff4d5;
-    --diff-extra-text: #ab6400;
-    --diff-bad-bg: #feebec;
-    --diff-bad-text: #ce2c31;
+    --diff-border: var(--border);
+    --diff-bg: var(--bg-panel);
+    --diff-head-bg: var(--bg-app);
+    --diff-head-text: var(--text-faint);
+    --diff-text: var(--text);
+    --diff-muted: var(--text-faint);
+    --diff-empty-bg: var(--bg-app);
+    --diff-extra-bg: var(--bg-warn);
+    --diff-extra-text: var(--text-warn);
+    --diff-bad-bg: var(--bg-err);
+    --diff-bad-text: var(--text-err);
 
     display: grid;
     grid-template-columns: 1fr 1fr auto;

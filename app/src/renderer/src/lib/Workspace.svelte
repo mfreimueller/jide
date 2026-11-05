@@ -333,14 +333,14 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #f8f9fa;
+    background: var(--bg-app);
   }
   .status {
     font-size: 12px;
-    color: #80838d;
+    color: var(--text-faint);
   }
   .status.err {
-    color: #ce2c31;
+    color: var(--text-err);
   }
   .work {
     flex: 1;
@@ -350,8 +350,8 @@
   .files {
     flex: none;
     box-sizing: border-box;
-    background: #fff;
-    border-right: 1px solid #e3e6e8;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
     padding: 14px 10px;
     display: flex;
     flex-direction: column;
@@ -377,7 +377,7 @@
     font-size: 11px;
     font-weight: 600;
     line-height: 16px;
-    color: #80838d;
+    color: var(--text-faint);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     padding: 4px 8px;
@@ -393,18 +393,18 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #3a3f45;
+    color: var(--text-2);
     cursor: pointer;
   }
   .file.active {
-    background: #e1e8fb;
-    color: #2f5bd3;
+    background: var(--bg-selected);
+    color: var(--text-link);
     font-weight: 500;
   }
   .file .lock {
     margin-left: auto;
     font-size: 11px;
-    color: #80838d;
+    color: var(--text-faint);
   }
   .file .err {
     margin-left: auto;
@@ -430,10 +430,10 @@
     justify-content: center;
   }
   .java.img {
-    background: #8e8c99;
+    background: var(--icon-img);
   }
   .java.ro {
-    background: #b0b4ba;
+    background: var(--icon-grey);
   }
   .center-col {
     position: relative;
@@ -445,7 +445,7 @@
   .toast {
     position: absolute;
     right: 24px;
-    background: #1c2024;
+    background: var(--bg-dark);
     color: #fff;
     border-radius: 10px;
     padding: 12px 16px;
@@ -465,8 +465,8 @@
   .tabs {
     height: 38px;
     flex: none;
-    background: #f1f3f5;
-    border-bottom: 1px solid #e3e6e8;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: flex-end;
     padding: 0 8px;
@@ -479,12 +479,12 @@
     background: none;
     padding: 8px 14px;
     border-radius: 6px 6px 0 0;
-    color: #60646c;
+    color: var(--text-muted);
     cursor: pointer;
   }
   .tab.active {
-    background: #fff;
-    color: #1c2024;
+    background: var(--bg-panel);
+    color: var(--text);
     font-weight: 500;
   }
 </style>

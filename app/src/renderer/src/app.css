@@ -5,6 +5,46 @@
 
 :root {
   --jide-code-font: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+
+  /* Colour palette (light). The dark values are in the prefers-color-scheme block below. */
+  /* surfaces */
+  --bg-app: #f8f9fa;
+  --bg-panel: #fff;
+  --bg-subtle: #f1f3f5; /* tab strips, chips, code blocks, disabled buttons */
+  --bg-neutral: #f3f4f6;
+  --bg-selected: #e1e8fb;
+  --bg-selected-alt: #e8eefb;
+  --bg-ok: #e6f6ec;
+  --bg-warn: #fff4d5;
+  --bg-err: #feebec;
+  --bg-err-alt: #fdecee;
+  --bg-dark: #1c2024; /* console, exam bar, tooltips, toast */
+  --overlay: rgba(28, 32, 36, 0.45);
+  --primary: #2f5bd3;
+  --primary-off: #a9bdf0; /* disabled primary button */
+  --icon-grey: #b0b4ba; /* read-only file icon */
+  --icon-img: #8e8c99; /* image file icon */
+  --focus-ring: rgba(47, 91, 211, 0.15);
+  /* borders */
+  --border: #e3e6e8;
+  --border-strong: #d9dcdf;
+  --border-neutral: #dee2e6;
+  --border-neutral-2: #d1d5db;
+  --border-ok: #b4e2c4;
+  --border-warn: #ffdc8f;
+  --border-selected: #c5d3f5;
+  --border-err: #f5c2c4;
+  --border-err-alt: #f8c4cc;
+  /* text */
+  --text: #1c2024;
+  --text-2: #3a3f45;
+  --text-muted: #60646c;
+  --text-faint: #80838d;
+  --text-disabled: #b0b4ba;
+  --text-link: #2f5bd3;
+  --text-ok: #18794e;
+  --text-warn: #ab6400;
+  --text-err: #ce2c31;
 }
 
 * {
@@ -19,16 +59,16 @@ body,
 }
 body {
   font-family: "Inter Variable", Inter, sans-serif;
-  color: #1c2024;
-  background: #f8f9fa;
+  color: var(--text);
+  background: var(--bg-app);
 }
 
 /* top bar (shared by both screens) */
 .topbar {
   height: 56px;
   flex: none;
-  background: #fff;
-  border-bottom: 1px solid #e3e6e8;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   padding: 0 20px;
@@ -58,20 +98,20 @@ body {
   font: inherit;
   font-size: 14px;
   font-weight: 500;
-  border: 1px solid #d9dcdf;
-  background: #fff;
-  color: #1c2024;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  color: var(--text);
   cursor: pointer;
 }
 .btn.primary {
-  background: #2f5bd3;
-  border-color: #2f5bd3;
+  background: var(--primary);
+  border-color: var(--primary);
   color: #fff;
 }
 .btn.ghost {
   border-color: transparent;
   background: transparent;
-  color: #60646c;
+  color: var(--text-muted);
 }
 .chip {
   font-size: 12px;
@@ -81,28 +121,28 @@ body {
   white-space: nowrap;
 }
 .chip.new {
-  background: #e1e8fb;
-  color: #2f5bd3;
+  background: var(--bg-selected);
+  color: var(--text-link);
 }
 .chip.wip {
-  background: #fff4d5;
-  color: #ab6400;
+  background: var(--bg-warn);
+  color: var(--text-warn);
 }
 .chip.done {
-  background: #e6f6ec;
-  color: #18794e;
+  background: var(--bg-ok);
+  color: var(--text-ok);
 }
 .chip.late {
-  background: #feebec;
-  color: #ce2c31;
+  background: var(--bg-err);
+  color: var(--text-err);
 }
 .chip.late-hand {
-  background: #fff4d5;
-  color: #ab6400;
+  background: var(--bg-warn);
+  color: var(--text-warn);
 }
 .chip.grey {
-  background: #f1f3f5;
-  color: #60646c;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
 }
 
 /* suggest documentation panel: let long examples wrap instead of being cut off */

@@ -23,14 +23,14 @@
     position: fixed;
     inset: 0;
     z-index: 50;
-    background: rgba(28, 32, 36, 0.45);
+    background: var(--overlay);
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .dialog {
     width: 460px;
-    background: #fff;
+    background: var(--bg-panel);
     border-radius: 14px;
     padding: 26px;
     display: flex;
@@ -42,8 +42,8 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: #fff4d5;
-    color: #ab6400;
+    background: var(--bg-warn);
+    color: var(--text-warn);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -53,13 +53,13 @@
   h1 {
     margin: 0;
     font-size: 20px;
-    color: #1c2024;
+    color: var(--text);
   }
   .muted {
     margin: 0;
     font-size: 14px;
     line-height: 21px;
-    color: #60646c;
+    color: var(--text-muted);
   }
   .dialog-actions {
     display: flex;

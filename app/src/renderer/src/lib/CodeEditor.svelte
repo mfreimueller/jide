@@ -45,7 +45,7 @@
   .editor {
     flex: 1;
     min-height: 0;
-    background: #fff;
+    background: var(--bg-panel);
   }
   /* Hidden, not unmounted, while an image is shown: models, undo history and view state stay alive. */
   .editor.hidden {

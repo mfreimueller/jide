@@ -132,20 +132,20 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: #fff;
-    border-bottom: 1px solid #e3e6e8;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
     padding: 6px 10px 6px 14px;
   }
   .name {
     font-size: 12px;
-    color: #80838d;
+    color: var(--text-faint);
   }
   .spacer {
     flex: 1;
   }
   .level {
     font-size: 12px;
-    color: #3a3f45;
+    color: var(--text-2);
     min-width: 42px;
     text-align: center;
   }
@@ -155,20 +155,20 @@
     font-weight: 500;
     border: none;
     border-radius: 6px;
-    background: #f1f3f5;
-    color: #3a3f45;
+    background: var(--bg-subtle);
+    color: var(--text-2);
     padding: 4px 10px;
     cursor: pointer;
   }
   .btn.active {
-    background: #e1e8fb;
-    color: #2f5bd3;
+    background: var(--bg-selected);
+    color: var(--text-link);
   }
   .area {
     position: relative;
     flex: 1;
     min-height: 0;
-    background: #f8f9fa;
+    background: var(--bg-app);
   }
   .scroller {
     position: absolute;
@@ -188,7 +188,7 @@
   }
   .sheet img {
     display: block;
-    background: #fff;
+    background: #fff; /* drawn for white paper, also in dark mode */
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
     user-select: none;
   }
@@ -196,7 +196,7 @@
     position: absolute;
     right: 12px;
     bottom: 12px;
-    background: #1c2024;
+    background: var(--bg-dark);
     color: #fff;
     font-size: 11px;
     border-radius: 6px;
