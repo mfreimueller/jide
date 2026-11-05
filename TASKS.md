@@ -126,7 +126,7 @@ Decisions (2026-11-05):
   - Done when: e2e: Ctrl+/ comments and uncomments the current line, Ctrl+Shift+7 does the same, Ctrl+Right moves the cursor by a word; typing `sout` offers the snippet. Existing tests pass.
 - [x] **T33 Tolerant io matching** – `match: lines`: every non-empty expected line must equal a whole output line, in order; other output lines (debug prints) before, between and after are ignored; whitespace normalised as in `trimmed`. `trimmed`, `contains` and `lines` treat `,` and `.` between two digits as equal; `exact` unchanged. Default stays `trimmed`. SPEC §3.4: document `lines`, the decimal rule, and the advice to prefer `check` tests.
   - Done when: unit tests for `lines` (extra lines before/between/after, wrong order fails, missing line fails, typo fails) and for the decimal rule in every mode; the zod error message lists `lines`.
-- [ ] **T34 Diff for failed io tests** – the Tests panel shows expected vs. actual line by line, marking missing, extra and different lines. Figma first (user approves).
+- [x] **T34 Diff for failed io tests** – the Tests panel shows expected vs. actual line by line, marking missing, extra and different lines. Figma first (user approves).
 - [ ] **T35 Dark mode** – dark Monaco theme, dark CSS for every screen (workspace, panels, console, dialogs, login, exam screens), Hell / Dunkel / System in the View menu, remembered between starts, default System. Figma first (user approves).
 
 Order: T32 and T33 (no design needed) in parallel; T34 and T35 after the Figma screens are approved.
