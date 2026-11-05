@@ -5,6 +5,7 @@
 
 :root {
   --jide-code-font: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  color-scheme: light;
 
   /* Colour palette (light). The dark values are in the prefers-color-scheme block below. */
   /* surfaces */
@@ -45,6 +46,48 @@
   --text-ok: #18794e;
   --text-warn: #ab6400;
   --text-err: #ce2c31;
+}
+
+/* Dark palette: follows the OS, or the choice in the menu Ansicht > Darstellung (main sets nativeTheme.themeSource). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg-app: #111113;
+    --bg-panel: #18191b;
+    --bg-subtle: #232427;
+    --bg-neutral: #232427;
+    --bg-selected: #1d2a4d;
+    --bg-selected-alt: #1d2a4d;
+    --bg-ok: #132d21;
+    --bg-warn: #302008;
+    --bg-err: #3b1219;
+    --bg-err-alt: #3b1219;
+    --bg-dark: #0b0c0e;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --primary: #3e63dd;
+    --primary-off: #2c3d70;
+    --icon-grey: #5b5f66;
+    --icon-img: #8b8d98;
+    --focus-ring: rgba(62, 99, 221, 0.35);
+    --border: #2e3135;
+    --border-strong: #3a3e44;
+    --border-neutral: #3a3e44;
+    --border-neutral-2: #3a3e44;
+    --border-ok: #1f4a33;
+    --border-warn: #5c3d05;
+    --border-selected: #2c3d70;
+    --border-err: #5a1d25;
+    --border-err-alt: #5a1d25;
+    --text: #edeef0;
+    --text-2: #c9ccd1;
+    --text-muted: #b0b4ba;
+    --text-faint: #8b8d98;
+    --text-disabled: #5b5f66;
+    --text-link: #9eb1ff;
+    --text-ok: #3dd68c;
+    --text-warn: #ffca16;
+    --text-err: #ff9592;
+  }
 }
 
 * {
