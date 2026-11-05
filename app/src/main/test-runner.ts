@@ -274,7 +274,7 @@ function ioResult(test: IoTestCase, run: IoRun, mainFileName: string, studentLin
     return { name, status: "error", message: withLine(message, line), ...(line ? { line } : {}) };
   }
   if (matchOutput(run.stdout, test.expected, test.match)) return { name, status: "passed" };
-  return { name, status: "failed", expected: test.expected, actual: run.stdout };
+  return { name, status: "failed", expected: test.expected, actual: run.stdout, match: test.match, input: test.input };
 }
 
 function checkResult(test: CheckTestCase, r: CheckLine | undefined): TestResult {

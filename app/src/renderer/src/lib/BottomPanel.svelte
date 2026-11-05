@@ -6,6 +6,8 @@
 <script lang="ts">
   import Console from "./Console.svelte";
   import PanelButton from "./PanelButton.svelte";
+  import TestDiff from "./TestDiff.svelte";
+  import { failSummary, firstDiffIndex, hasLineDiff, MSG_NOTE_CONTAINS } from "./diff-view";
   import { locationLabel } from "./diagnostics";
   import type { LiveCompiler } from "./problems.svelte";
   import type { RunController } from "./run.svelte";
@@ -43,6 +45,14 @@
   const last = $derived(tests?.last);
   const ok = $derived(last ? allPassed(last.summary) : false);
   const failedCount = $derived(last ? last.summary.total - last.summary.passed : 0);
+
+  // T34: the first failed io test shows its line diff open; clicks override that per row, a new run resets it.
+  const firstDiff = $derived(last ? firstDiffIndex(last.results) : -1);
+  let diffOpen = $state<Record<number, boolean>>({});
+  $effect(() => {
+    last;
+    diffOpen = {};
+  });
 </script>
 
 <div class="bottom" class:collapsed style:height={collapsed ? undefined : `${height}px`}>
@@ -87,8 +97,29 @@
             <span class="spacer"></span>
             <span class="count">{countLabel(last.summary)}</span>
           </div>
-          {#each last.results as r}
+          {#each last.results as r, i}
             {@const line = r.line}
+            {#if hasLineDiff(r)}
+              {@const open = diffOpen[i] ?? i === firstDiff}
+              <div class="trow diffrow" data-testid="test-row" data-status={r.status}>
+                <span class="fail">✗</span>
+                <div class="tbody">
+                  <button
+                    class="thead"
+                    aria-expanded={open}
+                    data-testid="test-head"
+                    onclick={() => (diffOpen = { ...diffOpen, [i]: !open })}
+                  >
+                    <span class="chev">{open ? "⌄" : "›"}</span>
+                    <span class="tname">{r.name}</span>
+                    <span class="tsum">{failSummary(r.input)}</span>
+                  </button>
+                  {#if open}
+                    <TestDiff actual={r.actual ?? ""} expected={r.expected ?? ""} match={r.match} />
+                  {/if}
+                </div>
+              </div>
+            {:else}
             <!-- svelte-ignore a11y_no_static_element_interactions, a11y_no_noninteractive_tabindex -->
             <div
               class="trow"
@@ -110,10 +141,14 @@
                     <div><span class="lbl">erwartet:</span> <span class="val">{r.expected ?? ""}</span></div>
                     <div><span class="lbl">dein Ergebnis:</span> <span class="val">{r.actual ?? ""}</span></div>
                   </div>
+                  {#if r.match === "contains"}
+                    <div class="tnote" data-testid="test-note">{MSG_NOTE_CONTAINS}</div>
+                  {/if}
                 {/if}
                 {#if r.message}<div class="tdetail msgline" data-testid="test-message">{r.message}</div>{/if}
               </div>
             </div>
+            {/if}
           {/each}
         {:else}
           <p class="empty">Noch nicht getestet.</p>
@@ -268,6 +303,38 @@
   }
   .tdetail .lbl {
     color: #80838d;
+  }
+  .tnote {
+    font-size: 12px;
+    color: #80838d;
+    margin-top: 2px;
+  }
+  .thead {
+    font: inherit;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+  }
+  .chev {
+    width: 10px;
+    flex: none;
+    color: #80838d;
+  }
+  .tsum {
+    font-family: var(--jide-code-font);
+    font-size: 12px;
+    color: #80838d;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .msgline {
     font-family: inherit;

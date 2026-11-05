@@ -144,6 +144,9 @@ export interface TestResult {
   /** Failed tests: what the test expected and what the program produced. */
   expected?: string;
   actual?: string;
+  /** Failed io tests: how the output was compared and what was typed in (the Tests panel draws a line diff from these). */
+  match?: "exact" | "contains" | "trimmed" | "lines";
+  input?: string;
   /** Errors (and failed `code` tests): German explanation, e.g. exception with line number. */
   message?: string;
   /** Line in the student's main file where an exception was thrown, if known. */
