@@ -80,8 +80,9 @@ test("exam mode from a read-only folder: starts, opens an exercise, writes nothi
   // un-handed-in changes: closing asks; leaving anyway writes nothing into the exam folder either
   const closed = page.waitForEvent("close"); // macOS keeps the process alive without windows
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
-  await page.getByTestId("close-leave").click();
-  await closed;
+  // the click closes the window, sometimes before Playwright has finished the click ("Target page …
+  // has been closed"); `closed` is what proves it worked
+  await Promise.all([closed, page.getByTestId("close-leave").click().catch(() => undefined)]);
   expect(snapshot(examDir)).toEqual(before);
 });
 
