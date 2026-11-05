@@ -1,6 +1,8 @@
-import { app, BrowserWindow, dialog, Menu, type MenuItemConstructorOptions } from "electron";
+import { app, BrowserWindow, dialog, Menu } from "electron";
 import { context } from "./context";
 import { examMode } from "./exam-state";
+import { buildMenuTemplate } from "./menu-template";
+import { chooseTheme, storedTheme } from "./theme";
 
 /** Asks, then deletes the stored code and sends every window back to the login. */
 async function logout(): Promise<void> {
@@ -23,38 +25,15 @@ async function logout(): Promise<void> {
   }
 }
 
-/** Online mode only: the default menu plus "Abmelden…". Exam and local mode keep Electron's default menu. */
+/** The application menu of every mode: Electron's default plus Ansicht > Darstellung, and "Abmelden…" online. */
 export function installAppMenu(): void {
-  if (examMode() || !context().session) return;
-  const logoutItem: MenuItemConstructorOptions = { id: "logout", label: "Abmelden…", click: () => void logout() };
-  const template: MenuItemConstructorOptions[] =
-    process.platform === "darwin"
-      ? [
-          {
-            label: app.name,
-            submenu: [
-              { role: "about" },
-              { type: "separator" },
-              logoutItem,
-              { type: "separator" },
-              { role: "services" },
-              { type: "separator" },
-              { role: "hide" },
-              { role: "hideOthers" },
-              { role: "unhide" },
-              { type: "separator" },
-              { role: "quit" }
-            ]
-          },
-          { role: "editMenu" },
-          { role: "viewMenu" },
-          { role: "windowMenu" }
-        ]
-      : [
-          { label: "Datei", submenu: [logoutItem, { type: "separator" }, { role: "quit" }] },
-          { role: "editMenu" },
-          { role: "viewMenu" },
-          { role: "windowMenu" }
-        ];
+  const template = buildMenuTemplate({
+    platform: process.platform,
+    appName: app.name,
+    online: !examMode() && !!context().session,
+    theme: storedTheme(),
+    onTheme: chooseTheme,
+    onLogout: () => void logout()
+  });
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }

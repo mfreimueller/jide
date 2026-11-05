@@ -9,6 +9,7 @@ import { installAppMenu } from "./menu";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
 import { registerTestIpc } from "./test";
+import { applyTheme, storedTheme, watchWindowBackground, windowBackground } from "./theme";
 import { startAutoUpdate } from "./updater";
 
 const smoke = process.env.JIDE_SMOKE === "1";
@@ -38,6 +39,7 @@ function createWindow(): BrowserWindow {
     minWidth: 1024,
     minHeight: 700,
     show: false,
+    backgroundColor: windowBackground(),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       contextIsolation: true,
@@ -107,6 +109,9 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(async () => {
+  // Before any window: the remembered Hell / Dunkel / System choice (default System).
+  applyTheme(storedTheme());
+  watchWindowBackground();
   // Exam mode: exam.json is checked and the JDK is looked up before the helper can start.
   await initExam();
   installAppMenu();
