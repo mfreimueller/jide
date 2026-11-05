@@ -83,7 +83,7 @@ tests:
     type: io              # feeds stdin, compares stdout
     input: "3\n4\n"
     expected: "7"
-    match: contains       # exact | contains | trimmed (default: trimmed, whitespace-normalized)
+    match: contains       # exact | contains | trimmed | lines (default: trimmed, whitespace-normalized)
     timeout: 2s
   - name: "summe(-2, 5)"
     type: check           # Java expression compared to an expected value
@@ -97,6 +97,10 @@ tests:
 ```
 
 - `call` results are compared as text with `expected`: `String.valueOf(result)`, arrays as `[1, 2, 3]`. Floating-point values must match exactly; for a tolerance use a `code` block.
+- Prefer `check` tests for methods; use `io` only when the output itself is what is being tested. For programs with prompts or debug output use `lines` or `contains`.
+- `io` match modes: `exact` (only line endings normalised), `trimmed` (default; whitespace-normalized, whole output must be equal), `contains` (expected is a substring of the output), `lines`.
+- `lines`: output and expected are normalised like `trimmed`; then every non-empty expected line must equal a whole output line, in order. Other output lines (prompts, debug output, blank lines) are ignored.
+- Decimal rule (`trimmed`, `contains`, `lines`; not `exact`): a comma or dot between two digits counts as the same, so `3,14` matches `3.14`. Reason: `printf("%.2f", x)` prints `3,14` on a German-locale JVM, while teachers write `3.14`. A comma or dot not between two digits (`[1, 2]`, `a,b`) is unchanged.
 - `check` tests are compiled into the same compilation unit (appended like the harness) and started by a generated entry point. Students call their methods directly, without JUnit or reflection in the test code.
 - Each test has a timeout (default 2 s). A timeout shows as "Dein Programm hat zu lange gebraucht (Endlosschleife?)".
 - Result per test: passed / failed (expected vs. actual) / error (exception, timeout, compile error).
