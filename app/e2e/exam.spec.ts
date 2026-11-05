@@ -63,8 +63,8 @@ test("exam mode from a read-only folder: starts, opens an exercise, writes nothi
   await expect(page.getByTestId("exam-info")).toHaveText("Abgabelaufwerk: P:\\ · kein Internet nötig");
   expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.getTitle())).toBe("J;DE – Prüfungsmodus");
   await startExam(page);
-  await page.locator('[data-testid="exam-tab"]:visible').nth(1).click(); // summe
-  await expect(page.locator(".monaco-editor .view-lines:visible")).toBeVisible();
+  // waits until summe is shown: right after the click the previous exercise's editor is still visible
+  await gotoTab(page, 1); // summe
   await expect(page.getByRole("button", { name: "Abgeben" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ausführen" })).toBeVisible();
 
