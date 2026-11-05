@@ -2,7 +2,7 @@ import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { ExerciseError } from "./errors.js";
 
-export type MatchMode = "exact" | "contains" | "trimmed";
+export type MatchMode = "exact" | "contains" | "trimmed" | "lines";
 
 export interface IoTestCase {
   type: "io";
@@ -50,7 +50,7 @@ const ioSchema = z.strictObject(
     input: z.string({ error: "input muss Text sein" }).default(""),
     expected: expectedSchema,
     match: z
-      .enum(["exact", "contains", "trimmed"], { error: "match muss exact, contains oder trimmed sein" })
+      .enum(["exact", "contains", "trimmed", "lines"], { error: "match muss exact, contains, trimmed oder lines sein" })
       .default("trimmed"),
     timeout: timeoutSchema,
   },
@@ -150,14 +150,45 @@ function normaliseLoose(s: string): string {
     .trim();
 }
 
-/** Compares program output with the expected text. All modes ignore the line-ending style. */
+/** A comma or dot between two digits counts as the same (printf uses the locale's decimal separator). Lookarounds keep `1,2,3` consistent. */
+function normaliseDecimal(s: string): string {
+  return s.replace(/(?<=\d)[,.](?=\d)/g, ".");
+}
+
+function normaliseNumeric(s: string): string {
+  return normaliseDecimal(normaliseLoose(s));
+}
+
+/** True if every non-empty expected line equals a whole actual line, in order; other actual lines are ignored. */
+function matchLines(actual: string, expected: string): boolean {
+  const actualLines = normaliseNumeric(actual)
+    .split("\n")
+    .filter((l) => l !== "");
+  const expectedLines = normaliseNumeric(expected)
+    .split("\n")
+    .filter((l) => l !== "");
+  let next = 0;
+  for (const want of expectedLines) {
+    while (next < actualLines.length && actualLines[next] !== want) next++;
+    if (next === actualLines.length) return false;
+    next++;
+  }
+  return true;
+}
+
+/**
+ * Compares program output with the expected text. All modes ignore the line-ending style.
+ * trimmed, contains and lines also treat a comma/dot between two digits as the same; exact does not.
+ */
 export function matchOutput(actual: string, expected: string, mode: MatchMode): boolean {
   switch (mode) {
     case "exact":
       return normaliseNewlines(actual) === normaliseNewlines(expected);
     case "trimmed":
-      return normaliseLoose(actual) === normaliseLoose(expected);
+      return normaliseNumeric(actual) === normaliseNumeric(expected);
     case "contains":
-      return normaliseLoose(actual).includes(normaliseLoose(expected));
+      return normaliseNumeric(actual).includes(normaliseNumeric(expected));
+    case "lines":
+      return matchLines(actual, expected);
   }
 }
