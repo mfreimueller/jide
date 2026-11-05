@@ -45,9 +45,14 @@
 
 <style>
   .toolbar {
+    flex: none; /* the action buttons are never pushed out or squeezed */
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+  .toolbar .btn {
+    flex: none;
+    white-space: nowrap;
   }
   .btn.run {
     background: var(--bg-ok);

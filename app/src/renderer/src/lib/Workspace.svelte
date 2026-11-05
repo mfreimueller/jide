@@ -335,9 +335,25 @@
     flex-direction: column;
     background: var(--bg-app);
   }
+  /* Too little room: the status gives way first, then the title; both stay on one line. */
   .status {
     font-size: 12px;
     color: var(--text-faint);
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 100;
+  }
+  .topbar .title {
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar .btn.ghost {
+    flex: none;
+    white-space: nowrap;
   }
   .status.err {
     color: var(--text-err);

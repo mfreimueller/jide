@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import type { ExerciseSummary, OpenedExercise } from "../../../shared-types/api";
   import { assignmentHeading, tabLabel } from "./exam-ui";
   import type { EditorSession } from "./session.svelte";
@@ -56,6 +56,14 @@
       switching = false;
     }
   }
+
+  // The tab row scrolls when the tabs do not fit; keep the active tab in view (each exercise has its own row).
+  $effect(() => {
+    if (!opened[active]) return;
+    void tick().then(() =>
+      document.querySelector(".slot:not(.hidden) .exam-tab.active")?.scrollIntoView({ inline: "nearest", block: "nearest" })
+    );
+  });
 
   /** Flushes all editors, then copies every opened exercise to the hand-in drive. */
   async function autosaveAll(): Promise<void> {
@@ -120,11 +128,18 @@
   .slot.hidden {
     display: none;
   }
+  /* As wide as the tabs, but never wider than the room left: then it scrolls sideways. */
   .exam-tabs {
     display: flex;
     gap: 8px;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
   .exam-tab {
+    flex: none;
+    white-space: nowrap;
     height: 34px;
     padding: 0 14px;
     border-radius: 8px;
