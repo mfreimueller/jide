@@ -1,5 +1,11 @@
 import { ipcMain, type WebContents } from "electron";
+import type { ZoomAction } from "./menu-template";
 import { nextZoomLevel } from "./zoom-level";
+
+/** Menu: Actual Size (100 %), Zoom In, Zoom Out; the same limits as the wheel. */
+export function zoomWindow(wc: WebContents, action: ZoomAction): void {
+  wc.setZoomLevel(action === "reset" ? 0 : nextZoomLevel(wc.getZoomLevel(), action === "in" ? 1 : -1));
+}
 
 /** Ctrl + wheel in the renderer asks for app zoom steps. */
 export function registerZoomIpc(): void {

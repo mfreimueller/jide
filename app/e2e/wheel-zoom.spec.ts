@@ -28,7 +28,11 @@ async function wheel(page: Page, target: Locator, dy: number, key = "Control"): 
  */
 async function zoomed(app: ElectronApplication, page: Page, target: Locator, dy: number, key = "Control"): Promise<number> {
   const before = await level(app);
-  await wheel(page, target, dy, key);
+  // a single wheel can come out below one step (the delta varies), so ask again after a pause
+  for (let i = 0; i < 3 && (await level(app)) === before; i++) {
+    await wheel(page, target, dy, key);
+    await page.waitForTimeout(400);
+  }
   await expect.poll(() => level(app)).not.toBe(before);
   const after = await level(app);
   if (dy < 0) expect(after).toBeGreaterThan(before);
@@ -47,13 +51,14 @@ test("Ctrl + wheel over the editor and the Angabe zooms the app, both directions
   expect(await level(app)).toBe(0);
 
   const editor = page.locator(".monaco-editor .view-lines:visible");
-  await zoomed(app, page, editor, -100);
-  await zoomed(app, page, editor, -100);
+  // down first: the maximum is only 120 %, so there is little room upwards
   await zoomed(app, page, editor, 100);
+  await zoomed(app, page, editor, 100);
+  await zoomed(app, page, editor, -100);
 
   const assignment = page.getByTestId("assignment");
-  await zoomed(app, page, assignment, 100);
   await zoomed(app, page, assignment, -100);
+  await zoomed(app, page, assignment, 100);
 
   // Cmd + wheel (macOS) too; a plain wheel does not zoom
   const two = await zoomed(app, page, editor, -100, "Meta");
@@ -63,7 +68,7 @@ test("Ctrl + wheel over the editor and the Angabe zooms the app, both directions
   expect(await level(app)).toBe(two);
 });
 
-test("one wheel notch is one menu-sized step (Ansicht > Vergrößern / Verkleinern)", async () => {
+test("one wheel notch is one menu-sized step (Ansicht > Zoom In / Zoom Out)", async () => {
   const { app, page } = await launch();
   await openExercise(page, "Summe zweier Zahlen");
   const editor = page.locator(".monaco-editor .view-lines:visible");
@@ -73,26 +78,50 @@ test("one wheel notch is one menu-sized step (Ansicht > Vergrößern / Verkleine
         el.dispatchEvent(new WheelEvent("wheel", { deltaY: a.deltaY, deltaMode: a.deltaMode, [a.key]: true, bubbles: true, cancelable: true })),
       { deltaY, deltaMode, key }
     );
-  const menu = (role: "zoomin" | "zoomout") =>
-    app.evaluate(({ Menu, BrowserWindow }, r) => {
-      const item = Menu.getApplicationMenu()!.getMenuItemById("ansicht")!.submenu!.items.find((i) => String(i.role) === r)!;
+  const menu = (id: "zoom-in" | "zoom-out" | "zoom-reset") =>
+    app.evaluate(({ Menu, BrowserWindow }, i) => {
+      const item = Menu.getApplicationMenu()!.getMenuItemById(i)!;
       const win = BrowserWindow.getAllWindows()[0];
       item.click(undefined, win, win.webContents);
-    }, role);
+    }, id);
 
   await notch(-100);
   await expect.poll(() => level(app)).toBe(0.5);
   await notch(-3, 1, "metaKey"); // deltaMode LINE: 3 lines
-  await expect.poll(() => level(app)).toBe(1);
-  await menu("zoomin");
-  await expect.poll(() => level(app)).toBe(1.5);
-  await notch(100);
-  await expect.poll(() => level(app)).toBe(1);
-  await menu("zoomout");
+  await expect.poll(() => level(app)).toBe(ZOOM_LEVEL_MAX);
+  await menu("zoom-out");
   await expect.poll(() => level(app)).toBe(0.5);
+  await menu("zoom-in");
+  await expect.poll(() => level(app)).toBe(1);
+  await notch(100);
+  await expect.poll(() => level(app)).toBe(0.5);
+  await menu("zoom-reset");
+  await expect.poll(() => level(app)).toBe(0);
   // trackpad: ten small deltas make one step
   for (let i = 0; i < 10; i++) await notch(-10);
-  await expect.poll(() => level(app)).toBe(1);
+  await expect.poll(() => level(app)).toBe(0.5);
+});
+
+test("menu and wheel share the limits: Zoom In stops at 120 %, Zoom Out at 76 %", async () => {
+  const { app, page } = await launch();
+  await openExercise(page, "Summe zweier Zahlen");
+  const click = (id: string) =>
+    app.evaluate(({ Menu, BrowserWindow }, i) => {
+      const win = BrowserWindow.getAllWindows()[0];
+      Menu.getApplicationMenu()!.getMenuItemById(i)!.click(undefined, win, win.webContents);
+    }, id);
+  for (let i = 0; i < 6; i++) await click("zoom-in");
+  await expect.poll(() => level(app)).toBe(ZOOM_LEVEL_MAX);
+  await wheel(page, page.locator(".monaco-editor .view-lines:visible"), -100);
+  await page.waitForTimeout(300);
+  expect(await level(app)).toBe(ZOOM_LEVEL_MAX);
+  await click("zoom-reset");
+  await expect.poll(() => level(app)).toBe(0);
+  for (let i = 0; i < 8; i++) await click("zoom-out");
+  await expect.poll(() => level(app)).toBe(ZOOM_LEVEL_MIN);
+  await wheel(page, page.getByTestId("assignment"), 100);
+  await page.waitForTimeout(300);
+  expect(await level(app)).toBe(ZOOM_LEVEL_MIN);
 });
 
 test("the zoom is limited and the editor stays visible at the largest size in a small window", async () => {

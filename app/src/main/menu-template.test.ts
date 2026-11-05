@@ -8,7 +8,8 @@ const base: MenuOptions = {
   online: false,
   theme: "system",
   onTheme: () => undefined,
-  onLogout: () => undefined
+  onLogout: () => undefined,
+  onZoom: () => undefined
 };
 
 const sub = (item: MenuItemConstructorOptions): MenuItemConstructorOptions[] => item.submenu as MenuItemConstructorOptions[];
@@ -25,9 +26,10 @@ describe("buildMenuTemplate", () => {
       "forceReload",
       "toggleDevTools",
       "separator",
-      "resetZoom",
-      "zoomIn",
-      "zoomOut",
+      "zoom-reset",
+      "zoom-in",
+      "zoom-in-alt",
+      "zoom-out",
       "separator",
       "togglefullscreen",
       "separator",
@@ -40,6 +42,22 @@ describe("buildMenuTemplate", () => {
       ["theme-dark", "Dunkel", "radio"],
       ["theme-system", "System", "radio"]
     ]);
+  });
+
+  it("zoom items keep Electron's labels and accelerators and report their action", () => {
+    const onZoom = vi.fn();
+    const items = sub(ansicht(buildMenuTemplate({ ...base, onZoom })));
+    const by = (id: string) => items.find((i) => i.id === id)!;
+    expect(["zoom-reset", "zoom-in", "zoom-out"].map((id) => [by(id).label, by(id).accelerator])).toEqual([
+      ["Actual Size", "CommandOrControl+0"],
+      ["Zoom In", "CommandOrControl+Plus"],
+      ["Zoom Out", "CommandOrControl+-"]
+    ]);
+    expect(by("zoom-in-alt")).toMatchObject({ accelerator: "CommandOrControl+=", visible: false, acceleratorWorksWhenHidden: true });
+    for (const [id, action] of [["zoom-reset", "reset"], ["zoom-in", "in"], ["zoom-in-alt", "in"], ["zoom-out", "out"]] as const) {
+      (by(id).click as () => void)();
+      expect(onZoom).toHaveBeenLastCalledWith(action);
+    }
   });
 
   it.each(["light", "dark", "system"] as const)("checks exactly the stored choice (%s)", (theme) => {

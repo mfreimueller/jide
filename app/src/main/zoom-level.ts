@@ -1,8 +1,8 @@
 /** Same step as Ansicht > Vergrößern / Verkleinern (Electron roles zoomIn / zoomOut). */
 export const ZOOM_STEP = 0.5;
-/** Window zoom level 0 = 100 %, each whole level is x1.2; so 76 % ... 144 %. */
+/** Window zoom level 0 = 100 %, each whole level is x1.2; so 76 % ... 120 %. */
 export const ZOOM_LEVEL_MIN = -1.5;
-export const ZOOM_LEVEL_MAX = 2;
+export const ZOOM_LEVEL_MAX = 1;
 
 /** The level after `steps` (+ bigger, - smaller) menu-sized steps, kept within the allowed range. */
 export function nextZoomLevel(level: number, steps: number): number {

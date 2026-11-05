@@ -13,7 +13,10 @@ window.addEventListener(
     if (!e.ctrlKey && !e.metaKey) return;
     if (e.target instanceof Element && e.target.closest("[data-own-zoom]")) return;
     e.preventDefault();
-    const steps = wheelZoom(e, e.timeStamp);
+    // Chromium divides pixel deltas by the page zoom (a 100 px notch is 83 px at 120 %): undo that,
+    // otherwise a notch would fall short of a step once the app is zoomed in.
+    const deltaY = e.deltaMode === 0 ? e.deltaY * window.jide.zoomFactor() : e.deltaY;
+    const steps = wheelZoom({ deltaY, deltaMode: e.deltaMode }, e.timeStamp);
     if (steps !== 0) window.jide.zoomStep(steps);
   },
   { capture: true, passive: false }

@@ -9,7 +9,11 @@ export interface MenuOptions {
   theme: ThemeChoice;
   onTheme: (theme: ThemeChoice) => void;
   onLogout: () => void;
+  /** Ansicht > Actual Size / Zoom In / Zoom Out; main keeps the zoom within the same limits as Ctrl + wheel. */
+  onZoom: (action: ZoomAction) => void;
 }
+
+export type ZoomAction = "reset" | "in" | "out";
 
 const THEMES: { id: ThemeChoice; label: string }[] = [
   { id: "light", label: "Hell" },
@@ -33,9 +37,12 @@ export function buildMenuTemplate(o: MenuOptions): MenuItemConstructorOptions[] 
       { role: "forceReload" },
       { role: "toggleDevTools" },
       { type: "separator" },
-      { role: "resetZoom" },
-      { role: "zoomIn" },
-      { role: "zoomOut" },
+      // Not the zoomIn / zoomOut roles (no limit): same labels and accelerators, clicks go to onZoom.
+      { id: "zoom-reset", label: "Actual Size", accelerator: "CommandOrControl+0", click: () => o.onZoom("reset") },
+      { id: "zoom-in", label: "Zoom In", accelerator: "CommandOrControl+Plus", click: () => o.onZoom("in") },
+      // Ctrl+= zooms in as well, without Shift (hidden duplicate)
+      { id: "zoom-in-alt", label: "Zoom In", accelerator: "CommandOrControl+=", visible: false, acceleratorWorksWhenHidden: true, click: () => o.onZoom("in") },
+      { id: "zoom-out", label: "Zoom Out", accelerator: "CommandOrControl+-", click: () => o.onZoom("out") },
       { type: "separator" },
       { role: "togglefullscreen" },
       { type: "separator" },

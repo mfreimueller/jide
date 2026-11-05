@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webFrame } from "electron";
 import type { JideApi } from "../shared-types/api";
 
 const api: JideApi = {
@@ -27,6 +27,7 @@ const api: JideApi = {
     return () => ipcRenderer.removeListener("jide:confirm-close", listener);
   },
   answerClose: (leave) => ipcRenderer.send("jide:close-answer", leave),
+  zoomFactor: () => webFrame.getZoomFactor(),
   zoomStep: (steps) => ipcRenderer.send("jide:zoom-step", steps),
   quit: () => ipcRenderer.send("jide:quit"),
   login: (code) => ipcRenderer.invoke("jide:login", code),

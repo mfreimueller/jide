@@ -24,7 +24,8 @@ export function createWheelZoom(): (e: WheelInput, now: number) => number {
     if (now - last > IDLE_MS || Math.sign(px) !== Math.sign(sum)) sum = 0;
     last = now;
     sum += px;
-    const steps = Math.trunc(Math.abs(sum) / STEP_PX);
+    // 1 px of slack: 91.287 * 1.0954 is 99.99999 and must still count as a notch
+    const steps = Math.trunc((Math.abs(sum) + 1) / STEP_PX);
     if (steps === 0) return 0;
     sum -= Math.sign(sum) * steps * STEP_PX;
     // wheel up (negative deltaY) = bigger

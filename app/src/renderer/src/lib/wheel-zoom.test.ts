@@ -39,6 +39,9 @@ describe("createWheelZoom", () => {
     expect(z(px(-60), 0)).toBe(0);
     expect(z(px(-60), 1000)).toBe(0);
   });
+  it("a notch scaled back from a zoomed page (99.9999 px) still counts", () => {
+    expect(createWheelZoom()(px(-91.28708949360448 * 1.0954451150103321), 0)).toBe(1);
+  });
   it("ignores zero deltas", () => {
     expect(createWheelZoom()(px(0), 0)).toBe(0);
   });

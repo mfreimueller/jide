@@ -187,6 +187,8 @@ export interface JideApi {
   onCloseConfirm: (handler: () => void) => () => void;
   /** Answer to `onCloseConfirm`: true = close anyway. */
   answerClose: (leave: boolean) => void;
+  /** The current window zoom factor (1 = 100 %). */
+  zoomFactor: () => number;
   /** Ctrl + wheel: zoom the whole window by this many menu-sized steps (+ bigger, - smaller). */
   zoomStep: (steps: number) => void;
   /** Quits the app (exam error screens). */

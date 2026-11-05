@@ -3,6 +3,7 @@ import { context } from "./context";
 import { examMode } from "./exam-state";
 import { buildMenuTemplate } from "./menu-template";
 import { chooseTheme, storedTheme } from "./theme";
+import { zoomWindow } from "./zoom";
 
 /** Asks, then deletes the stored code and sends every window back to the login. */
 async function logout(): Promise<void> {
@@ -33,7 +34,11 @@ export function installAppMenu(): void {
     online: !examMode() && !!context().session,
     theme: storedTheme(),
     onTheme: chooseTheme,
-    onLogout: () => void logout()
+    onLogout: () => void logout(),
+    onZoom: (action) => {
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+      if (win && !win.isDestroyed()) zoomWindow(win.webContents, action);
+    }
   });
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
