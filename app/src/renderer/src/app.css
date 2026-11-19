@@ -46,6 +46,13 @@
   --text-ok: #18794e;
   --text-warn: #ab6400;
   --text-err: #ce2c31;
+  /* difficulty pill (text/bars colour + background) */
+  --diff-newbie: #18794e;
+  --diff-newbie-bg: #ecf8f1;
+  --diff-advanced: #b45309;
+  --diff-advanced-bg: #fef3e2;
+  --diff-pro: #6d28d9;
+  --diff-pro-bg: #f3ecfe;
 }
 
 /* Dark palette: follows the OS, or the choice in the menu Ansicht > Darstellung (main sets nativeTheme.themeSource). */
@@ -87,6 +94,12 @@
     --text-ok: #3dd68c;
     --text-warn: #ffca16;
     --text-err: #ff9592;
+    --diff-newbie: #3dd68c;
+    --diff-newbie-bg: #132d21;
+    --diff-advanced: #ffa057;
+    --diff-advanced-bg: #331e0b;
+    --diff-pro: #d19dff;
+    --diff-pro-bg: #2b1f3d;
   }
 }
 

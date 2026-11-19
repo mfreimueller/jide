@@ -14,6 +14,8 @@ export interface ExerciseSummary {
   groupId: number | null;
   /** A Scratch program (own work without a server): own section, no hand-in. Absent = false. */
   scratch?: boolean;
+  /** From exercise.yaml; null = none. Shown as a pill on the card (never in exam mode). */
+  difficulty: "newbie" | "advanced" | "pro" | null;
 }
 
 export interface ExerciseGroup {

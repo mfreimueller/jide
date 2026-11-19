@@ -65,6 +65,7 @@ export function registerExerciseIpc(): void {
         submittedAt,
         late: handIn?.late ?? false,
         groupId: ex.groupId,
+        difficulty: ex.difficulty ?? null,
         ...(ex.scratch ? { scratch: true } : {})
       });
     }

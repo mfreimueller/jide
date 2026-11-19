@@ -9,7 +9,8 @@ const ex = (id: string, groupId: number | null, status: ExerciseSummary["status"
   deadline: null,
   submittedAt: null,
   late: false,
-  groupId
+  groupId,
+  difficulty: null
 });
 const ids = (s: { exercises: ExerciseSummary[] }) => s.exercises.map((e) => e.id);
 

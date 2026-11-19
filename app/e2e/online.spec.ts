@@ -188,6 +188,14 @@ test("groups show newest unlock first with their progress; handing in updates it
   await page.screenshot({ path: join(screenshotDir, "online-list-groups.png") });
 });
 
+test("the card shows the difficulty from the backend; one without difficulty shows none", async () => {
+  const backend = await startBackend();
+  const { page } = await loggedIn(backend);
+  const card = (title: string) => page.getByTestId("exercise").filter({ hasText: title });
+  await expect(card(SUMME).getByTestId("difficulty")).toHaveText("Newbie");
+  await expect(card("Größere Zahl").getByTestId("difficulty")).toHaveCount(0);
+});
+
 test("ungrouped exercises come last under Weitere Übungen", async () => {
   const backend = await startBackend();
   await backend.setGroups([{ name: "Erste Schritte", exercises: ["maximum"] }]);

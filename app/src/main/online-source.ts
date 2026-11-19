@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import path from "node:path";
-import { loadExercise, saveFile, type Exercise, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
+import { DIFFICULTIES, loadExercise, saveFile, type Difficulty, type Exercise, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
 import { ApiClient, ApiError } from "./api-client";
 import { isSafeExerciseId, needsDownload, PackageCache, restorableFiles } from "./package-cache";
 import type { ExerciseSource, HandInOutcome, SourceEntry, SourceListing } from "./source";
@@ -12,7 +12,13 @@ function messageOf(e: unknown): string {
 }
 
 function toEntries(list: StudentExerciseSummary[]): SourceEntry[] {
-  return list.map((e) => ({ id: e.id, title: e.title, deadline: e.deadline ?? null, groupId: e.groupId ?? null }));
+  return list.map((e) => ({
+    id: e.id,
+    title: e.title,
+    deadline: e.deadline ?? null,
+    groupId: e.groupId ?? null,
+    difficulty: (DIFFICULTIES as readonly unknown[]).includes(e.difficulty) ? (e.difficulty as Difficulty) : null
+  }));
 }
 
 /** Exercises from the backend, cached in userData/cache (see PackageCache). */

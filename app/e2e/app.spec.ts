@@ -42,6 +42,14 @@ test("list shows both examples as Neu", async () => {
   await page.screenshot({ path: join(screenshotDir, "list.png") });
 });
 
+test("a card shows its difficulty, a card without difficulty shows none", async () => {
+  const { page } = await launch();
+  const pill = card(page, "Summe zweier Zahlen").getByTestId("difficulty");
+  await expect(pill).toHaveText("Newbie");
+  await expect(pill).toHaveAttribute("data-level", "newbie");
+  await expect(card(page, "Größere Zahl").getByTestId("difficulty")).toHaveCount(0);
+});
+
 test("opening an exercise shows code and rendered assignment", async () => {
   const { page } = await launch();
   await card(page, "Summe zweier Zahlen").getByRole("button", { name: "Öffnen" }).click();
