@@ -316,6 +316,30 @@ describe('per-course unlock and deadline', () => {
   });
 });
 
+describe('difficulty', () => {
+  const yaml = (extra: string) => `id: mini\ntitle: Mini\nfiles:\n  - path: Mini.java\nmainFile: Mini.java\n${extra}`;
+
+  it('is stored at upload, listed for students, replaced and cleared by a new upload; invalid values are refused', async () => {
+    const course = await newCourse(anna);
+    const s = await studentIn(anna, course.id);
+    const listed = async () => (await json(await s.call('/api/exercises'))).exercises.find((e: any) => e.id === 'mini');
+
+    expect((await upload(anna, minimalZip({ 'exercise.yaml': yaml('difficulty: advanced\n') }))).status).toBe(200);
+    await setCourse(anna, course.id, 'mini', { unlocked: true });
+    expect((await listed()).difficulty).toBe('advanced');
+
+    expect((await upload(anna, minimalZip({ 'exercise.yaml': yaml('difficulty: pro\n') }))).status).toBe(200);
+    expect((await listed()).difficulty).toBe('pro');
+
+    expect((await upload(anna, minimalZip())).status).toBe(200);
+    expect((await listed()).difficulty).toBeNull();
+
+    const bad = await upload(anna, minimalZip({ 'exercise.yaml': yaml('difficulty: expert\n') }));
+    expect(bad.status).toBe(400);
+    expect((await json(bad)).message).toContain('difficulty muss newbie, advanced oder pro sein');
+  });
+});
+
 describe('student API', () => {
   it('requires a valid student code', async () => {
     expect((await app.request('/api/exercises')).status).toBe(401);
@@ -335,7 +359,8 @@ describe('student API', () => {
     expect(l1.exercises).toHaveLength(1);
     expect(l1.exercises[0]).toMatchObject({ id: 'summe', title: 'Summe zweier Zahlen', deadline: '2026-12-01T22:59:00.000Z' });
     expect(l1.exercises[0].version).toMatch(/^[0-9a-f]{64}$/);
-    expect(Object.keys(l1.exercises[0]).sort()).toEqual(['deadline', 'groupId', 'id', 'title', 'version']);
+    expect(Object.keys(l1.exercises[0]).sort()).toEqual(['deadline', 'difficulty', 'groupId', 'id', 'title', 'version']);
+    expect(l1.exercises[0].difficulty).toBe('newbie'); // examples/summe has difficulty: newbie
 
     const l2 = await json(await s2.call('/api/exercises'));
     expect(l2.exercises.map((e: { id: string }) => e.id)).toEqual(['maximum']);

@@ -1,3 +1,4 @@
+import type { Difficulty } from '@jide/shared';
 import type { SQLInstance } from '../db/sql.js';
 import { sql } from '../db/sql.js';
 import { AppError } from '../errors.js';
@@ -105,9 +106,9 @@ export async function saveExercise(
   const now = new Date();
   const data = Buffer.from(pkg.zip);
   await db`
-    INSERT INTO exercises (teacher_id, slug, title, version, size, package, uploaded_at)
-    VALUES (${teacherId}, ${pkg.id}, ${pkg.title}, ${pkg.version}, ${data.length}, ${data}, ${now})
-    ON DUPLICATE KEY UPDATE title = VALUES(title), version = VALUES(version), size = VALUES(size),
+    INSERT INTO exercises (teacher_id, slug, title, difficulty, version, size, package, uploaded_at)
+    VALUES (${teacherId}, ${pkg.id}, ${pkg.title}, ${pkg.difficulty}, ${pkg.version}, ${data.length}, ${data}, ${now})
+    ON DUPLICATE KEY UPDATE title = VALUES(title), difficulty = VALUES(difficulty), version = VALUES(version), size = VALUES(size),
                             package = VALUES(package), uploaded_at = VALUES(uploaded_at)
   `;
   const { rowId: _rowId, ...exercise } = await exerciseForTeacher(db, teacherId, pkg.id);
@@ -167,11 +168,13 @@ export interface StudentExerciseRow {
   version: string;
   deadline: string | null;
   groupId: number | null;
+  /** newbie | advanced | pro, or null (no difficulty, or uploaded before it existed). */
+  difficulty: Difficulty | null;
 }
 
 export async function unlockedForCourse(db: SQLInstance, courseId: number): Promise<StudentExerciseRow[]> {
-  const rows = await db<{ id: string; title: string; version: string; deadline: Date | null; groupId: number | null }[]>`
-    SELECT e.slug AS id, e.title, e.version, ce.deadline, ce.group_id AS groupId
+  const rows = await db<{ id: string; title: string; version: string; deadline: Date | null; groupId: number | null; difficulty: Difficulty | null }[]>`
+    SELECT e.slug AS id, e.title, e.version, ce.deadline, ce.group_id AS groupId, e.difficulty
     FROM course_exercises ce JOIN exercises e ON e.id = ce.exercise_id
     WHERE ce.course_id = ${courseId} AND ce.unlocked = 1
     ORDER BY ce.unlocked_at IS NULL, ce.unlocked_at DESC, e.title, e.slug

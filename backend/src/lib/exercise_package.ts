@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { unzipSync, zipSync, type Zippable } from 'fflate';
-import { ExerciseError, loadExercise } from '@jide/shared';
+import { ExerciseError, loadExercise, type Difficulty } from '@jide/shared';
 import { AppError } from '../errors.js';
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -14,6 +14,8 @@ export interface ValidatedPackage {
   /** Exercise id from exercise.yaml. */
   id: string;
   title: string;
+  /** From exercise.yaml, null when not set. */
+  difficulty: Difficulty | null;
   /** Normalised zip: a single folder `<id>/` with the exercise inside. */
   zip: Uint8Array;
   /** sha256 hex of `zip`. */
@@ -132,6 +134,7 @@ export async function validatePackage(upload: Uint8Array): Promise<ValidatedPack
     return {
       id: exercise.id,
       title: exercise.title,
+      difficulty: exercise.difficulty ?? null,
       zip,
       version: createHash('sha256').update(zip).digest('hex'),
     };

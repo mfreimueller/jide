@@ -16,7 +16,7 @@ Teacher routes need the teacher `Bearer` token, student routes the student code.
 | GET / POST | `/api/teacher/courses/:courseId/groups` | groups of the course sorted by name `{ groups: [{id, name}] }` / create `{ name }` (201 `{ group }`; 409 `Diese Gruppe gibt es schon.` for a duplicate name in the course) |
 | PUT / DELETE | `/api/teacher/courses/:courseId/groups/:groupId` | rename `{ name }` / delete (204; its exercises become ungrouped) |
 | PUT | `/api/teacher/courses/:courseId/exercises/:id` | also takes `groupId: number \| null` (appends to that group's end / takes it out of its group) |
-| GET | `/api/exercises` | student: unlocked exercises of the own course (`id, title, version, deadline, groupId`) plus `groups` (`[{id, name}]`, only groups with a visible exercise). Exercises are ordered by first unlock (`course_exercises.unlocked_at`) newest first, never-dated rows last, then title; groups by the newest `unlocked_at` of their visible exercises (all-NULL groups last) |
+| GET | `/api/exercises` | student: unlocked exercises of the own course (`id, title, version, deadline, groupId, difficulty`; `difficulty` is `newbie`, `advanced`, `pro` or `null`) plus `groups` (`[{id, name}]`, only groups with a visible exercise). Exercises are ordered by first unlock (`course_exercises.unlocked_at`) newest first, never-dated rows last, then title; groups by the newest `unlocked_at` of their visible exercises (all-NULL groups last) |
 | GET | `/api/exercises/:id` | student: the package zip; 404 unless unlocked; `ETag: "<version>"`, `If-None-Match` gives 304 |
 
 `:id` is the exercise id from `exercise.yaml`. Types of the student API are in `@jide/shared` (`shared/src/api.ts`).
