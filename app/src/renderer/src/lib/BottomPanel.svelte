@@ -146,6 +146,7 @@
                   {/if}
                 {/if}
                 {#if r.message}<div class="tdetail msgline" data-testid="test-message">{r.message}</div>{/if}
+                {#if r.hint}<div class="tnote" data-testid="test-hint">{r.hint}</div>{/if}
               </div>
             </div>
             {/if}

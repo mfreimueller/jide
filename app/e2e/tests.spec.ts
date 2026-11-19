@@ -189,3 +189,14 @@ test("the last result comes back when the exercise is opened again", async () =>
   await page.getByTestId("test").click();
   await expect(page.getByTestId("tests-banner")).toContainText("Dein Code sieht richtig aus!");
 });
+
+test("reading more input than the test supplies shows the hint below the error", async () => {
+  const { app, page } = await launch();
+  await openExercise(page, "Summe zweier Zahlen");
+  await setEditorText(app, page, SUMME_RIGHT.replace("int b = sc.nextInt();", "int b = sc.nextInt();\n    sc.nextInt();"));
+  await page.getByTestId("test").click();
+  const row = page.getByTestId("test-row").first();
+  await expect(row).toHaveAttribute("data-status", "error");
+  await expect(row.getByTestId("test-message")).toContainText("NoSuchElementException");
+  await expect(row.getByTestId("test-hint")).toHaveText("Dein Programm wollte mehr Eingaben lesen, als der Test liefert. Läuft deine Schleife zu oft?");
+});

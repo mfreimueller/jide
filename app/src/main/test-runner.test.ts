@@ -15,6 +15,7 @@ import {
   declaresMainWithArgs,
   generateCheckCode,
   checkResult,
+  READ_TOO_MUCH_HINT,
   ioResult,
   parseCheckResults,
   runTests,
@@ -68,6 +69,29 @@ describe("checkResult val", () => {
     expect(checkResult(t("3.14"), val("3,15")).status).toBe("failed");
     expect(checkResult(t("3.14"), val("3,1")).status).toBe("failed");
     expect(checkResult(t("a.b"), val("a,b")).status).toBe("failed");
+  });
+});
+
+describe("ioResult hint for reading too much input", () => {
+  const test: IoTestCase = { type: "io", name: "n", input: "a\n", expected: "x", match: "contains", timeoutMs: 1000 };
+  const run = (stderr: string) => ({ stdout: "", stderr, timedOut: false, limitHit: false });
+  const scannerTrace = `Exception in thread "main" java.util.NoSuchElementException: No line found
+\tat java.base/java.util.Scanner.nextLine(Scanner.java:1660)
+\tat Main.main(Main.java:5)
+`;
+  it("is set for a NoSuchElementException thrown by Scanner", () => {
+    const r = ioResult(test, run(scannerTrace), "Main.java", 10);
+    expect(r).toMatchObject({ status: "error", line: 5, hint: READ_TOO_MUCH_HINT });
+    expect(r.message).not.toContain("Läuft deine Schleife");
+    expect(READ_TOO_MUCH_HINT).toBe("Dein Programm wollte mehr Eingaben lesen, als der Test liefert. Läuft deine Schleife zu oft?");
+  });
+  it("is absent for other exceptions, even with a Scanner frame", () => {
+    const other = `Exception in thread "main" java.util.InputMismatchException\n\tat java.base/java.util.Scanner.throwFor(Scanner.java:939)\n\tat Main.main(Main.java:5)\n`;
+    expect(ioResult(test, run(other), "Main.java", 10)).not.toHaveProperty("hint");
+  });
+  it("is absent for a NoSuchElementException that does not come from Scanner", () => {
+    const iter = `Exception in thread "main" java.util.NoSuchElementException\n\tat java.base/java.util.ArrayList$Itr.next(ArrayList.java:1052)\n\tat Main.main(Main.java:5)\n`;
+    expect(ioResult(test, run(iter), "Main.java", 10)).not.toHaveProperty("hint");
   });
 });
 

@@ -259,6 +259,13 @@ function studentLineFromTrace(stderr: string, fileName: string, maxLine: number)
   return undefined;
 }
 
+export const READ_TOO_MUCH_HINT = "Dein Programm wollte mehr Eingaben lesen, als der Test liefert. Läuft deine Schleife zu oft?";
+
+/** The program asked a Scanner for more input than the test supplied. */
+function readsTooMuch(firstLine: string, stderr: string): boolean {
+  return /^Exception in thread "[^"]*" java\.util\.NoSuchElementException\b/.test(firstLine) && /\bat java\.base\/java\.util\.Scanner\.|\bat java\.util\.Scanner\./.test(stderr);
+}
+
 function withLine(message: string, line: number | undefined): string {
   return line ? `${message} (Zeile ${line})` : message;
 }
@@ -272,7 +279,13 @@ export function ioResult(test: IoTestCase, run: IoRun, mainFileName: string, stu
   if (first !== undefined) {
     const line = studentLineFromTrace(run.stderr, mainFileName, studentLines);
     const message = first.replace(/^Exception in thread "[^"]*" /, "");
-    return { name, status: "error", message: withLine(message, line), ...(line ? { line } : {}) };
+    return {
+      name,
+      status: "error",
+      message: withLine(message, line),
+      ...(readsTooMuch(first, run.stderr) ? { hint: READ_TOO_MUCH_HINT } : {}),
+      ...(line ? { line } : {})
+    };
   }
   if (matchOutput(run.stdout, test.expected, test.match)) return { name, status: "passed" };
   return { name, status: "failed", expected: test.expected, actual: run.stdout, match: test.match, input: test.input };

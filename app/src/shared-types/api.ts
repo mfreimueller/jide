@@ -149,6 +149,8 @@ export interface TestResult {
   input?: string;
   /** Errors (and failed `code` tests): German explanation, e.g. exception with line number. */
   message?: string;
+  /** Errors: an additional German hint for the student, shown below the message as a secondary note. */
+  hint?: string;
   /** Line in the student's main file where an exception was thrown, if known. */
   line?: number;
 }
