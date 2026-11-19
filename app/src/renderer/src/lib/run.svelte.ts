@@ -1,5 +1,6 @@
 import type { RunEndReason, RunEvent } from "../../../shared-types/api";
 import { ConsoleTerm } from "./console-term";
+import { eventLog } from "./event-log";
 import type { LiveCompiler } from "./problems.svelte";
 import type { EditorSession } from "./session.svelte";
 
@@ -39,6 +40,7 @@ export class RunController {
 
   async start(): Promise<void> {
     if (this.state !== "idle") return;
+    eventLog.add("Ausführen gedrückt");
     this.state = "starting";
     this.console.clear(); // each run starts with an empty console
     this.showTab("Konsole");

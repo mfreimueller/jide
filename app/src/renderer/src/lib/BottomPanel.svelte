@@ -67,6 +67,9 @@
       </button>
     {/each}
     <span class="spacer"></span>
+    {#if tab === "Tests" && last && tests?.stale}
+      <span class="chip late-hand" data-testid="tests-stale">Code geändert – bitte neu testen</span>
+    {/if}
     {#if tab === "Tests" && last}
       <span class="small" data-testid="tests-time">zuletzt getestet {formatTime(last.at)}</span>
     {/if}

@@ -151,7 +151,11 @@ export class EditorSession {
   /** Called after every edit of an editable file (auto-compile hooks in here). */
   onContentChange: (() => void) | undefined;
 
+  /** Counts the edits of editable files, so derived state (the "Code geändert" chip) can follow the typing. */
+  editVersion = $state(0);
+
   private onEdit(path: string): void {
+    this.editVersion++;
     this.onContentChange?.();
     this.dirty.add(path);
     this.saveState = "saving";

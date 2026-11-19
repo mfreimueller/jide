@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
   import type { RunController } from "./run.svelte";
-  import type { TestController } from "./test.svelte";
+  import { MSG_TEST_BLOCKED, type TestController } from "./test.svelte";
 
   let {
     run,
@@ -27,14 +27,17 @@
     ■ Stopp
   </button>
   {#if tests}
-    <button
-      class="btn"
-      disabled={run.state !== "idle" || tests.state === "running"}
-      onclick={() => void tests.start()}
-      data-testid="test"
-    >
-      ✓ Testen
-    </button>
+    <!-- A disabled button gets no mouse events: the wrapper carries the tooltip (dark tooltip as in PanelButton). -->
+    <span class="tipwrap" data-tip={run.state !== "idle" ? MSG_TEST_BLOCKED : undefined} data-testid="test-wrap">
+      <button
+        class="btn"
+        disabled={run.state !== "idle" || tests.state === "running"}
+        onclick={() => void tests.start()}
+        data-testid="test"
+      >
+        ✓ Testen
+      </button>
+    </span>
   {/if}
   {#if handIn}
     <button class="btn primary" disabled={handIn.busy} onclick={handIn.onClick} data-testid="hand-in">
@@ -53,6 +56,29 @@
   .toolbar .btn {
     flex: none;
     white-space: nowrap;
+  }
+  .tipwrap {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+  }
+  .tipwrap button:disabled {
+    pointer-events: none; /* the wrapper gets the hover */
+  }
+  .tipwrap[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    width: 250px;
+    background: var(--bg-dark);
+    color: #fff;
+    font-size: 12px;
+    line-height: 16px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    pointer-events: none;
   }
   .btn.run {
     background: var(--bg-ok);
