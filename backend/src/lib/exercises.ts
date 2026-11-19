@@ -17,8 +17,6 @@ export interface CourseExerciseView extends ExerciseView {
   deadline: string | null;
   /** Group of the course the exercise is in, or null. */
   groupId: number | null;
-  /** Place inside the group (0-based), null when ungrouped. */
-  position: number | null;
 }
 
 interface ExerciseRow {
@@ -33,7 +31,6 @@ interface CourseExerciseRow extends ExerciseRow {
   unlocked: number | null;
   deadline: Date | null;
   groupId: number | null;
-  position: number | null;
 }
 
 const toView = (r: ExerciseRow): ExerciseView => ({
@@ -49,7 +46,6 @@ const toCourseView = (r: CourseExerciseRow): CourseExerciseView => ({
   unlocked: r.unlocked === 1,
   deadline: r.deadline ? r.deadline.toISOString() : null,
   groupId: r.groupId ?? null,
-  position: r.position ?? null,
 });
 
 export async function listExercises(db: SQLInstance, teacherId: number): Promise<ExerciseView[]> {
@@ -122,12 +118,12 @@ export async function saveExercise(
 export async function listForCourse(db: SQLInstance, teacherId: number, courseId: number): Promise<CourseExerciseView[]> {
   const rows = await db<CourseExerciseRow[]>`
     SELECT e.slug AS id, e.title, e.version, e.uploaded_at AS uploadedAt, e.size, ce.unlocked, ce.deadline,
-           ce.group_id AS groupId, ce.position
+           ce.group_id AS groupId
     FROM exercises e
     LEFT JOIN course_exercises ce ON ce.exercise_id = e.id AND ce.course_id = ${courseId}
     LEFT JOIN exercise_groups g ON g.id = ce.group_id
     WHERE e.teacher_id = ${teacherId}
-    ORDER BY g.position IS NULL, g.position, ce.position, e.title, e.slug
+    ORDER BY g.id IS NULL, g.name, g.id, e.title, e.slug
   `;
   return rows.map(toCourseView);
 }
@@ -155,6 +151,10 @@ export async function updateForCourse(
   if (Object.keys(set).length > 0) {
     await db`UPDATE course_exercises SET ${sql(set)} WHERE course_id = ${courseId} AND exercise_id = ${rowId}`;
   }
+  // First unlock only: hiding and unlocking again keeps the original date.
+  if (change.unlocked) {
+    await db`UPDATE course_exercises SET unlocked_at = COALESCE(unlocked_at, ${new Date()}) WHERE course_id = ${courseId} AND exercise_id = ${rowId}`;
+  }
   const all = await listForCourse(db, teacherId, courseId);
   return all.find((e) => e.id === slug)!;
 }
@@ -173,9 +173,8 @@ export async function unlockedForCourse(db: SQLInstance, courseId: number): Prom
   const rows = await db<{ id: string; title: string; version: string; deadline: Date | null; groupId: number | null }[]>`
     SELECT e.slug AS id, e.title, e.version, ce.deadline, ce.group_id AS groupId
     FROM course_exercises ce JOIN exercises e ON e.id = ce.exercise_id
-    LEFT JOIN exercise_groups g ON g.id = ce.group_id
     WHERE ce.course_id = ${courseId} AND ce.unlocked = 1
-    ORDER BY g.position IS NULL, g.position, ce.position, e.title, e.slug
+    ORDER BY ce.unlocked_at IS NULL, ce.unlocked_at DESC, e.title, e.slug
   `;
   return rows.map((r) => ({ ...r, deadline: r.deadline ? r.deadline.toISOString() : null }));
 }

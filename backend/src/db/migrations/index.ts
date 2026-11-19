@@ -4,6 +4,7 @@ import { MIGRATION_0003_EXERCISES } from './0003_exercises.js';
 import { MIGRATION_0004_HANDINS } from './0004_handins.js';
 import { MIGRATION_0005_STUDENT_ARCHIVE } from './0005_student_archive.js';
 import { MIGRATION_0006_EXERCISE_GROUPS } from './0006_exercise_groups.js';
+import { MIGRATION_0007_UNLOCKED_AT } from './0007_unlocked_at.js';
 
 export interface Migration {
   version: number;
@@ -18,4 +19,5 @@ export const MIGRATIONS: Migration[] = [
   MIGRATION_0004_HANDINS,
   MIGRATION_0005_STUDENT_ARCHIVE,
   MIGRATION_0006_EXERCISE_GROUPS,
+  MIGRATION_0007_UNLOCKED_AT,
 ];

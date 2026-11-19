@@ -51,15 +51,15 @@ beforeAll(async () => {
 });
 beforeEach(() => resetRateLimits());
 
-describe('groups: create, rename, order', () => {
-  it('starts empty and creates groups in order', async () => {
+describe('groups: create, rename, order by name', () => {
+  it('starts empty and lists groups by name, not by creation', async () => {
     expect(await groupNames()).toEqual([]);
     const r = await anna.call('POST', `${base()}/groups`, { name: '  Schleifen  ' });
     expect(r.status).toBe(201);
     expect((await json(r)).group.name).toBe('Schleifen');
     await mkGroup('Arrays');
     await mkGroup('Klassen');
-    expect(await groupNames()).toEqual(['Schleifen', 'Arrays', 'Klassen']);
+    expect(await groupNames()).toEqual(['Arrays', 'Klassen', 'Schleifen']);
   });
 
   it('rejects empty, too long and duplicate names (also case-insensitive), allows the same name in another course', async () => {
@@ -70,29 +70,23 @@ describe('groups: create, rename, order', () => {
     expect(dup.status).toBe(409);
     expect((await json(dup)).message).toBe('Diese Gruppe gibt es schon.');
     expect((await anna.call('POST', `/api/teacher/courses/${other}/groups`, { name: 'Arrays' })).status).toBe(201);
-    expect(await groupNames()).toEqual(['Schleifen', 'Arrays', 'Klassen']);
+    expect(await groupNames()).toEqual(['Arrays', 'Klassen', 'Schleifen']);
   });
 
   it('renames; duplicate on rename is rejected, the own name is fine', async () => {
-    const id = (await json(await anna.call('GET', `${base()}/groups`))).groups[2].id;
+    const id = (await json(await anna.call('GET', `${base()}/groups`))).groups.find((g: any) => g.name === 'Klassen').id;
     expect((await json(await anna.call('PUT', `${base()}/groups/${id}`, { name: 'Objekte' }))).group.name).toBe('Objekte');
     expect((await anna.call('PUT', `${base()}/groups/${id}`, { name: 'Objekte' })).status).toBe(200);
     const dup = await anna.call('PUT', `${base()}/groups/${id}`, { name: 'Arrays' });
     expect(dup.status).toBe(409);
     expect((await anna.call('PUT', `${base()}/groups/${id}`, { name: '' })).status).toBe(400);
-    expect(await groupNames()).toEqual(['Schleifen', 'Arrays', 'Objekte']);
+    expect(await groupNames()).toEqual(['Arrays', 'Objekte', 'Schleifen']);
   });
 
-  it('moves groups up and down; the edges stay as they are', async () => {
-    const [a, b, c] = (await json(await anna.call('GET', `${base()}/groups`))).groups.map((g: any) => g.id);
-    const names = async (r: Response) => (await json(r)).groups.map((g: any) => g.name);
-    expect(await names(await anna.call('POST', `${base()}/groups/${b}/move`, { direction: 'up' }))).toEqual(['Arrays', 'Schleifen', 'Objekte']);
-    expect(await names(await anna.call('POST', `${base()}/groups/${b}/move`, { direction: 'up' }))).toEqual(['Arrays', 'Schleifen', 'Objekte']);
-    expect(await names(await anna.call('POST', `${base()}/groups/${c}/move`, { direction: 'down' }))).toEqual(['Arrays', 'Schleifen', 'Objekte']);
-    expect(await names(await anna.call('POST', `${base()}/groups/${a}/move`, { direction: 'up' }))).toEqual(['Schleifen', 'Arrays', 'Objekte']);
-    expect(await names(await anna.call('POST', `${base()}/groups/${b}/move`, { direction: 'down' }))).toEqual(['Schleifen', 'Objekte', 'Arrays']);
-    expect(await groupNames()).toEqual(['Schleifen', 'Objekte', 'Arrays']);
-    expect((await anna.call('POST', `${base()}/groups/${a}/move`, { direction: 'sideways' })).status).toBe(400);
+  it('has no move routes any more', async () => {
+    const [a] = (await json(await anna.call('GET', `${base()}/groups`))).groups.map((g: any) => g.id);
+    expect((await anna.call('POST', `${base()}/groups/${a}/move`, { direction: 'up' })).status).toBe(404);
+    expect((await anna.call('POST', `${base()}/exercises/e1/move`, { direction: 'up' })).status).toBe(404);
   });
 });
 
@@ -106,55 +100,36 @@ describe('exercises in groups', () => {
   });
   const put = (slug: string, body: unknown, c = course) => anna.call('PUT', `/api/teacher/courses/${c}/exercises/${slug}`, body);
 
-  it('puts exercises into a group at the end and reports groupId and position', async () => {
+  const order = async () => (await listing()).exercises.map((e: any) => [e.id, e.groupId]);
+
+  it('puts exercises into a group; the teacher page is sorted by group name, then title, ungrouped last', async () => {
     for (const s of ['e3', 'e1', 'e2']) expect((await put(s, { groupId: g1 })).status).toBe(200);
-    expect(await inGroup(g1)).toEqual(['e3', 'e1', 'e2']);
+    expect(await inGroup(g1)).toEqual(['e1', 'e2', 'e3']);
     const list = await listing();
-    expect(list.exercises.map((e: any) => [e.id, e.groupId, e.position])).toEqual([
-      ['e3', g1, 0],
-      ['e1', g1, 1],
-      ['e2', g1, 2],
-      ['e4', null, null],
+    expect(list.exercises.map((e: any) => [e.id, e.groupId])).toEqual([
+      ['e1', g1],
+      ['e2', g1],
+      ['e3', g1],
+      ['e4', null],
     ]);
-    expect(list.groups.map((g: any) => g.name)).toEqual(['Schleifen', 'Objekte', 'Arrays']);
+    expect(list.exercises[0]).not.toHaveProperty('position');
+    expect(list.groups.map((g: any) => g.name)).toEqual(['Arrays', 'Objekte', 'Schleifen']);
   });
 
-  it('moves exercises inside the group; edges stay', async () => {
-    const mv = async (slug: string, direction: string) => {
-      const r = await anna.call('POST', `${base()}/exercises/${slug}/move`, { direction });
-      expect(r.status).toBe(200);
-      return (await json(r)).exercises.filter((e: any) => e.groupId === g1).map((e: any) => e.id);
-    };
-    expect(await mv('e2', 'up')).toEqual(['e3', 'e2', 'e1']);
-    expect(await mv('e3', 'up')).toEqual(['e3', 'e2', 'e1']);
-    expect(await mv('e1', 'down')).toEqual(['e3', 'e2', 'e1']);
-    expect(await mv('e3', 'down')).toEqual(['e2', 'e3', 'e1']);
-  });
-
-  it('cannot move an ungrouped exercise; bad direction and unknown exercise are rejected', async () => {
-    expect((await anna.call('POST', `${base()}/exercises/e4/move`, { direction: 'up' })).status).toBe(400);
-    expect((await anna.call('POST', `${base()}/exercises/e1/move`, { direction: 'left' })).status).toBe(400);
-    expect((await anna.call('POST', `${base()}/exercises/nope/move`, { direction: 'up' })).status).toBe(404);
-  });
-
-  it('regrouping appends to the target and keeps both groups dense', async () => {
-    await put('e2', { groupId: g2 });
+  it('regrouping and ungrouping keep the order groups by name, exercises by title', async () => {
     await put('e4', { groupId: g2 });
-    expect(await inGroup(g1)).toEqual(['e3', 'e1']);
+    await put('e2', { groupId: g2 });
+    expect(await inGroup(g1)).toEqual(['e1', 'e3']);
     expect(await inGroup(g2)).toEqual(['e2', 'e4']);
-    const pos = (await listing()).exercises.map((e: any) => [e.id, e.position]);
-    expect(pos).toEqual([['e3', 0], ['e1', 1], ['e2', 0], ['e4', 1]]);
-    // take one out: ungrouped, neighbours close up
+    // Objekte sorts before Schleifen although it was created later
+    expect(await order()).toEqual([['e2', g2], ['e4', g2], ['e1', g1], ['e3', g1]]);
     await put('e3', { groupId: null });
     expect(await inGroup(g1)).toEqual(['e1']);
-    expect((await listing()).exercises.map((e: any) => [e.id, e.groupId, e.position])).toEqual([
-      ['e1', g1, 0],
-      ['e2', g2, 0],
-      ['e4', g2, 1],
-      ['e3', null, null],
-    ]);
+    expect(await order()).toEqual([['e2', g2], ['e4', g2], ['e1', g1], ['e3', null]]);
     await put('e3', { groupId: g1 });
     expect(await inGroup(g1)).toEqual(['e1', 'e3']);
+    await put('e4', { groupId: null });
+    expect(await order()).toEqual([['e2', g2], ['e1', g1], ['e3', g1], ['e4', null]]);
   });
 
   it('keeps unlock and deadline when only the group changes, and group stays when unlock changes', async () => {
@@ -174,35 +149,78 @@ describe('exercises in groups', () => {
   });
 });
 
-describe('student list', () => {
-  it('shows groups in the teacher\'s order, only with visible exercises, and the group id per exercise', async () => {
+describe('unlocked_at and student order', () => {
+  const put = (slug: string, body: unknown) => anna.call('PUT', `${base()}/exercises/${slug}`, body);
+  const dateOf = async (slug: string) =>
+    (
+      await t.current().db<{ at: Date | null }[]>`
+        SELECT ce.unlocked_at AS at FROM course_exercises ce JOIN exercises e ON e.id = ce.exercise_id
+        WHERE ce.course_id = ${course} AND e.slug = ${slug}`
+    )[0]!.at;
+  const setDate = (slug: string, d: string | null) =>
+    t.current().db`
+      UPDATE course_exercises ce JOIN exercises e ON e.id = ce.exercise_id SET ce.unlocked_at = ${d ? new Date(d) : null}
+      WHERE ce.course_id = ${course} AND e.slug = ${slug}`;
+  const ids = (r: any) => r.exercises.map((e: any) => e.id);
+  const gnames = (r: any) => r.groups.map((g: any) => g.name);
+  let schleifen: number;
+  let objekte: number;
+  beforeAll(async () => {
     const groups = (await json(await anna.call('GET', `${base()}/groups`))).groups;
-    const byName = (n: string) => groups.find((g: any) => g.name === n).id;
-    // Order now: Schleifen, Objekte, Arrays. Unlock e1 (Schleifen), e2 (Objekte) and e3 (Schleifen), e4 (Objekte) stays hidden.
-    for (const s of ['e1', 'e2', 'e3']) await anna.call('PUT', `${base()}/exercises/${s}`, { unlocked: true });
-    await anna.call('PUT', `${base()}/exercises/e4`, { groupId: null });
-    await anna.call('PUT', `${base()}/exercises/e4`, { unlocked: true });
-    let res = await studentList();
+    schleifen = groups.find((g: any) => g.name === 'Schleifen').id;
+    objekte = groups.find((g: any) => g.name === 'Objekte').id;
+  });
+
+  it('sets unlocked_at the first time only; hiding and unlocking again keeps it; nothing set while hidden', async () => {
+    // e1 was unlocked by an earlier test; e4 never was
+    expect(await dateOf('e4')).toBeNull();
+    await put('e4', { deadline: null });
+    expect(await dateOf('e4')).toBeNull();
+    await put('e4', { unlocked: true });
+    expect(await dateOf('e4')).toBeInstanceOf(Date);
+    await setDate('e4', '2020-01-01T00:00:00Z');
+    await put('e4', { unlocked: false });
+    expect((await dateOf('e4'))!.toISOString()).toBe('2020-01-01T00:00:00.000Z');
+    await put('e4', { unlocked: true });
+    expect((await dateOf('e4'))!.toISOString()).toBe('2020-01-01T00:00:00.000Z');
+  });
+
+  it('students get exercises newest unlock first, NULL last, ties by title; groups by their newest visible exercise', async () => {
+    await put('e1', { groupId: schleifen, unlocked: true });
+    await put('e2', { groupId: objekte, unlocked: true });
+    await put('e3', { groupId: schleifen, unlocked: true });
+    await put('e4', { groupId: null, unlocked: true });
+    await setDate('e1', '2026-01-01T10:00:00Z');
+    await setDate('e2', '2026-03-01T10:00:00Z');
+    await setDate('e3', null);
+    await setDate('e4', '2026-01-01T10:00:00Z');
+    const res = await studentList();
+    expect(ids(res)).toEqual(['e2', 'e1', 'e4', 'e3']);
+    expect(res.exercises.map((e: any) => e.groupId)).toEqual([objekte, schleifen, null, schleifen]);
     expect(res.groups).toEqual([
-      { id: byName('Schleifen'), name: 'Schleifen' },
-      { id: byName('Objekte'), name: 'Objekte' },
+      { id: objekte, name: 'Objekte' },
+      { id: schleifen, name: 'Schleifen' },
     ]);
-    expect(res.exercises.map((e: any) => [e.id, e.groupId])).toEqual([
-      ['e3', byName('Schleifen')],
-      ['e1', byName('Schleifen')],
-      ['e2', byName('Objekte')],
-      ['e4', null],
-    ]);
+  });
+
+  it('groups whose visible exercises all have no date come last; hidden exercises do not count', async () => {
+    await setDate('e2', null); // Objekte: only NULL now
+    let res = await studentList();
+    expect(gnames(res)).toEqual(['Schleifen', 'Objekte']);
+    expect(ids(res)).toEqual(['e1', 'e4', 'e2', 'e3']);
+    // a hidden, very new exercise in Schleifen must not lift the group above Objekte
+    await setDate('e2', '2026-02-01T10:00:00Z');
+    await setDate('e3', '2027-01-01T10:00:00Z');
+    await put('e3', { unlocked: false });
+    res = await studentList();
+    expect(gnames(res)).toEqual(['Objekte', 'Schleifen']);
+    expect(ids(res)).toEqual(['e2', 'e1', 'e4']);
+    await put('e3', { unlocked: true }); // keeps its 2027 date
+    expect(gnames(await studentList())).toEqual(['Schleifen', 'Objekte']);
     // hide the only exercise of Objekte: the group vanishes
-    await anna.call('PUT', `${base()}/exercises/e2`, { unlocked: false });
-    res = await studentList();
-    expect(res.groups.map((g: any) => g.name)).toEqual(['Schleifen']);
-    // reorder groups: Arrays is empty/hidden, move Objekte (hidden) does not matter; move Schleifen down
-    await anna.call('POST', `${base()}/groups/${byName('Schleifen')}/move`, { direction: 'down' });
-    await anna.call('PUT', `${base()}/exercises/e2`, { unlocked: true });
-    res = await studentList();
-    expect(res.groups.map((g: any) => g.name)).toEqual(['Objekte', 'Schleifen']);
-    expect(res.exercises.map((e: any) => e.id)).toEqual(['e2', 'e3', 'e1', 'e4']);
+    await put('e2', { unlocked: false });
+    expect(gnames(await studentList())).toEqual(['Schleifen']);
+    await put('e2', { unlocked: true });
   });
 
   it('a course without groups has groups: [] and groupId null everywhere', async () => {
@@ -215,7 +233,7 @@ describe('student list', () => {
 });
 
 describe('delete and cascade', () => {
-  it('deleting a group keeps its exercises, ungrouped and still unlocked, and closes the gap in the group order', async () => {
+  it('deleting a group keeps its exercises, ungrouped and still unlocked', async () => {
     const groups = (await json(await anna.call('GET', `${base()}/groups`))).groups;
     const before = groups.map((g: any) => g.name);
     const victim = groups.find((g: any) => g.name === 'Schleifen').id;
@@ -223,9 +241,7 @@ describe('delete and cascade', () => {
     expect(await groupNames()).toEqual(before.filter((n: string) => n !== 'Schleifen'));
     const list = (await listing()).exercises;
     expect(list.map((e: any) => e.id).sort()).toEqual(['e1', 'e2', 'e3', 'e4']);
-    for (const id of ['e1', 'e3']) expect(list.find((e: any) => e.id === id)).toMatchObject({ groupId: null, position: null, unlocked: true });
-    const rows = await t.current().db<{ position: number }[]>`SELECT position FROM exercise_groups WHERE course_id = ${course} ORDER BY position`;
-    expect(rows.map((r) => r.position)).toEqual([0, 1]);
+    for (const id of ['e1', 'e3']) expect(list.find((e: any) => e.id === id)).toMatchObject({ groupId: null, unlocked: true });
     expect((await studentList()).exercises).toHaveLength(4);
     expect((await anna.call('DELETE', `${base()}/groups/${victim}`)).status).toBe(404);
   });
@@ -236,7 +252,6 @@ describe('delete and cascade', () => {
     await anna.call('PUT', `${base()}/exercises/e1`, { groupId: objekte });
     expect((await anna.call('DELETE', '/api/teacher/exercises/e1')).status).toBe(204);
     expect(await inGroup(objekte)).toEqual(['e2']);
-    // remaining positions stay usable
     await anna.call('PUT', `${base()}/exercises/e3`, { groupId: objekte });
     expect(await inGroup(objekte)).toEqual(['e2', 'e3']);
     const count = async () => Number((await db<{ n: number | string }[]>`SELECT COUNT(*) AS n FROM exercise_groups`)[0]!.n);
@@ -253,9 +268,7 @@ describe('access', () => {
     expect((await ben.call('GET', `${p}/groups`)).status).toBe(404);
     expect((await ben.call('POST', `${p}/groups`, { name: 'X' })).status).toBe(404);
     expect((await ben.call('PUT', `${p}/groups/${c.group}`, { name: 'Y' })).status).toBe(404);
-    expect((await ben.call('POST', `${p}/groups/${c.group}/move`, { direction: 'up' })).status).toBe(404);
     expect((await ben.call('DELETE', `${p}/groups/${c.group}`)).status).toBe(404);
-    expect((await ben.call('POST', `${p}/exercises/b1/move`, { direction: 'up' })).status).toBe(404);
     expect((await ben.call('PUT', `${p}/exercises/b1`, { groupId: c.group })).status).toBe(404);
     expect((await anna.call('GET', `${p}/groups`).then(json)).groups).toEqual([{ id: c.group, name: 'Privat' }]);
   });

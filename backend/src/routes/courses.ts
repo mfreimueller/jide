@@ -20,8 +20,6 @@ import {
   createGroup,
   deleteGroup,
   listGroups,
-  moveExercise,
-  moveGroup,
   renameGroup,
 } from '../lib/groups.js';
 import { parseJson } from '../lib/http.js';
@@ -103,23 +101,12 @@ const groupSchema = z.object({
     .min(1, 'Bitte einen Namen eingeben.')
     .max(MAX_GROUP_NAME_LENGTH, 'Der Name ist zu lang (höchstens 100 Zeichen).'),
 });
-const moveSchema = z.object({ direction: z.enum(['up', 'down'], { message: 'direction muss "up" oder "down" sein.' }) });
 
 courseRoutes.get('/:id/exercises', async (c) => {
   const db = getDb();
   const teacherId = c.get('teacher').id;
   const id = parseId(c.req.param('id'));
   await courseForTeacher(db, teacherId, id);
-  return c.json({ exercises: await listForCourse(db, teacherId, id), groups: await listGroups(db, id) });
-});
-
-courseRoutes.post('/:id/exercises/:exerciseId/move', async (c) => {
-  const db = getDb();
-  const teacherId = c.get('teacher').id;
-  const id = parseId(c.req.param('id'));
-  await courseForTeacher(db, teacherId, id);
-  const { direction } = await parseJson(c, moveSchema);
-  await moveExercise(db, teacherId, id, c.req.param('exerciseId'), direction);
   return c.json({ exercises: await listForCourse(db, teacherId, id), groups: await listGroups(db, id) });
 });
 
@@ -154,15 +141,6 @@ courseRoutes.delete('/:id/groups/:groupId', async (c) => {
   await courseForTeacher(db, c.get('teacher').id, id);
   await deleteGroup(db, id, groupId);
   return c.body(null, 204);
-});
-
-courseRoutes.post('/:id/groups/:groupId/move', async (c) => {
-  const db = getDb();
-  const id = parseId(c.req.param('id'));
-  const groupId = parseId(c.req.param('groupId'));
-  await courseForTeacher(db, c.get('teacher').id, id);
-  const { direction } = await parseJson(c, moveSchema);
-  return c.json({ groups: await moveGroup(db, id, groupId, direction) });
 });
 
 courseRoutes.put('/:id/exercises/:exerciseId', async (c) => {

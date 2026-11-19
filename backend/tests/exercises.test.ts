@@ -282,7 +282,7 @@ describe('per-course unlock and deadline', () => {
     const { exercises } = await json(res);
     expect(exercises.length).toBeGreaterThanOrEqual(2);
     for (const e of exercises) expect(e).toMatchObject({ unlocked: false, deadline: null });
-    expect(Object.keys(exercises[0]).sort()).toEqual(['deadline', 'groupId', 'id', 'position', 'size', 'title', 'unlocked', 'uploadedAt', 'version']);
+    expect(Object.keys(exercises[0]).sort()).toEqual(['deadline', 'groupId', 'id', 'size', 'title', 'unlocked', 'uploadedAt', 'version']);
   });
 
   it('unlocks, hides, sets and clears the deadline independently', async () => {
