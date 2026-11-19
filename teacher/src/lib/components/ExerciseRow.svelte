@@ -4,7 +4,6 @@
 	import { messageOf } from '#lib/errors.js';
 	import { DEFAULT_DEADLINE_TIME, fromLocalParts, toLocalParts } from '#lib/time.js';
 	import type { CourseExercise, ExerciseGroup } from '#lib/types.js';
-	import MoveButtons from '#lib/components/MoveButtons.svelte';
 
 	interface Props {
 		courseId: number;
@@ -13,13 +12,10 @@
 		handIns: string | null;
 		isNew?: boolean;
 		groups: ExerciseGroup[];
-		/** Position inside its group, or null when ungrouped (no arrows). */
-		move: { first: boolean; last: boolean } | null;
 		onchange: () => void | Promise<void>;
-		onmove: (direction: 'up' | 'down') => void;
 		ondelete: () => void;
 	}
-	let { courseId, exercise, handIns, isNew = false, groups, move, onchange, onmove, ondelete }: Props = $props();
+	let { courseId, exercise, handIns, isNew = false, groups, onchange, ondelete }: Props = $props();
 
 	// The parent re-keys this component whenever the saved values change, so the initial values are enough.
 	// svelte-ignore state_referenced_locally
@@ -54,11 +50,6 @@
 </script>
 
 <tr>
-	<td class="move">
-		{#if move}
-			<MoveButtons label="„{exercise.title}“" first={move.first} last={move.last} {onmove} />
-		{/if}
-	</td>
 	<td>
 		<div class="title">
 			<span class="stud">{exercise.title}</span>
@@ -161,10 +152,6 @@
 		border-radius: 6px;
 		background: var(--surface);
 		font-size: 13px;
-	}
-	.move {
-		width: 1%;
-		padding-right: 0;
 	}
 	input:disabled {
 		color: var(--text-ghost);

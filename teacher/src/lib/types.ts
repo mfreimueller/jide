@@ -43,8 +43,6 @@ export interface CourseExercise extends Exercise {
 	deadline: string | null;
 	/** Group of this course or null */
 	groupId: number | null;
-	/** Place inside the group, null when ungrouped */
-	position: number | null;
 }
 
 export interface ExerciseGroup {

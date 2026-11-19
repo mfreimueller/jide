@@ -5,7 +5,6 @@
 	import Dialog from '#lib/components/Dialog.svelte';
 	import TextField from '#lib/components/TextField.svelte';
 	import ExerciseRow from '#lib/components/ExerciseRow.svelte';
-	import MoveButtons from '#lib/components/MoveButtons.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import { courseLabel, courseStore } from '#lib/course.svelte.js';
 	import { messageOf } from '#lib/errors.js';
@@ -68,7 +67,6 @@
 
 	// ---- groups ----
 	const base = $derived(`/teacher/courses/${course.id}`);
-	let groupError = $state<string | null>(null);
 
 	// Without groups the table is one plain list; with groups every group gets a header and the rest goes under "Ohne Gruppe".
 	const sections = $derived([
@@ -76,21 +74,6 @@
 		{ group: null as ExerciseGroup | null, items: data.exercises.filter((e) => e.groupId === null) }
 	]);
 	const hasGroups = $derived(data.groups.length > 0);
-
-	async function groupCall(path: string, method: 'POST', body?: unknown) {
-		groupError = null;
-		try {
-			await api(`${base}${path}`, { method, body });
-			await invalidate('app:exercises');
-			return true;
-		} catch (err) {
-			groupError = messageOf(err);
-			return false;
-		}
-	}
-	const moveGroup = (g: ExerciseGroup, direction: 'up' | 'down') => groupCall(`/groups/${g.id}/move`, 'POST', { direction });
-	const moveExercise = (e: Exercise, direction: 'up' | 'down') =>
-		groupCall(`/exercises/${encodeURIComponent(e.id)}/move`, 'POST', { direction });
 
 	// create / rename dialog
 	let nameOpen = $state(false);
@@ -229,23 +212,21 @@
 	{/if}
 
 	<div class="group-bar">
-		<span class="small">Gruppen ordnen die Aufgaben in der Liste der Schüler:innen. Reihenfolge mit ▲ ▼.</span>
+		<span class="small">Gruppen ordnen die Aufgaben in der Liste der Schüler:innen. Die Reihenfolge dort richtet sich nach der Freischaltung, die neueste Aufgabe steht oben.</span>
 		<Button size="sm" onclick={() => openName(null)}>+ Neue Gruppe</Button>
 	</div>
-	{#if groupError}<p class="alert" role="alert">{groupError}</p>{/if}
 
 	<div class="panel table">
 		<table class="data">
 			<thead>
-				<tr><th class="narrow"></th><th>Aufgabe</th><th>Freigeschaltet</th><th>Frist (Wiener Zeit)</th><th>Abgaben</th><th>Gruppe</th><th></th></tr>
+				<tr><th>Aufgabe</th><th>Freigeschaltet</th><th>Frist (Wiener Zeit)</th><th>Abgaben</th><th>Gruppe</th><th></th></tr>
 			</thead>
 			<tbody>
-				{#each sections as section, si (section.group?.id ?? 'none')}
+				{#each sections as section (section.group?.id ?? 'none')}
 					{#if hasGroups}
 						{#if section.group}
 							{@const g = section.group}
 							<tr class="group-row">
-								<td class="narrow"><MoveButtons label="Gruppe „{g.name}“" first={si === 0} last={si === data.groups.length - 1} onmove={(d) => moveGroup(g, d)} /></td>
 								<!-- name and actions share one wide cell, so the actions don't widen the last column -->
 								<td colspan="6">
 									<div class="group-head">
@@ -262,7 +243,6 @@
 							</tr>
 						{:else}
 							<tr class="group-row">
-								<td class="narrow"></td>
 								<td colspan="6">
 									<span class="group-name">Ohne Gruppe</span>
 									<span class="small count">Schüler:innen sehen diese unter „Weitere Übungen“</span>
@@ -270,24 +250,22 @@
 							</tr>
 						{/if}
 					{/if}
-					{#each section.items as ex, i (ex.id)}
+					{#each section.items as ex (ex.id)}
 						{#key `${ex.id}|${ex.deadline}|${ex.unlocked}|${ex.groupId}`}
 							<ExerciseRow
 								courseId={course.id}
 								exercise={ex}
 								groups={data.groups}
-								move={section.group ? { first: i === 0, last: i === section.items.length - 1 } : null}
 								handIns={ex.unlocked ? (data.handIns[ex.id] ?? null) : null}
 								isNew={result?.exercise.id === ex.id && !result.replaced}
 								onchange={() => invalidate('app:exercises')}
-								onmove={(d) => moveExercise(ex, d)}
 								ondelete={() => askDelete(ex)}
 							/>
 						{/key}
 					{/each}
 				{/each}
 				{#if data.exercises.length === 0}
-					<tr><td colspan="7" class="muted empty">Noch keine Aufgaben. Lade oben die erste hoch.</td></tr>
+					<tr><td colspan="6" class="muted empty">Noch keine Aufgaben. Lade oben die erste hoch.</td></tr>
 				{/if}
 			</tbody>
 		</table>
@@ -366,11 +344,6 @@
 	}
 	.link:hover {
 		text-decoration: underline;
-	}
-	:global(table.data th.narrow),
-	:global(table.data td.narrow) {
-		width: 1%;
-		padding-right: 0;
 	}
 	.dialog-actions {
 		display: flex;
