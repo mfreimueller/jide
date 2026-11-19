@@ -4,6 +4,8 @@ import {
   clearLastTests,
   countLabel,
   editableContents,
+  handInReason,
+  isStale,
   planHandIn,
   getLastTest,
   sameContents,
@@ -64,6 +66,30 @@ describe("summary helpers", () => {
   });
   it("labels the count in German", () => {
     expect(countLabel({ passed: 3, total: 4 })).toBe("3 von 4 Tests bestanden");
+  });
+});
+
+describe("isStale / handInReason", () => {
+  const green: LastTest = { ...last, summary: { passed: 2, total: 2 } };
+  const same = [{ path: "A.java", content: "x" }];
+
+  it("is never stale without a run", () => {
+    expect(isStale(undefined, same)).toBe(false);
+  });
+  it("is stale when content, a trailing space or a line ending differs, or a file came or went", () => {
+    expect(isStale(green, same)).toBe(false);
+    expect(isStale(green, [{ path: "A.java", content: "x " }])).toBe(true);
+    expect(isStale(green, [{ path: "A.java", content: "x\r\n" }])).toBe(true);
+    expect(isStale(green, [...same, { path: "B.java", content: "" }])).toBe(true);
+    expect(isStale(green, [])).toBe(true);
+  });
+  it("names the reason the hand-in asks or not", () => {
+    expect(handInReason(false, undefined, same)).toBe("no-tests");
+    expect(handInReason(true, undefined, same)).toBe("never-tested");
+    expect(handInReason(true, last, same)).toBe("failed");
+    expect(handInReason(true, green, [{ path: "A.java", content: "y" }])).toBe("changed");
+    expect(handInReason(true, last, [{ path: "A.java", content: "y" }])).toBe("changed");
+    expect(handInReason(true, green, same)).toBe("ok");
   });
 });
 

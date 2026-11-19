@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
+import { registerBugReportIpc } from "./bug-report";
 import { registerCompileIpc } from "./compile";
 import { askToClose, examCloseNeedsConfirm, registerExamSaveIpc } from "./exam-session";
 import { examMode, initExam, redirectPathsForExamMode, registerExamIpc } from "./exam-state";
@@ -132,6 +133,7 @@ app.whenReady().then(async () => {
   registerExamIpc();
   registerExamSaveIpc();
   registerOnlineIpc();
+  registerBugReportIpc();
   registerExerciseIpc();
   registerScratchIpc();
   registerCompileIpc();

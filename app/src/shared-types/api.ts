@@ -171,6 +171,18 @@ export type TestRunResult =
   | { ok: true; started: true; results: TestResult[]; summary: { passed: number; total: number } }
   | { ok: false; message: string };
 
+/** What the bug report (T44) needs from the main process. Never contains the code or other secrets. */
+export interface ReportEnv {
+  appVersion: string;
+  /** "Windows 11 (10.0.22631)" */
+  os: string;
+  mode: "local" | "online" | "exam";
+  /** First 8 hex digits of the downloaded package's version (online mode); null if unknown. */
+  packageVersion: string | null;
+}
+
+export type ReportSaveResult = { ok: true } | { ok: false; canceled: boolean };
+
 export interface JideApi {
   versions: { electron: string; chrome: string; node: string };
   /** Tells the main process that the start screen has rendered (used by the smoke test). */
@@ -230,6 +242,12 @@ export interface JideApi {
   run: (id: string, files: SourceFileInput[]) => Promise<RunStartResult>;
   /** Runs all tests of the exercise (tests.yaml) against the given file contents. */
   test: (id: string, files: SourceFileInput[]) => Promise<TestRunResult>;
+  /** Bug report (T44): app version, OS, mode and package version of the exercise. */
+  reportEnv: (exerciseId: string) => Promise<ReportEnv>;
+  /** Bug report: asks where to save and writes the text as UTF-8. */
+  reportSave: (defaultName: string, text: string) => Promise<ReportSaveResult>;
+  /** Bug report: puts the text on the clipboard. */
+  reportCopy: (text: string) => Promise<void>;
   /** Kills the running program (no-op if none). */
   stopRun: () => void;
   /** Sends text (a line including its newline) to the stdin of the running program. */

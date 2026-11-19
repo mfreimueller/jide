@@ -48,6 +48,21 @@ export function countLabel(summary: { passed: number; total: number }): string {
   return `${summary.passed} von ${summary.total} Tests bestanden`;
 }
 
+/** True if the editable files differ from the code of the last run (nothing tested yet: false). */
+export function isStale(last: LastTest | undefined, currentEditable: SourceFileInput[]): boolean {
+  return last !== undefined && !sameContents(last.snapshot, currentEditable);
+}
+
+/** Why `planHandIn` asks (or not); `changed` wins over `failed`. For the bug report (T44). */
+export type HandInReason = "no-tests" | "never-tested" | "failed" | "changed" | "ok";
+
+export function handInReason(hasTests: boolean, last: LastTest | undefined, currentEditable: SourceFileInput[]): HandInReason {
+  if (!hasTests) return "no-tests";
+  if (!last) return "never-tested";
+  if (isStale(last, currentEditable)) return "changed";
+  return allPassed(last.summary) ? "ok" : "failed";
+}
+
 export interface HandInPlan {
   /** Ask "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" first. */
   confirm: boolean;
