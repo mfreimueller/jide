@@ -163,7 +163,7 @@ async function handInAndBack(l: Awaited<ReturnType<typeof loggedIn>>, title: str
   await expect(card(l.page, title)).toBeVisible();
 }
 
-test("groups show in the teacher's order with their progress; handing in updates it", async () => {
+test("groups show newest unlock first with their progress; handing in updates it", async () => {
   const backend = await startBackend();
   await backend.setGroups([
     { name: "Fortgeschritten", exercises: ["summe"] },

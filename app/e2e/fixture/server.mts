@@ -66,12 +66,15 @@ const server = serve(
         return new Response(null, { status: 204 });
       }
       if (req.method === "POST" && url.pathname === "/__test/groups") {
-        // replaces the course's groups: [{ name, exercises: [exercise ids in order] }, ...] in the teacher's order
+        // replaces the course's groups: [{ name, exercises: [exercise ids in order] }, ...] ; the first group gets the newest unlock date, so it is listed first
         const spec = (await req.json()) as { groups: { name: string; exercises: string[] }[] };
         for (const g of await listGroups(db, course.id)) await deleteGroup(db, course.id, g.id);
-        for (const g of spec.groups) {
+        for (const [i, g] of spec.groups.entries()) {
           const { id } = await createGroup(db, course.id, g.name);
           for (const slug of g.exercises) await setExerciseGroup(db, teacher.id, course.id, slug, id);
+          // students see the group with the newest unlock first: i days back from now
+          const at = new Date(Date.now() - i * 86_400_000);
+          await db`UPDATE course_exercises SET unlocked_at = ${at} WHERE course_id = ${course.id} AND group_id = ${id}`;
         }
         return new Response(null, { status: 204 });
       }
