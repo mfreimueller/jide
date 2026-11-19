@@ -308,6 +308,7 @@ test("hand-in of the starter code without tests run asks first; allowTests false
   await gotoTab(page, 1);
   await page.getByRole("button", { name: "Abgeben", exact: true }).click();
   await expect(page.getByTestId("hand-in-dialog")).toBeVisible();
+  await expect(page.getByTestId("bug-report-open")).toHaveCount(0); // T44: no bug report in the exam
   await page.getByTestId("hand-in-confirm").click();
   await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert auf");
   expect(JSON.parse(readFileSync(join(drive, "summe", "abgabe.json"), "utf8")).testSummary).toBeNull();
