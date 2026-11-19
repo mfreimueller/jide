@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ExerciseError, listExercises, loadExercise } from "./index";
+import { ExerciseError, listExercises, loadExercise, parseExerciseConfig } from "./index";
 
 const examplesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../examples");
 
@@ -141,6 +141,29 @@ describe("loadExercise", () => {
 
   it("rejects missing aufgabe.md", async () => {
     await expectError(await make("a", { aufgabe: false }), 'Aufgabe "a": Datei aufgabe.md fehlt.');
+  });
+});
+
+describe("difficulty", () => {
+  const yaml = (extra: string) => `id: d\ntitle: T\nfiles:\n  - path: A.java\nmainFile: A.java\n${extra}`;
+
+  it.each(["newbie", "advanced", "pro"])("accepts %s", (level) => {
+    expect(parseExerciseConfig(yaml(`difficulty: ${level}\n`), "d").difficulty).toBe(level);
+  });
+
+  it("is optional", () => {
+    expect(parseExerciseConfig(yaml(""), "d").difficulty).toBeUndefined();
+  });
+
+  it.each(["expert", "Newbie", "3", "''"])("rejects %s with a German message", (v) => {
+    expect(() => parseExerciseConfig(yaml(`difficulty: ${v}\n`), "d")).toThrow(
+      'Aufgabe "d": exercise.yaml ist ungültig: difficulty muss newbie, advanced oder pro sein (difficulty).',
+    );
+  });
+
+  it("is carried through loadExercise", async () => {
+    const ex = await loadExercise(await make("d", { yaml: yaml("difficulty: pro\n") }));
+    expect(ex.difficulty).toBe("pro");
   });
 });
 

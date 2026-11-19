@@ -1,4 +1,5 @@
 // Request/response shapes of the student-facing backend API (SPEC §5). Used by the backend and the app.
+import type { Difficulty } from "./exercise.js";
 
 /** Error body of every non-2xx JSON response. `message` is German and safe to show. */
 export interface ApiErrorBody {
@@ -23,6 +24,8 @@ export interface StudentExerciseSummary {
   deadline: string | null;
   /** Group of the course (see `groups`), null = ungrouped. Missing in answers of older backends. */
   groupId?: number | null;
+  /** From exercise.yaml; null/missing = none (also for packages uploaded before the field existed and for older backends). */
+  difficulty?: Difficulty | null;
 }
 
 /** An exercise group of the course, as the students see it. */

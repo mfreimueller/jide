@@ -7,6 +7,10 @@ import { parseTestsConfig, type TestCase } from "./tests.js";
 
 export { ExerciseError };
 
+/** Allowed values of `difficulty` in exercise.yaml. */
+export const DIFFICULTIES = ["newbie", "advanced", "pro"] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+
 const exerciseSchema = z.object({
   id: z
     .string({ error: "id fehlt oder ist kein Text" })
@@ -36,6 +40,9 @@ const exerciseSchema = z.object({
       }),
       { error: "images muss eine Liste sein" },
     )
+    .optional(),
+  difficulty: z
+    .enum(DIFFICULTIES, { error: "difficulty muss newbie, advanced oder pro sein" })
     .optional(),
 });
 
