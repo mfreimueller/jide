@@ -4,6 +4,7 @@ import { cp, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { matchOutput, type CheckTestCase, type Exercise, type IoTestCase } from "@jide/shared";
+import { normaliseDecimal } from "@jide/shared/output-normalise";
 import type { Diagnostic, TestResult } from "../shared-types/api";
 import type { HelperCompileRequest, HelperCompileResponse } from "./helper";
 
@@ -167,7 +168,7 @@ function javaArgs(dir: string, mainClass: string, extra: string[] = []): string[
   ];
 }
 
-interface IoRun {
+export interface IoRun {
   stdout: string;
   stderr: string;
   timedOut: boolean;
@@ -262,7 +263,7 @@ function withLine(message: string, line: number | undefined): string {
   return line ? `${message} (Zeile ${line})` : message;
 }
 
-function ioResult(test: IoTestCase, run: IoRun, mainFileName: string, studentLines: number): TestResult {
+export function ioResult(test: IoTestCase, run: IoRun, mainFileName: string, studentLines: number): TestResult {
   const name = test.name;
   if (run.spawnError) return { name, status: "error", message: run.spawnError };
   if (run.limitHit) return { name, status: "error", message: OUTPUT_LIMIT_MESSAGE };
@@ -277,7 +278,7 @@ function ioResult(test: IoTestCase, run: IoRun, mainFileName: string, studentLin
   return { name, status: "failed", expected: test.expected, actual: run.stdout, match: test.match, input: test.input };
 }
 
-function checkResult(test: CheckTestCase, r: CheckLine | undefined): TestResult {
+export function checkResult(test: CheckTestCase, r: CheckLine | undefined): TestResult {
   const name = test.name;
   if (!r) return { name, status: "error", message: EARLY_EXIT_MESSAGE };
   switch (r.kind) {
@@ -290,7 +291,7 @@ function checkResult(test: CheckTestCase, r: CheckLine | undefined): TestResult 
     case "no":
       return { name, status: "failed", message: "Die Prüfung war nicht erfüllt." };
     case "val": {
-      if ("call" in test && r.payload.trim() === test.expected.trim()) return { name, status: "passed" };
+      if ("call" in test && normaliseDecimal(r.payload.trim()) === normaliseDecimal(test.expected.trim())) return { name, status: "passed" };
       return { name, status: "failed", expected: "call" in test ? test.expected : "", actual: r.payload };
     }
     default:

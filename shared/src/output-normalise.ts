@@ -1,4 +1,4 @@
-// Text normalisation shared by matchOutput (tests.ts) and diffOutput (output-diff.ts). Not part of the package API.
+// Text normalisation shared by matchOutput (tests.ts) and diffOutput (output-diff.ts). Not part of the package index; reachable as the subpath `@jide/shared/output-normalise` (the app's check tests use normaliseDecimal).
 
 export function normaliseNewlines(s: string): string {
   return s.replace(/\r\n?/g, "\n");

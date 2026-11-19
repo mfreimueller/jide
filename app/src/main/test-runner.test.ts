@@ -14,6 +14,8 @@ import {
   TIMEOUT_MESSAGE,
   declaresMainWithArgs,
   generateCheckCode,
+  checkResult,
+  ioResult,
   parseCheckResults,
   runTests,
   type TestOutcome
@@ -51,6 +53,21 @@ describe("generated check code", () => {
     const m = parseCheckResults("0\tval\ta\\tb\\nc\\\\d\t\n1\terr\tboom\t12\n");
     expect(m.get(0)?.payload).toBe("a\tb\nc\\d");
     expect(m.get(1)).toMatchObject({ kind: "err", line: 12 });
+  });
+});
+
+describe("checkResult val", () => {
+  const t = (expected: string): CheckTestCase => ({ type: "check", name: "n", call: "f()", expected, timeoutMs: 1000 });
+  const val = (payload: string) => ({ index: 0, kind: "val", payload });
+  it("treats a comma and a dot between digits as equal", () => {
+    expect(checkResult(t("3.14"), val("3,14")).status).toBe("passed");
+    expect(checkResult(t("3,14"), val("3.14")).status).toBe("passed");
+    expect(checkResult(t("3.14"), val(" 3.14\n")).status).toBe("passed");
+  });
+  it("still fails on different digits", () => {
+    expect(checkResult(t("3.14"), val("3,15")).status).toBe("failed");
+    expect(checkResult(t("3.14"), val("3,1")).status).toBe("failed");
+    expect(checkResult(t("a.b"), val("a,b")).status).toBe("failed");
   });
 });
 
