@@ -15,7 +15,8 @@
     title = "",
     collapsed = false,
     width = 330,
-    ontoggle
+    ontoggle,
+    onpick
   }: {
     markdown: string;
     deadline?: string | null;
@@ -29,7 +30,10 @@
     collapsed?: boolean;
     width?: number;
     ontoggle: () => void;
+    /** Scratch: opens the file dialog for an Angabe (.md). Present = empty state with "Angabe wählen …" / "Ändern …". */
+    onpick?: () => void;
   } = $props();
+  const empty = $derived(onpick !== undefined && markdown.trim() === "");
   const html = $derived(renderMarkdown(heading ? stripLeadingHeading(markdown, title) : markdown));
 
   // Links in the assignment must never navigate the app window.
@@ -45,6 +49,9 @@
 <aside class="assign" class:collapsed style:width="{width}px" data-testid="assignment" onclick={blockLinks}>
   <div class="head">
     <span class="pane-title">Angabe</span>
+    {#if onpick && !empty}
+      <button class="change" onclick={onpick} data-testid="assign-change">Ändern …</button>
+    {/if}
     <PanelButton icon="right" tip="Angabe einklappen (Alt+2)" place="below-right" onclick={ontoggle} testid="assign-collapse" />
   </div>
   <div class="body">
@@ -55,8 +62,16 @@
         >{/if}Abgabe bis {formatDate(deadline)}
     </div>
   {/if}
-  {#if heading}<h1 data-testid="assignment-heading">{heading}</h1>{/if}
-  {@html html}
+  {#if empty}
+    <div class="empty" data-testid="assign-empty">
+      <h1>Noch keine Angabe</h1>
+      <p>Du kannst eine Markdown-Datei (.md) als Angabe dazugeben. Sie wird dann hier angezeigt.</p>
+      <button class="btn" onclick={onpick} data-testid="assign-pick">Angabe wählen …</button>
+    </div>
+  {:else}
+    {#if heading}<h1 data-testid="assignment-heading">{heading}</h1>{/if}
+    {@html html}
+  {/if}
   </div>
 </aside>
 
@@ -90,6 +105,29 @@
     color: var(--text-faint);
     text-transform: uppercase;
     letter-spacing: 0.06em;
+  }
+  .change {
+    font: inherit;
+    font-size: 12px;
+    border: none;
+    background: none;
+    padding: 3px 6px;
+    margin-right: 4px;
+    border-radius: 4px;
+    color: var(--text-link);
+    cursor: pointer;
+  }
+  .change:hover {
+    background: var(--bg-subtle);
+  }
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .empty p {
+    color: var(--text-muted);
   }
   .body {
     flex: 1;

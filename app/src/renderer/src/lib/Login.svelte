@@ -3,7 +3,11 @@
   import iconUrl from "../assets/icon.svg";
   import type { StudentInfo } from "../../../shared-types/api";
 
-  let { notice = "", onLoggedIn }: { notice?: string; onLoggedIn: (s: StudentInfo) => void } = $props();
+  let {
+    notice = "",
+    onLoggedIn,
+    onScratch
+  }: { notice?: string; onLoggedIn: (s: StudentInfo) => void; onScratch?: () => void } = $props();
 
   const LENGTH = 8;
   let code = $state("");
@@ -89,6 +93,11 @@
       <p class="small">
         Code verloren? Frag deine Lehrkraft – sie kann dir einen neuen geben. Du musst den Code nur einmal eingeben.
       </p>
+      {#if onScratch}
+        <div class="or" aria-hidden="true"><span>oder</span></div>
+        <button class="btn big full" type="button" onclick={onScratch} data-testid="open-scratch">Ohne Code: Scratch öffnen</button>
+        <p class="small center">In Scratch schreibst du eigene Programme. Sie bleiben nur auf diesem Laptop und werden nicht abgegeben.</p>
+      {/if}
     </form>
   </div>
 </div>
@@ -149,6 +158,26 @@
     margin: 0;
     font-size: 12px;
     color: var(--text-faint);
+  }
+  .or {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .or::before,
+  .or::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .btn.full {
+    width: 100%;
+  }
+  .small.center {
+    text-align: center;
   }
   .field {
     display: flex;

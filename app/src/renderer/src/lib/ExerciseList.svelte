@@ -3,11 +3,26 @@
   import iconUrl from "../assets/icon.svg";
   import { formatDate, formatDateTime, isPast } from "../../../shared-types/datetime";
   import { sectionExercises } from "../../../shared-types/grouping";
+  import ScratchSection from "./ScratchSection.svelte";
   import type { ExerciseList, ExerciseSummary, StudentInfo } from "../../../shared-types/api";
 
-  let { student, onOpen }: { student: StudentInfo | null; onOpen: (id: string) => void } = $props();
+  let {
+    student,
+    onOpen,
+    scratchOnly = false,
+    onLogin
+  }: {
+    student: StudentInfo | null;
+    onOpen: (id: string) => void;
+    /** Before login: only the Scratch section, no backend call. */
+    scratchOnly?: boolean;
+    /** Scratch-only list: back to the code screen. */
+    onLogin?: () => void;
+  } = $props();
 
   let list = $state<ExerciseList | undefined>();
+  // Scratch items are reloaded on their own after create / rename / delete (no backend call).
+  let scratchItems = $state<ExerciseSummary[]>([]);
   let failure = $state("");
 
   const initials = $derived(
@@ -18,12 +33,22 @@
       .map((p) => p[0]!.toUpperCase())
       .join("")
   );
-  const sections = $derived(sectionExercises(list?.exercises ?? [], list?.groups ?? []));
+  const sections = $derived(sectionExercises((list?.exercises ?? []).filter((e) => !e.scratch), list?.groups ?? []));
+  const serverCount = $derived((list?.exercises ?? []).filter((e) => !e.scratch).length);
+
+  async function reloadScratch(): Promise<void> {
+    try {
+      scratchItems = (await window.jide.listScratch()).exercises;
+    } catch {
+      /* keep the items on screen */
+    }
+  }
 
   onMount(async () => {
     // Opening the list is also the quiet retry after being offline.
     try {
-      list = await window.jide.listExercises();
+      list = await (scratchOnly ? window.jide.listScratch() : window.jide.listExercises());
+      scratchItems = list.exercises.filter((e) => e.scratch);
     } catch {
       failure = "Die Aufgaben konnten nicht geladen werden.";
       list = { exercises: [], groups: [], errors: [], offline: false };
@@ -87,7 +112,7 @@
 <div class="screen">
   <div class="topbar">
     <img class="logo-mark" src={iconUrl} alt="J;DE" />
-    <span class="title">Meine Aufgaben</span>
+    <span class="title">{scratchOnly ? "Scratch" : "Meine Aufgaben"}</span>
     {#if student}
       <span class="chip grey" data-testid="course">{student.course.subject} · {student.course.className}</span>
     {/if}
@@ -99,6 +124,9 @@
         <span class="sync" data-testid="sync"><span class="dot"></span>Verbunden</span>
       {/if}
     {/if}
+    {#if scratchOnly}
+      <button class="btn primary" onclick={() => onLogin?.()} data-testid="scratch-login">Mit Code anmelden</button>
+    {/if}
     {#if student}
       <span class="user" data-testid="student"><span class="avatar">{initials}</span>{student.name}</span>
     {/if}
@@ -108,7 +136,7 @@
       {#if list.offline}
         <div class="notice" data-testid="offline-hint">Offline – du siehst die zuletzt geladenen Aufgaben.</div>
       {/if}
-      {#each sections as section (section.key)}
+      {#each scratchOnly ? [] : sections as section (section.key)}
         {#if section.title}
           <div class="section-head" data-testid="group-heading">
             <span class="section-title">{section.title}</span>
@@ -119,7 +147,7 @@
           {@render row(ex)}
         {/each}
       {/each}
-      {#if list.exercises.length === 0 && !failure && list.errors.length === 0}
+      {#if !scratchOnly && serverCount === 0 && !failure && list.errors.length === 0}
         <p class="muted">Keine Aufgaben vorhanden.</p>
       {/if}
       {#if failure}
@@ -132,6 +160,12 @@
           {/each}
         </div>
       {/if}
+      <ScratchSection
+        items={scratchItems}
+        hint={scratchOnly ? "Nur auf diesem Laptop gespeichert" : "Deine eigenen Programme – ohne Abgabe"}
+        {onOpen}
+        onChanged={reloadScratch}
+      />
     {/if}
   </div>
 </div>

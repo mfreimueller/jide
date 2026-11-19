@@ -20,6 +20,8 @@
   let session = $state<AppSession | undefined>();
   let student = $state<StudentInfo | null>(null);
   let loginNotice = $state("");
+  // Before login: the Scratch-only list (own programs, no backend); also where "← Aufgaben" returns to.
+  let scratchOnly = $state(false);
   // Exam mode: undefined while loading, null before "Prüfung starten".
   let examName = $state<string | null | undefined>();
   let examExercises = $state.raw<ExerciseListData | undefined>();
@@ -62,6 +64,7 @@
       await flushAll().catch(() => undefined); // edits are local; never lose them
       exercise = undefined;
       student = null;
+      scratchOnly = false;
       loginNotice = notice;
     };
     const stop = window.jide.onSessionExpired(leaveToLogin);
@@ -91,9 +94,10 @@
 </script>
 
 {#snippet content(s: AppSession)}
-  {#if s.mode === "online" && !student}
+  {#if s.mode === "online" && !student && !scratchOnly}
     <Login
       notice={loginNotice}
+      onScratch={() => (scratchOnly = true)}
       onLoggedIn={(st) => {
         student = st;
         loginNotice = "";
@@ -103,13 +107,15 @@
     {#key exercise.id}
       <Workspace
         {exercise}
-        canHandIn={s.mode === "online"}
+        canHandIn={s.mode === "online" && !exercise.scratch}
         onBack={() => (exercise = undefined)}
         registerSession={(es) => (es ? sessions.set("current", es) : sessions.delete("current"))}
       />
     {/key}
   {:else}
-    <ExerciseList {student} onOpen={open} />
+    {#key scratchOnly}
+      <ExerciseList {student} onOpen={open} {scratchOnly} onLogin={() => (scratchOnly = false)} />
+    {/key}
     {#if error}
       <div class="toast" role="alert">{error}</div>
     {/if}

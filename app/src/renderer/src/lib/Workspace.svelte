@@ -30,6 +30,8 @@
   import { eventLog } from "./event-log";
   import { editableContents, getLastTest, handInReason, planHandIn, type HandInPlan, type HandInReason } from "./test-state";
   import Toolbar from "./Toolbar.svelte";
+  import TextDialog from "./TextDialog.svelte";
+  import { canDeleteClass } from "./scratch-ui";
 
   let {
     exercise,
@@ -127,6 +129,48 @@
       decision: { reason: decision.reason, confirm: decision.plan.confirm, summary: decision.plan.summary },
       events: eventLog.list()
     });
+  }
+
+  // Scratch programs: add / delete classes, pick the Angabe.
+  // svelte-ignore state_referenced_locally
+  const scratch = exercise.scratch === true;
+  // svelte-ignore state_referenced_locally
+  let assignmentMd = $state(exercise.assignment);
+  let classDialog = $state.raw<{ kind: "add" } | { kind: "delete"; path: string } | undefined>();
+
+  async function addClass(name: string): Promise<string | undefined> {
+    const r = await window.jide.scratchAddClass(exercise.id, name);
+    if (!r.ok) return r.message;
+    const opened = await window.jide.openExercise(exercise.id);
+    const file = opened.ok ? opened.exercise.files.find((f) => f.path === r.path) : undefined;
+    if (file) {
+      session.addFile(file);
+      session.openFile(file.path);
+      void problems.compileNow();
+    }
+    classDialog = undefined;
+    return undefined;
+  }
+
+  async function deleteClass(path: string): Promise<string | undefined> {
+    const r = await window.jide.scratchDeleteClass(exercise.id, path);
+    if (!r.ok) return r.message;
+    session.removeFile(path);
+    void problems.compileNow();
+    classDialog = undefined;
+    return undefined;
+  }
+
+  async function pickAssignment(): Promise<void> {
+    try {
+      const r = await window.jide.scratchChooseAssignment(exercise.id);
+      if (!r.ok) return showToast("error", r.message);
+      if (r.canceled) return;
+      const opened = await window.jide.openExercise(exercise.id);
+      if (opened.ok) assignmentMd = opened.exercise.assignment;
+    } catch {
+      showToast("error", "Das hat leider nicht geklappt.");
+    }
   }
 
   /** Flushes pending edits; asks first if the tests do not vouch for the code (SPEC 3.5), then uploads. */
@@ -262,12 +306,35 @@
       onReport={canReport ? () => void openReport() : undefined}
     />
   {/if}
+  {#if classDialog?.kind === "add"}
+    <TextDialog
+      heading="Neue Klasse"
+      label="Name der Klasse"
+      confirmLabel="Erstellen"
+      onCancel={() => (classDialog = undefined)}
+      onSubmit={addClass}
+      testid="class-dialog"
+    />
+  {:else if classDialog?.kind === "delete"}
+    {@const path = classDialog.path}
+    <TextDialog
+      heading={`„${path}“ löschen?`}
+      text="Die Datei wird von diesem Laptop gelöscht."
+      badge="!"
+      tone="danger"
+      confirmLabel="Löschen"
+      onCancel={() => (classDialog = undefined)}
+      onSubmit={() => deleteClass(path)}
+      testid="class-dialog"
+    />
+  {/if}
   <div class="topbar">
     {#if leading}
       {@render leading()}
     {:else}
       <button class="btn ghost" onclick={back}>← Aufgaben</button>
       <span class="title">{exercise.title}</span>
+      {#if scratch}<span class="chip grey" data-testid="scratch-chip">Scratch</span>{/if}
     {/if}
     {#if session.saveState === "error"}
       <span class="status err" title={session.saveError} data-testid="save-status">Speichern fehlgeschlagen</span>
@@ -295,6 +362,9 @@
     <div class="files" class:collapsed={layout.filesCollapsed} style:width="{layout.filesWidth}px" data-testid="file-list">
       <div class="pane-head">
         <span class="pane-title">Dateien</span>
+        {#if scratch}
+          <PanelButton icon="plus" tip="Neue Klasse" place="below-right" onclick={() => (classDialog = { kind: "add" })} testid="add-class" />
+        {/if}
         <PanelButton icon="left" tip="Dateien einklappen (Alt+1)" onclick={() => togglePanel("files")} testid="files-collapse" />
       </div>
       <div class="file-scroll">
@@ -307,6 +377,20 @@
           <span class="java" class:ro={!f.editable}>J</span>{f.path}
           {#if !f.editable}<span class="lock">nur lesen</span>{/if}
           {#if errorsByFile.get(f.path)}<span class="err" data-testid="file-errors">{errorsByFile.get(f.path)}</span>{/if}
+          {#if scratch && canDeleteClass(f.path, exercise.mainFile)}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <span
+              class="del"
+              role="button"
+              tabindex="-1"
+              aria-label={`${f.path} löschen`}
+              onclick={(e) => {
+                e.stopPropagation();
+                classDialog = { kind: "delete", path: f.path };
+              }}
+              data-testid="delete-class">×</span
+            >
+          {/if}
         </button>
       {/each}
       {#each session.images as img (img.path)}
@@ -371,7 +455,8 @@
       <ResizeHandle dir="col" begin={() => (dragStart = layout.assignWidth)} apply={dragAssign} testid="assign-handle" />
     {/if}
     <AssignmentPanel
-      markdown={exercise.assignment}
+      markdown={assignmentMd}
+      onpick={scratch ? () => void pickAssignment() : undefined}
       heading={assignmentHeading}
       title={exercise.title}
       deadline={exercise.deadline}
@@ -485,6 +570,26 @@
     background: #e5484d;
     border-radius: 999px;
     padding: 0 6px;
+  }
+  .file .del {
+    margin-left: auto;
+    display: none;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--text-faint);
+  }
+  .file:hover .del,
+  .file:focus-within .del {
+    display: flex;
+  }
+  .file .del:hover {
+    background: var(--bg-err);
+    color: var(--text-err);
   }
   .file .lock + .err {
     margin-left: 0;

@@ -7,7 +7,7 @@
     onclick,
     testid
   }: {
-    icon: "left" | "right" | "down" | "up";
+    icon: "left" | "right" | "down" | "up" | "plus";
     tip: string;
     place?: "below-left" | "below-right" | "above-right";
     onclick: () => void;
@@ -20,6 +20,7 @@
     {#if icon === "left"}<path d="M8 4 4 8l4 4M12 4 8 8l4 4" />
     {:else if icon === "right"}<path d="m8 4 4 4-4 4M4 4l4 4-4 4" />
     {:else if icon === "down"}<path d="m4 6 4 4 4-4" />
+    {:else if icon === "plus"}<path d="M8 3v10M3 8h10" />
     {:else}<path d="m4 10 4-4 4 4" />{/if}
   </svg>
 </button>

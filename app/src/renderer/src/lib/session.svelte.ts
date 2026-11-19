@@ -13,7 +13,8 @@ type Editor = monaco.editor.IStandaloneCodeEditor;
  * Models are kept for the whole session so undo history survives tab switches.
  */
 export class EditorSession {
-  readonly files: OpenedFile[];
+  /** Replaced (never mutated) when a Scratch class is added or deleted. */
+  files = $state.raw<OpenedFile[]>([]);
   /** Read-only SVG images; their paths can be open tabs (and `active`) next to the Java files. */
   readonly images: OpenedImage[];
   openTabs = $state<string[]>([]);
@@ -33,14 +34,43 @@ export class EditorSession {
   constructor(private readonly exercise: OpenedExercise) {
     this.files = exercise.files;
     this.images = exercise.images;
-    for (const f of this.files) {
-      const uri = monaco.Uri.from({ scheme: "jide", path: `/${exercise.id}/${f.path}` });
-      const model = monaco.editor.createModel(f.content, "java", uri);
-      this.models.set(f.path, model);
-      if (f.editable) {
-        model.onDidChangeContent(() => this.onEdit(f.path));
-      }
+    for (const f of this.files) this.createModel(f);
+  }
+
+  private createModel(f: OpenedFile): void {
+    const uri = monaco.Uri.from({ scheme: "jide", path: `/${this.exercise.id}/${f.path}` });
+    const model = monaco.editor.createModel(f.content, "java", uri);
+    this.models.set(f.path, model);
+    if (f.editable) {
+      model.onDidChangeContent(() => this.onEdit(f.path));
     }
+  }
+
+  /** Scratch: a class was added; it appears in the file list (the caller opens it). */
+  addFile(f: OpenedFile): void {
+    if (this.models.has(f.path)) return;
+    this.createModel(f);
+    this.files = [...this.files, f];
+  }
+
+  /** Scratch: a class was deleted on disk. Closes its tab and drops its model and pending saves. */
+  removeFile(path: string): void {
+    const model = this.models.get(path);
+    if (!model) return;
+    clearTimeout(this.timers.get(path));
+    this.timers.delete(path);
+    this.dirty.delete(path);
+    this.viewStates.delete(path);
+    this.files = this.files.filter((f) => f.path !== path);
+    const wasActive = this.active === path;
+    this.openTabs = this.openTabs.filter((p) => p !== path);
+    if (wasActive) {
+      this.active = "";
+      this.openFile(this.exercise.mainFile);
+    }
+    model.dispose();
+    this.models.delete(path);
+    this.finish();
   }
 
   attach(editor: Editor): void {
