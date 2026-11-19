@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, type Snippet } from "svelte";
-  import type { OpenedExercise } from "../../../shared-types/api";
+  import type { OpenedExercise, ReportEnv } from "../../../shared-types/api";
   import { formatDate, formatDateTime, formatTime } from "../../../shared-types/datetime";
   import { handInToast } from "./exam-ui";
   import AssignmentPanel from "./AssignmentPanel.svelte";
@@ -25,7 +25,10 @@
   import { TestController } from "./test.svelte";
   import HandInDialog from "./HandInDialog.svelte";
   import { EditorSession } from "./session.svelte";
-  import { editableContents, getLastTest, planHandIn, type HandInPlan } from "./test-state";
+  import BugReportDialog from "./BugReportDialog.svelte";
+  import { buildReport, reasonLabel, reportFileName } from "./bug-report";
+  import { eventLog } from "./event-log";
+  import { editableContents, getLastTest, handInReason, planHandIn, type HandInPlan, type HandInReason } from "./test-state";
   import Toolbar from "./Toolbar.svelte";
 
   let {
@@ -92,22 +95,64 @@
     toastTimer = setTimeout(() => (toast = undefined), 8000);
   }
 
-  let confirming = $state.raw<HandInPlan | undefined>();
+  let confirming = $state.raw<{ plan: HandInPlan; reason: HandInReason } | undefined>();
+  /** The bug report (T44) on top of the confirmation; the text is fixed when it was opened. */
+  let reportText = $state<string | undefined>();
+  let reportName = $state("");
+  // The exam has no bug report: its hand-in target (the drive) is only given in exam mode.
+  const canReport = $derived(handInTarget === undefined);
+
+  async function openReport(): Promise<void> {
+    const decision = confirming;
+    if (!decision) return;
+    const now = new Date();
+    let env: ReportEnv = { appVersion: "unbekannt", os: "unbekannt", mode: "online", packageVersion: null };
+    try {
+      env = await window.jide.reportEnv(exercise.id);
+    } catch {
+      // the report is still useful without the environment line
+    }
+    const last = getLastTest(exercise.id);
+    reportName = reportFileName(exercise.id, now);
+    reportText = buildReport({
+      now,
+      env,
+      exerciseId: exercise.id,
+      hasTests: exercise.hasTests,
+      allowTests,
+      testState: tests?.state ?? "idle",
+      programRunning: run.state !== "idle",
+      last: last && { at: last.at, summary: last.summary, snapshot: last.snapshot },
+      current: editableContents(session.files, session.fileContents()),
+      decision: { reason: decision.reason, confirm: decision.plan.confirm, summary: decision.plan.summary },
+      events: eventLog.list()
+    });
+  }
 
   /** Flushes pending edits; asks first if the tests do not vouch for the code (SPEC 3.5), then uploads. */
   async function handIn(): Promise<void> {
     if (handInBusy || confirming) return;
     handInBusy = true;
+    eventLog.add("Abgeben gedrückt");
     try {
       await session.flush();
       if (!session.clean) {
+        eventLog.add("Abgeben abgebrochen: Änderungen nicht gespeichert");
         showToast("error", "Deine Änderungen konnten nicht gespeichert werden. Versuch es gleich nochmal.");
         return;
       }
       const current = editableContents(session.files, session.fileContents());
-      const plan = planHandIn(exercise.hasTests && allowTests, getLastTest(exercise.id), current);
+      const hasTests = exercise.hasTests && allowTests;
+      const last = getLastTest(exercise.id);
+      const plan = planHandIn(hasTests, last, current);
+      const reason = handInReason(hasTests, last, current);
+      eventLog.add(
+        `Entscheidung: ${plan.confirm ? "nachfragen" : "nicht nachfragen"} (${reasonLabel(reason)}), Ergebnis an Abgabe: ${
+          plan.summary ? `${plan.summary.passed} von ${plan.summary.total}` : "keins"
+        }`
+      );
       if (plan.confirm) {
-        confirming = plan;
+        confirming = { plan, reason };
         return;
       }
       await upload(plan);
@@ -119,9 +164,10 @@
   }
 
   async function confirmHandIn(): Promise<void> {
-    const plan = confirming;
+    const plan = confirming?.plan;
     confirming = undefined;
     if (!plan || handInBusy) return;
+    eventLog.add("Nachfrage: Trotzdem abgeben");
     handInBusy = true;
     try {
       await upload(plan);
@@ -203,8 +249,18 @@
 </script>
 
 <div class="screen" bind:this={screenEl}>
-  {#if confirming}
-    <HandInDialog summary={confirming.summary} onCancel={() => (confirming = undefined)} onConfirm={() => void confirmHandIn()} />
+  {#if confirming && reportText !== undefined}
+    <BugReportDialog report={reportText} fileName={reportName} onClose={() => (reportText = undefined)} />
+  {:else if confirming}
+    <HandInDialog
+      summary={confirming.plan.summary}
+      onCancel={() => {
+        eventLog.add("Nachfrage: Weiterarbeiten");
+        confirming = undefined;
+      }}
+      onConfirm={() => void confirmHandIn()}
+      onReport={canReport ? () => void openReport() : undefined}
+    />
   {/if}
   <div class="topbar">
     {#if leading}

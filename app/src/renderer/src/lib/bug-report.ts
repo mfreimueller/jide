@@ -124,6 +124,10 @@ const REASON: Record<HandInReason, string> = {
   ok: "alle Tests bestanden, Code unverändert"
 };
 
+export function reasonLabel(reason: HandInReason): string {
+  return REASON[reason];
+}
+
 function size(n: number): string {
   return `${n} Zeichen`;
 }

@@ -1,10 +1,15 @@
 <!-- Confirmation before handing in code that has not passed its tests (design: "05 Abgeben – Bestätigung"). -->
 <script lang="ts">
+  import BugIcon from "./BugIcon.svelte";
+
   let {
     summary,
     onCancel,
-    onConfirm
+    onConfirm,
+    onReport
   }: {
+    /** Opens the bug report (T44). Absent in exam mode: no button. */
+    onReport?: () => void;
     /** Last test run if it is still current; null if never tested or the code changed since. */
     summary: { passed: number; total: number } | null;
     onCancel: () => void;
@@ -16,6 +21,17 @@
 
 <div class="overlay" data-testid="hand-in-dialog">
   <div class="dialog" role="alertdialog" aria-labelledby="hid-title" aria-describedby="hid-text">
+    {#if onReport}
+      <button
+        class="bug"
+        onclick={onReport}
+        aria-label="Fehlerbericht für deine Lehrkraft"
+        data-tip="Fehlerbericht für deine Lehrkraft"
+        data-testid="bug-report-open"
+      >
+        <BugIcon size={18} />
+      </button>
+    {/if}
     <div class="dialog-icon">!</div>
     <h1 id="hid-title">Wirklich abgeben?</h1>
     <p class="muted" id="hid-text">Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?</p>
@@ -41,7 +57,44 @@
     align-items: center;
     justify-content: center;
   }
+  .bug {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .bug:hover,
+  .bug:focus-visible {
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+  }
+  .bug:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 60;
+    white-space: nowrap;
+    background: var(--bg-dark);
+    color: #fff;
+    font-size: 12px;
+    line-height: 16px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+  }
   .dialog {
+    position: relative;
     width: 460px;
     background: var(--bg-panel);
     border-radius: 14px;
