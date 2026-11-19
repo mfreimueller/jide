@@ -61,7 +61,7 @@
 />
 
 <div class="section-head" data-testid="scratch-heading">
-  <span class="section-title">Scratch</span>
+  <span class="scratch-title">Scratch</span>
   <span class="hint">{hint}</span>
   <span class="spacer"></span>
   <button class="btn small" onclick={() => (dialog = { kind: "create" })} data-testid="scratch-new">
@@ -146,7 +146,7 @@
     gap: 10px;
     margin-top: 8px;
   }
-  .section-title {
+  .scratch-title {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-faint);
