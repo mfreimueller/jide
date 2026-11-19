@@ -21,11 +21,18 @@ describe("sectionExercises", () => {
     expect(ids(r[0]!)).toEqual(["b", "c", "a"]);
   });
 
+  it("inside a group: open and handed-in parts each keep the incoming order", () => {
+    const list = [ex("h1", 1, "abgegeben"), ex("o1", 1), ex("h2", 1, "abgegeben"), ex("o2", 1, "in-arbeit"), ex("o3", 1)];
+    const r = sectionExercises(list, [{ id: 1, name: "G" }]);
+    expect(ids(r[0]!)).toEqual(["o1", "o2", "o3", "h1", "h2"]);
+    expect(r[0]!.progress).toBe("2 / 5 abgegeben");
+  });
+
   it("is empty for an empty list", () => {
     expect(sectionExercises([], [{ id: 1, name: "X" }])).toEqual([]);
   });
 
-  it("keeps the teacher's order of groups and of the exercises inside, with progress", () => {
+  it("keeps the incoming order of groups, puts open exercises first inside, with progress", () => {
     const groups = [
       { id: 2, name: "Arrays" },
       { id: 1, name: "Schleifen" }
@@ -36,7 +43,8 @@ describe("sectionExercises", () => {
       ["Arrays", "1 / 2 abgegeben"],
       ["Schleifen", "2 / 2 abgegeben"]
     ]);
-    expect(ids(r[0]!)).toEqual(["a1", "a2"]); // not re-sorted into open / handed in
+    expect(ids(r[0]!)).toEqual(["a2", "a1"]); // open first
+    expect(ids(r[1]!)).toEqual(["s1", "s2"]); // all handed in: incoming order
   });
 
   it("puts ungrouped exercises last under Weitere Übungen, open first, without progress", () => {

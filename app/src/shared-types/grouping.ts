@@ -17,8 +17,9 @@ function openFirst(list: ExerciseSummary[]): ExerciseSummary[] {
 }
 
 /**
- * Splits the list into the teacher's groups (in their order, exercises in the teacher's order),
- * then the ungrouped ones under "Weitere Übungen". Groups without a visible exercise are left out.
+ * Splits the list into the groups (in the server's order, newest first), then the ungrouped ones under "Weitere Übungen".
+ * Inside every block open exercises come first, then handed-in ones, each keeping the server's order.
+ * Groups without a visible exercise are left out.
  * Without any such group the result is one plain block without a heading.
  */
 export function sectionExercises(exercises: ExerciseSummary[], groups: ExerciseGroup[]): ExerciseSection[] {
@@ -28,7 +29,7 @@ export function sectionExercises(exercises: ExerciseSummary[], groups: ExerciseG
     const items = exercises.filter((e) => e.groupId === g.id);
     if (items.length === 0) continue;
     const done = items.filter((e) => e.status === "abgegeben").length;
-    sections.push({ key: `group-${g.id}`, title: g.name, progress: `${done} / ${items.length} abgegeben`, exercises: items });
+    sections.push({ key: `group-${g.id}`, title: g.name, progress: `${done} / ${items.length} abgegeben`, exercises: openFirst(items) });
   }
   const rest = openFirst(exercises.filter((e) => e.groupId === null || e.groupId === undefined || !known.has(e.groupId)));
   if (sections.length === 0) {
