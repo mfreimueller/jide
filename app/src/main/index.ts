@@ -5,6 +5,7 @@ import { registerCompileIpc } from "./compile";
 import { askToClose, examCloseNeedsConfirm, registerExamSaveIpc } from "./exam-session";
 import { examMode, initExam, redirectPathsForExamMode, registerExamIpc } from "./exam-state";
 import { registerExerciseIpc } from "./exercises";
+import { registerScratchIpc } from "./scratch-ipc";
 import { installAppMenu } from "./menu";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
@@ -132,6 +133,7 @@ app.whenReady().then(async () => {
   registerExamSaveIpc();
   registerOnlineIpc();
   registerExerciseIpc();
+  registerScratchIpc();
   registerCompileIpc();
   registerRunIpc();
   registerTestIpc();

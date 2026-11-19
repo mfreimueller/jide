@@ -8,6 +8,8 @@ import { examMode, examStudentName } from "./exam-state";
 import { broadcastSaveStatus } from "./save-status";
 import { PackageCache } from "./package-cache";
 import { SessionStore } from "./session-store";
+import { CompositeSource } from "./composite-source";
+import { ScratchStore } from "./scratch";
 import { LocalSource, type ExerciseSource } from "./source";
 
 // Set by electron-vite `define` (see electron.vite.config.ts).
@@ -30,6 +32,8 @@ export interface MainContext {
   handIns: HandInLog;
   /** Online mode only. */
   session?: { store: SessionStore; api: ApiClient };
+  /** Scratch programs (online and local mode, never in exam mode). */
+  scratch?: ScratchStore;
 }
 
 let ctx: MainContext | undefined;
@@ -55,7 +59,13 @@ export function context(): MainContext {
   }
   const dir = exam ? exam.exercisesDir : process.env["JIDE_EXERCISES_DIR"];
   if (dir) {
-    ctx = { source: new LocalSource(dir), handIns };
+    // Exam mode with a broken exam.json has no config: still no Scratch there.
+    if (exam) {
+      ctx = { source: new LocalSource(dir), handIns };
+      return ctx;
+    }
+    const scratch = new ScratchStore(join(userData, "scratch"));
+    ctx = { source: new CompositeSource(new LocalSource(dir), scratch), handIns, scratch };
     return ctx;
   }
   const store = new SessionStore(join(userData, "session.json"));
@@ -69,6 +79,8 @@ export function context(): MainContext {
       }
     }
   });
-  ctx = { source: new OnlineSource(api, new PackageCache(join(userData, "cache"))), handIns, session: { store, api } };
+  const scratch = new ScratchStore(join(userData, "scratch"));
+  const source = new CompositeSource(new OnlineSource(api, new PackageCache(join(userData, "cache"))), scratch);
+  ctx = { source, handIns, session: { store, api }, scratch };
   return ctx;
 }

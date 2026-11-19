@@ -64,7 +64,8 @@ export function registerExerciseIpc(): void {
         deadline: ex.deadline,
         submittedAt,
         late: handIn?.late ?? false,
-        groupId: ex.groupId
+        groupId: ex.groupId,
+        ...(ex.scratch ? { scratch: true } : {})
       });
     }
     return { exercises: summaries, groups, errors, offline };

@@ -12,6 +12,8 @@ export interface ExerciseSummary {
   late: boolean;
   /** Exercise group of the course (see ExerciseList.groups); null = ungrouped, always null in local and exam mode. */
   groupId: number | null;
+  /** A Scratch program (own work without a server): own section, no hand-in. Absent = false. */
+  scratch?: boolean;
 }
 
 export interface ExerciseGroup {
@@ -96,6 +98,9 @@ export interface OpenedExercise {
 export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };
 export type SaveResult = { ok: true } | { ok: false; message: string };
 
+/** Result of a Scratch operation; German message on failure. */
+export type ScratchResult<T = unknown> = ({ ok: true } & T) | { ok: false; message: string };
+
 export interface SourceFileInput {
   path: string;
   content: string;
@@ -172,6 +177,17 @@ export interface JideApi {
   openExercise: (id: string) => Promise<OpenResult>;
   saveFile: (id: string, path: string, content: string) => Promise<SaveResult>;
   resetFile: (id: string, path: string) => Promise<SaveResult>;
+  /** Scratch (local and online mode, also before login; refused in exam mode): new program, `id` is the new item. */
+  scratchCreate: (title: string) => Promise<ScratchResult<{ id: string }>>;
+  scratchRename: (id: string, title: string) => Promise<ScratchResult>;
+  /** Removes the item and its workspace. */
+  scratchDelete: (id: string) => Promise<ScratchResult>;
+  /** Adds `<name>.java` with an empty class; `path` is the new file. */
+  scratchAddClass: (id: string, name: string) => Promise<ScratchResult<{ path: string }>>;
+  /** Deletes an added class; Main.java is refused. */
+  scratchDeleteClass: (id: string, path: string) => Promise<ScratchResult>;
+  /** Copies the .md file at `path` into the item as aufgabe.md. */
+  scratchPickAssignment: (id: string, path: string) => Promise<ScratchResult>;
   /** Local mode or online mode (with or without a stored code). */
   getSession: () => Promise<AppSession>;
   /** Exam mode: stores the student's name in main (trimmed; it goes into abgabe.json in T25). */
