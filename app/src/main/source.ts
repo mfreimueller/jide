@@ -10,6 +10,8 @@ export interface SourceEntry {
   deadline: string | null;
   /** Exercise group of the course, null = none. */
   groupId: number | null;
+  /** A Scratch item (own program without a server), listed in its own section. */
+  scratch?: boolean;
 }
 
 export interface SourceListing {
