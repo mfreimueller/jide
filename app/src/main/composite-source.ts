@@ -1,6 +1,18 @@
 import type { Exercise, HandInFile, TestSummary } from "@jide/shared";
 import { isScratchId, SCRATCH_PREFIX, type ScratchStore } from "./scratch";
-import type { ExerciseSource, HandInOutcome, SourceListing } from "./source";
+import type { ExerciseSource, HandInOutcome, SourceEntry, SourceListing } from "./source";
+
+/** How a Scratch program appears in a list. */
+export function scratchEntry(e: Exercise): SourceEntry {
+  return {
+    id: e.id,
+    title: e.title,
+    deadline: null,
+    groupId: null,
+    scratch: true,
+    classCount: e.files.filter((f) => f.path.endsWith(".java")).length
+  };
+}
 
 /**
  * The main source plus Scratch. Ids starting with `scratch-` belong to Scratch only, everything else
@@ -31,7 +43,7 @@ export class CompositeSource implements ExerciseSource {
       // The prefix is reserved for Scratch: a server exercise with such an id would be unreachable anyway.
       exercises: [
         ...listing.exercises.filter((e) => !e.id.startsWith(SCRATCH_PREFIX)),
-        ...mine.exercises.map((e) => ({ id: e.id, title: e.title, deadline: null, groupId: null, scratch: true }))
+        ...mine.exercises.map(scratchEntry)
       ],
       errors: [...listing.errors, ...mine.errors]
     };

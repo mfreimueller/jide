@@ -12,6 +12,9 @@ import type {
 import { context } from "./context";
 import { examStudentName, examMode, testsAllowed } from "./exam-state";
 import { examWorkspaceKey } from "./exam-store";
+import { scratchEntry } from "./composite-source";
+import { isScratchId } from "./scratch";
+import type { SourceEntry } from "./source";
 import { parseTestSummary } from "./test-summary";
 
 const MAX_CONTENT_BYTES = 2 * 1024 * 1024;
@@ -48,28 +51,40 @@ function errorMessage(e: unknown, fallback: string): string {
 
 const UNKNOWN_EXERCISE = "Diese Aufgabe gibt es nicht.";
 
+async function summarise(exercises: SourceEntry[]): Promise<ExerciseSummary[]> {
+  const { handIns } = context();
+  const summaries: ExerciseSummary[] = [];
+  for (const ex of exercises) {
+    const started = await dirExists(join(workspaceRoot(), ex.id));
+    const handIn = handIns.get(ex.id);
+    const submittedAt = handIn?.submittedAt ?? null;
+    summaries.push({
+      id: ex.id,
+      title: ex.title,
+      status: submittedAt ? "abgegeben" : started ? "in-arbeit" : "neu",
+      deadline: ex.deadline,
+      submittedAt,
+      late: handIn?.late ?? false,
+      groupId: ex.groupId,
+      difficulty: ex.difficulty ?? null,
+      ...(ex.scratch ? { scratch: true, classCount: ex.classCount ?? 0 } : {})
+    });
+  }
+  return summaries;
+}
+
 export function registerExerciseIpc(): void {
   ipcMain.handle("jide:list-exercises", async (): Promise<ExerciseList> => {
-    const { source, handIns } = context();
+    const { source } = context();
     const { exercises, groups, errors, offline } = await source.list();
-    const summaries: ExerciseSummary[] = [];
-    for (const ex of exercises) {
-      const started = await dirExists(join(workspaceRoot(), ex.id));
-      const handIn = handIns.get(ex.id);
-      const submittedAt = handIn?.submittedAt ?? null;
-      summaries.push({
-        id: ex.id,
-        title: ex.title,
-        status: submittedAt ? "abgegeben" : started ? "in-arbeit" : "neu",
-        deadline: ex.deadline,
-        submittedAt,
-        late: handIn?.late ?? false,
-        groupId: ex.groupId,
-        difficulty: ex.difficulty ?? null,
-        ...(ex.scratch ? { scratch: true } : {})
-      });
-    }
-    return { exercises: summaries, groups, errors, offline };
+    return { exercises: await summarise(exercises), groups, errors, offline };
+  });
+
+  // Scratch only: never asks the backend (before login a 401 there would send the app to the code screen).
+  ipcMain.handle("jide:list-scratch", async (): Promise<ExerciseList> => {
+    const scratch = context().scratch;
+    const { exercises, errors } = scratch ? await scratch.list() : { exercises: [], errors: [] };
+    return { exercises: await summarise(exercises.map(scratchEntry)), groups: [], errors, offline: false };
   });
 
   ipcMain.handle("jide:open-exercise", async (_e, id: unknown): Promise<OpenResult> => {
@@ -98,7 +113,8 @@ export function registerExerciseIpc(): void {
           deadline: await source.deadlineOf(ex.id),
           submittedAt: handIns.get(ex.id)?.submittedAt ?? null,
           late: handIns.get(ex.id)?.late ?? false,
-          hasTests: (ex.tests?.length ?? 0) > 0
+          hasTests: (ex.tests?.length ?? 0) > 0,
+          ...(isScratchId(ex.id) ? { scratch: true } : {})
         }
       };
     } catch (e) {

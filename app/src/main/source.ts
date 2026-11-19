@@ -14,6 +14,8 @@ export interface SourceEntry {
   difficulty?: Difficulty | null;
   /** A Scratch item (own program without a server), listed in its own section. */
   scratch?: boolean;
+  /** Scratch items: number of .java files. */
+  classCount?: number;
 }
 
 export interface SourceListing {

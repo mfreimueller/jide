@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadExercise, openWorkspace, type Exercise } from "@jide/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CompositeSource } from "./composite-source";
+import { CompositeSource, scratchEntry } from "./composite-source";
 import { classNameProblem, isScratchId, ScratchStore } from "./scratch";
 import { SCRATCH_NOT_ALLOWED_MESSAGE, scratchHandlers } from "./scratch-handlers";
 import type { ExerciseSource } from "./source";
@@ -295,6 +295,9 @@ describe("exam mode", () => {
     expect(await h.addClass("a", "B")).toEqual(refused);
     expect(await h.deleteClass("a", "B.java")).toEqual(refused);
     expect(await h.pickAssignment("a", "/x.md")).toEqual(refused);
+    const pick = vi.fn(async () => "/x.md");
+    expect(await h.chooseAssignment("a", pick)).toEqual(refused);
+    expect(pick).not.toHaveBeenCalled();
     expect(await exists(join(tmp, "scratch"))).toBe(false);
   });
 
@@ -306,6 +309,26 @@ describe("exam mode", () => {
     await openWorkspace((await store.find(id))!, ws);
     expect(await h.delete(id)).toEqual({ ok: true });
     expect(await exists(join(ws, id))).toBe(false);
+  });
+});
+
+describe("list entries and the file dialog", () => {
+  it("counts the .java files of an item", async () => {
+    const id = await make();
+    expect(scratchEntry((await store.find(id))!)).toMatchObject({ id, scratch: true, classCount: 1, deadline: null, groupId: null });
+    await store.addClass(id, "Rechner");
+    expect(scratchEntry((await store.find(id))!).classCount).toBe(2);
+  });
+
+  it("chooseAssignment copies the chosen file; a canceled dialog changes nothing", async () => {
+    const h = scratchHandlers(() => store, () => ws);
+    const id = await make();
+    expect(await h.chooseAssignment(id, async () => undefined)).toEqual({ ok: true, canceled: true });
+    expect((await store.find(id))!.assignment).toBe("");
+    const md = join(tmp, "angabe.md");
+    await writeFile(md, "# Rechner\n", "utf8");
+    expect(await h.chooseAssignment(id, async () => md)).toEqual({ ok: true });
+    expect((await store.find(id))!.assignment).toContain("# Rechner");
   });
 });
 

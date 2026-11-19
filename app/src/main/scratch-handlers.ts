@@ -19,6 +19,13 @@ export function scratchHandlers(store: () => ScratchStore | undefined, workspace
       store()?.addClass(id, name) ?? refuse,
     deleteClass: (id: unknown, path: unknown): Promise<ScratchResult> | { ok: false; message: string } =>
       store()?.deleteClass(id, path, workspaceRoot()) ?? refuse,
+    /** `pick` shows the file dialog and returns the chosen path (undefined = canceled). */
+    chooseAssignment: async (id: unknown, pick: () => Promise<string | undefined>): Promise<ScratchResult<{ canceled?: boolean }>> => {
+      const s = store();
+      if (!s) return refuse;
+      const path = await pick();
+      return path === undefined ? { ok: true, canceled: true } : s.pickAssignment(id, path);
+    },
     pickAssignment: (id: unknown, path: unknown): Promise<ScratchResult> | { ok: false; message: string } =>
       store()?.pickAssignment(id, path) ?? refuse
   };

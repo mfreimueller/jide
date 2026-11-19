@@ -14,6 +14,8 @@ export interface ExerciseSummary {
   groupId: number | null;
   /** A Scratch program (own work without a server): own section, no hand-in. Absent = false. */
   scratch?: boolean;
+  /** Scratch items: number of .java files ("Eigenes Programm · 2 Klassen"). */
+  classCount?: number;
   /** From exercise.yaml; null = none. Shown as a pill on the card (never in exam mode). */
   difficulty: "newbie" | "advanced" | "pro" | null;
 }
@@ -95,6 +97,8 @@ export interface OpenedExercise {
   late: boolean;
   /** The exercise has tests (tests.yaml): show "Testen". */
   hasTests: boolean;
+  /** A Scratch program: no "Abgeben", classes can be added, the Angabe can be picked. Absent = false. */
+  scratch?: boolean;
 }
 
 export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };
@@ -188,6 +192,8 @@ export interface JideApi {
   /** Tells the main process that the start screen has rendered (used by the smoke test). */
   notifyEditorReady: () => void;
   listExercises: () => Promise<ExerciseList>;
+  /** Only the Scratch programs (no backend call; works before login and in local mode, empty in exam mode). */
+  listScratch: () => Promise<ExerciseList>;
   openExercise: (id: string) => Promise<OpenResult>;
   saveFile: (id: string, path: string, content: string) => Promise<SaveResult>;
   resetFile: (id: string, path: string) => Promise<SaveResult>;
@@ -202,6 +208,8 @@ export interface JideApi {
   scratchDeleteClass: (id: string, path: string) => Promise<ScratchResult>;
   /** Copies the .md file at `path` into the item as aufgabe.md. */
   scratchPickAssignment: (id: string, path: string) => Promise<ScratchResult>;
+  /** Opens the file dialog (.md) and copies the chosen file into the item; `canceled` = nothing chosen. */
+  scratchChooseAssignment: (id: string) => Promise<ScratchResult<{ canceled?: boolean }>>;
   /** Local mode or online mode (with or without a stored code). */
   getSession: () => Promise<AppSession>;
   /** Exam mode: stores the student's name in main (trimmed; it goes into abgabe.json in T25). */
