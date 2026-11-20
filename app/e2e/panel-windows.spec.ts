@@ -98,11 +98,16 @@ for (const panel of ["code", "assign", "console", "problems", "tests"] as const)
       "data-tip",
       `${LABEL[panel]} ist in einem eigenen Fenster – Klick holt es nach vorne. Schließen holt es zurück.`
     );
-    // a click on the chip brings the window to the front
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.getTitle() === "J;DE")?.focus());
-    await expect.poll(() => focusedTitle(app)).toBe("J;DE");
-    await chip.click();
-    await expect.poll(() => focusedTitle(app)).toBe(`J;DE – ${LABEL[panel]} – ${TITLE}`);
+    if (panel === "assign") {
+      // a click on the chip brings the window to the front (checked once: forcing the window focus is
+      // what makes parallel Electron apps fight over macOS activation)
+      await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.getTitle() === "J;DE")?.focus());
+      await expect.poll(() => focusedTitle(app)).toBe("J;DE");
+      await chip.click();
+      await expect.poll(() => focusedTitle(app)).toBe(`J;DE – ${LABEL[panel]} – ${TITLE}`);
+    } else {
+      await chip.click();
+    }
 
     await win.getByTestId("panel-back").click();
     await expect.poll(() => panelWindowCount(app)).toBe(0);
@@ -435,7 +440,6 @@ test("F5 / Shift+F5 in a detached Code window and in the Angabe window", async (
   await expect(page.getByTestId("tests-banner")).toContainText("3 von 3 Tests bestanden");
   // from the Angabe window
   await page.getByTestId("clear-console").click();
-  await assign.bringToFront();
   await assign.keyboard.press("F5");
   await expect(out).toContainText("Erste Zahl:");
   await code.getByTestId("stop").click();
