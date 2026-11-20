@@ -138,8 +138,8 @@
 		<div class="hbar">
 			<span class="hcount">{hidden.length} ausgeblendet:</span>
 			{#each hidden.slice(0, CHIPS) as { ex, reason } (ex.id)}
-				<span class="hchip">
-					{chipLabel(ex.title, reason)}
+				<span class="hchip" title={chipLabel(ex.title, reason)}>
+					<span class="ht">{ex.title}</span><span class="hr">· {reason}</span>
 					<button class="einblenden" onclick={() => setVisibility(ex.id, 'shown')}>Einblenden</button>
 				</span>
 			{/each}
@@ -417,35 +417,46 @@
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: 8px;
 		padding: 8px 12px;
 		border: 1.5px dashed var(--border-strong);
 		border-radius: var(--radius-lg);
-		font-size: 12px;
+		font-size: 11px;
 		white-space: nowrap;
 	}
 	.hcount {
 		color: var(--text-muted);
 	}
+	.hr {
+		flex: none;
+		margin-left: -4px;
+	}
+	.ht {
+		min-width: 56px;
+		max-width: 200px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
 	.hchip {
+		flex: 0 1 auto;
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
 		min-width: 0;
-		padding: 3px 4px 3px 10px;
+		gap: 6px;
+		padding: 2px 3px 2px 8px;
 		border: 1px solid var(--border);
 		border-radius: 999px;
 		background: var(--surface);
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 	.einblenden {
-		padding: 1px 9px;
+		flex: none;
+		padding: 1px 8px;
 		border: 1px solid var(--primary-line);
 		border-radius: 999px;
 		background: var(--surface);
 		color: var(--primary);
-		font-size: 11px;
+		font-size: 10.5px;
 		font-weight: 500;
 		cursor: pointer;
 	}
@@ -466,7 +477,7 @@
 		z-index: 11;
 		right: 0;
 		top: calc(100% + 6px);
-		width: 270px;
+		width: 320px;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
@@ -504,7 +515,11 @@
 		font-size: 12px;
 	}
 	.pt {
+		min-width: 0;
+		overflow: hidden;
 		font-weight: 500;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.pr {
 		flex: 1;
