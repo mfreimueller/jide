@@ -175,9 +175,9 @@ Decisions (2026-11-20):
 - Grades stored on the server are OK (students only see their own).
 - API contract: SPEC §5 "Grading API".
 
-- [ ] **T45 API keys** – migration `api_keys` (hashed, prefix shown, `last_used_at`, `revoked_at`); middleware `apiKeyAuth` for `/api/v1/*`; teacher web page "API-Schlüssel": create (name), shown once with copy button, list (name, prefix, created, last used), revoke with confirmation. Figma: Lehrer-Web T08 first.
-- [ ] **T46 Grading API: read** – `GET /api/v1/courses`, `/api/v1/courses/:id/exercises`, `/api/v1/courses/:id/exercises/:exerciseId/handins`, `/api/v1/exercises/:exerciseId/package` as in SPEC; only the key owner's courses; archived courses/students left out.
-- [ ] **T47 Grades** – migration `grades` + `grade_comments`; `PUT /api/v1/handins/:handinId/grade` (replace; 409 `NEWER_HANDIN`); student list gains `grade`; `GET /api/exercises/:id/grade`; hand-in on a graded exercise → 409 `GRADED`.
+- [x] **T45 API keys** – migration `api_keys` (hashed, prefix shown, `last_used_at`, `revoked_at`); middleware `apiKeyAuth` for `/api/v1/*`; teacher web page "API-Schlüssel": create (name), shown once with copy button, list (name, prefix, created, last used), revoke with confirmation. Figma: Lehrer-Web T08 first.
+- [x] **T46 Grading API: read** – `GET /api/v1/courses`, `/api/v1/courses/:id/exercises`, `/api/v1/courses/:id/exercises/:exerciseId/handins`, `/api/v1/exercises/:exerciseId/package` as in SPEC; only the key owner's courses; archived courses/students left out.
+- [x] **T47 Grades** – migration `grades` + `grade_comments`; `PUT /api/v1/handins/:handinId/grade` (replace; 409 `NEWER_HANDIN`); student list gains `grade`; `GET /api/exercises/:id/grade`; hand-in on a graded exercise → 409 `GRADED`.
 - [ ] **T48 Student app: graded view** – grade chip on the card (online list, offline cache too); a graded exercise opens read-only with the graded files, line comments in Monaco and the overall comment above the code; no Ausführen / Testen / Abgeben. Figma: Schüler-App 28 (card), 29 (graded workspace), light + dark, first.
 - [ ] **T49 In Scratch kopieren** – button for server exercises, dialog "Neu beginnen" / "Mit meinem Code"; copy into Scratch reusing T42's import (`imported.json` locks the original classes). Figma: Schüler-App 30 first.
 - [ ] **G1 grader: J;DE connection** (repo `grdr`) – settings J;DE URL + API key (test button); stored links course ↔ course and student ↔ student, suggested by name, editable.
