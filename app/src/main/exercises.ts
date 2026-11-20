@@ -10,6 +10,7 @@ import type {
   SaveResult
 } from "../shared-types/api";
 import { context } from "./context";
+import { gradedExercise } from "./graded";
 import { examStudentName, examMode, testsAllowed } from "./exam-state";
 import { examWorkspaceKey } from "./exam-store";
 import { scratchEntry } from "./composite-source";
@@ -67,6 +68,7 @@ async function summarise(exercises: SourceEntry[]): Promise<ExerciseSummary[]> {
       late: handIn?.late ?? false,
       groupId: ex.groupId,
       difficulty: ex.difficulty ?? null,
+      ...(ex.grade ? { grade: ex.grade } : {}),
       ...(ex.scratch ? { scratch: true, classCount: ex.classCount ?? 0 } : {}),
       ...(ex.imported ? { imported: true, testCount: ex.testCount ?? 0 } : {})
     });
@@ -100,6 +102,9 @@ export function registerExerciseIpc(): void {
     const ex = await findExercise(id);
     if (!ex) return { ok: false, message: UNKNOWN_EXERCISE };
     try {
+      const graded = await source.gradedView?.(ex.id);
+      if (graded && !graded.ok) return { ok: false, message: graded.message };
+      if (graded) return { ok: true, exercise: gradedExercise(ex, graded.grade, await source.deadlineOf(ex.id)) };
       const prepared = await source.prepareWorkspace(
         ex,
         workspaceRoot(),
@@ -179,6 +184,8 @@ export function registerExerciseIpc(): void {
     }
     const r = await source.handIn(ex, files, ex.tests?.length && testsAllowed() ? parseTestSummary(testSummary) : null);
     if (r.ok) handIns.set(ex.id, r.submittedAt, r.late);
+    // Graded while the exercise was open: refresh the list (and its cache) so the exercise is graded from now on.
+    else if (r.graded) await source.list().catch(() => undefined);
     return r;
   });
 }

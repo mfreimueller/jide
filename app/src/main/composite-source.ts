@@ -1,6 +1,6 @@
 import type { Exercise, HandInFile, TestSummary } from "@jide/shared";
 import { isScratchId, SCRATCH_PREFIX, type ImportedInfo, type ScratchStore } from "./scratch";
-import type { ExerciseSource, HandInOutcome, SourceEntry, SourceListing } from "./source";
+import type { ExerciseSource, GradedViewResult, HandInOutcome, SourceEntry, SourceListing } from "./source";
 
 /** How a Scratch program appears in a list. */
 export function scratchEntry(e: Exercise, imported?: ImportedInfo): SourceEntry {
@@ -35,6 +35,10 @@ export class CompositeSource implements ExerciseSource {
           ? { ok: false, message: "Abgeben ist für Scratch-Programme nicht möglich." }
           : main.handIn!(ex, files, testSummary);
     }
+  }
+
+  async gradedView(id: string): Promise<GradedViewResult> {
+    return this.isScratch(id) || !this.main.gradedView ? null : this.main.gradedView(id);
   }
 
   async list(): Promise<SourceListing> {

@@ -341,7 +341,13 @@ export class ScratchStore {
    * student's working copy of the editable files (starter file where there is none yet). Reads only; the
    * workspace of the original is not touched.
    */
-  copyExercise(ex: Exercise | undefined, mode: unknown, workspaceRoot: string): Promise<ScratchResult<{ id: string }>> {
+  copyExercise(
+    ex: Exercise | undefined,
+    mode: unknown,
+    workspaceRoot: string,
+    /** "mine" of a graded exercise: the graded hand-in replaces the workspace files. */
+    files?: { path: string; content: string }[]
+  ): Promise<ScratchResult<{ id: string }>> {
     return this.serial(async () => {
       if (!ex) return { ok: false, message: "Diese Aufgabe gibt es nicht." };
       if (mode !== "fresh" && mode !== "mine") return { ok: false, message: "Ungültige Anfrage." };
@@ -349,9 +355,12 @@ export class ScratchStore {
         const testsYaml = await readFile(join(ex.dir, "tests.yaml"), "utf8").catch(() => undefined);
         const content: Record<string, string> = {};
         if (mode === "mine") {
+          const given = files ? new Map(files.map((f) => [f.path, f.content])) : undefined;
           for (const f of ex.files) {
             if (!f.editable) continue;
-            const mine = await readFile(join(workspaceRoot, ex.id, f.path), "utf8").catch(() => undefined);
+            const mine = given
+              ? given.get(f.path)
+              : await readFile(join(workspaceRoot, ex.id, f.path), "utf8").catch(() => undefined);
             if (mine !== undefined) content[f.path] = mine;
           }
         }

@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { unzipSync } from "fflate";
-import { loadExercise, type ExerciseFile, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary } from "@jide/shared";
+import { loadExercise, type ExerciseFile, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary, type StudentGradeResponse } from "@jide/shared";
 
 /** Exercise ids become folder names; only what exercise.yaml allows is accepted. */
 export function isSafeExerciseId(id: unknown): id is string {
@@ -69,6 +69,7 @@ async function exists(p: string): Promise<boolean> {
  * Layout under `root` (userData/cache):
  *   list.json              last GET /api/exercises answer
  *   exercises/<id>/        the unpacked package (exercise folder, loadExercise-compatible)
+ *   grades/<id>.json       last GET /api/exercises/:id/grade answer (a graded exercise opens offline once seen)
  *   exercises/<id>.version version (sha256 = ETag) of that folder; only the latest version is kept
  */
 export class PackageCache {
@@ -123,6 +124,30 @@ export class PackageCache {
     const target = path.join(this.root, "list.json");
     const tmp = `${target}.${process.pid}.tmp`;
     await writeFile(tmp, JSON.stringify({ exercises: list, groups }), "utf8");
+    await rename(tmp, target);
+  }
+
+  private gradeFile(id: string): string {
+    return path.join(this.root, "grades", `${id}.json`);
+  }
+
+  async readGrade(id: string): Promise<StudentGradeResponse | undefined> {
+    try {
+      const g = JSON.parse(await readFile(this.gradeFile(id), "utf8")) as Partial<StudentGradeResponse> | null;
+      if (!g || typeof g.symbol !== "string" || typeof g.gradedAt !== "string" || !Array.isArray(g.files) || !Array.isArray(g.lineComments)) {
+        return undefined;
+      }
+      return g as StudentGradeResponse;
+    } catch {
+      return undefined;
+    }
+  }
+
+  async writeGrade(id: string, grade: StudentGradeResponse): Promise<void> {
+    await mkdir(path.join(this.root, "grades"), { recursive: true });
+    const target = this.gradeFile(id);
+    const tmp = `${target}.${process.pid}.tmp`;
+    await writeFile(tmp, JSON.stringify(grade), "utf8");
     await rename(tmp, target);
   }
 

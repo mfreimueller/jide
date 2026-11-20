@@ -5,7 +5,7 @@ import { scratchHandlers } from "./scratch-handlers";
 
 /** Scratch operations for the renderer. Not available in exam mode (the context has no Scratch there). */
 export function registerScratchIpc(): void {
-  const h = scratchHandlers(() => context().scratch, workspaceRoot, findExercise);
+  const h = scratchHandlers(() => context().scratch, workspaceRoot, findExercise, async (id) => (await context().source.gradedView?.(id)) ?? null);
   ipcMain.handle("jide:scratch-create", (_e, title: unknown) => h.create(title));
   ipcMain.handle("jide:scratch-rename", (_e, id: unknown, title: unknown) => h.rename(id, title));
   ipcMain.handle("jide:scratch-delete", (_e, id: unknown) => h.delete(id));

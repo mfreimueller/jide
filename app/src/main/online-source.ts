@@ -1,11 +1,14 @@
 import { rm } from "node:fs/promises";
 import path from "node:path";
-import { DIFFICULTIES, loadExercise, saveFile, type Difficulty, type Exercise, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
+import { DIFFICULTIES, GRADE_SYMBOLS, loadExercise, saveFile, type Difficulty, type Exercise, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
 import { ApiClient, ApiError } from "./api-client";
+import { GRADED_ERROR_CODE } from "@jide/shared";
 import { isSafeExerciseId, needsDownload, PackageCache, restorableFiles } from "./package-cache";
-import type { ExerciseSource, HandInOutcome, SourceEntry, SourceListing } from "./source";
+import type { ExerciseSource, GradedViewResult, HandInOutcome, SourceEntry, SourceListing } from "./source";
 
 const GENERIC = "Das hat leider nicht geklappt.";
+export const GRADE_UNAVAILABLE_MESSAGE =
+  "Die Beurteilung ist gerade nicht verfügbar. Verbinde dich mit dem Internet und versuche es noch einmal.";
 
 function messageOf(e: unknown): string {
   return e instanceof ApiError ? e.message : GENERIC;
@@ -17,7 +20,8 @@ function toEntries(list: StudentExerciseSummary[]): SourceEntry[] {
     title: e.title,
     deadline: e.deadline ?? null,
     groupId: e.groupId ?? null,
-    difficulty: (DIFFICULTIES as readonly unknown[]).includes(e.difficulty) ? (e.difficulty as Difficulty) : null
+    difficulty: (DIFFICULTIES as readonly unknown[]).includes(e.difficulty) ? (e.difficulty as Difficulty) : null,
+    grade: (GRADE_SYMBOLS as readonly unknown[]).includes(e.grade?.symbol) && typeof e.grade?.gradedAt === "string" ? e.grade : null
   }));
 }
 
@@ -133,12 +137,32 @@ export class OnlineSource implements ExerciseSource {
     return { ok: true, submittedAt: latest.submittedAt, late };
   }
 
+  async gradedView(id: string): Promise<GradedViewResult> {
+    if (!isSafeExerciseId(id)) return null;
+    const entry = (await this.cache.readList())?.find((e) => e.id === id);
+    if (!entry?.grade) return null;
+    try {
+      const grade = await this.api.grade(id);
+      if (!grade) return null;
+      await this.cache.writeGrade(id, grade).catch(() => undefined);
+      return { ok: true, grade };
+    } catch (e) {
+      if (e instanceof ApiError && e.kind === "offline") {
+        // Only a cached grade that is still the one the list announces may be shown.
+        const cached = await this.cache.readGrade(id);
+        if (cached && cached.gradedAt === entry.grade.gradedAt) return { ok: true, grade: cached };
+        return { ok: false, message: GRADE_UNAVAILABLE_MESSAGE };
+      }
+      return { ok: false, message: messageOf(e) };
+    }
+  }
+
   async handIn(ex: Exercise, files: HandInFile[], testSummary: TestSummary | null): Promise<HandInOutcome> {
     try {
       const r = await this.api.handIn(ex.id, { files, testSummary });
       return { ok: true, submittedAt: r.submittedAt, late: r.late };
     } catch (e) {
-      return { ok: false, message: messageOf(e) };
+      return { ok: false, message: messageOf(e), ...(e instanceof ApiError && e.code === GRADED_ERROR_CODE ? { graded: true } : {}) };
     }
   }
 }

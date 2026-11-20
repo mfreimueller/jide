@@ -1,3 +1,5 @@
+import type { GradeLineComment, GradeSymbol } from "@jide/shared";
+
 export type ExerciseStatus = "neu" | "in-arbeit" | "abgegeben";
 
 export interface ExerciseSummary {
@@ -22,6 +24,8 @@ export interface ExerciseSummary {
   testCount?: number;
   /** From exercise.yaml; null = none. Shown as a pill on the card (never in exam mode). */
   difficulty: "newbie" | "advanced" | "pro" | null;
+  /** Online mode: set once the exercise is graded (then it opens read-only). Absent = not graded. */
+  grade?: { symbol: GradeSymbol; gradedAt: string };
 }
 
 export interface ExerciseGroup {
@@ -71,7 +75,18 @@ export type LoginResult = { ok: true; student: StudentInfo } | { ok: false; mess
 
 export type HandInResult =
   | { ok: true; submittedAt: string; late: boolean }
-  | { ok: false; message: string };
+  /** `graded`: the exercise was graded in the meantime (server answer GRADED); the list has been refreshed. */
+  | { ok: false; message: string; graded?: boolean };
+
+/** The graded hand-in of an exercise (online mode); the opened files are the graded ones, read-only. */
+export interface GradedView {
+  symbol: GradeSymbol;
+  /** Overall comment; may be empty. */
+  comment: string;
+  gradedAt: string;
+  submittedAt: string;
+  lineComments: GradeLineComment[];
+}
 
 export interface OpenedFile {
   path: string;
@@ -105,6 +120,8 @@ export interface OpenedExercise {
   scratch?: boolean;
   /** Imported Scratch items: the classes that came with the exercise; they cannot be deleted. */
   importedFiles?: string[];
+  /** Graded exercise: the files are the graded hand-in; the editor is read-only and nothing can be run or handed in. */
+  graded?: GradedView;
 }
 
 export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };

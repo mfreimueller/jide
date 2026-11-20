@@ -1,4 +1,5 @@
-import type { Exercise } from "@jide/shared";
+import type { Exercise, HandInFile } from "@jide/shared";
+import type { GradedViewResult } from "./source";
 import { isScratchId, type ScratchResult, type ScratchStore } from "./scratch";
 
 /** The package is not on this laptop (offline and never downloaded) or the exercise is gone. */
@@ -12,7 +13,9 @@ export const SCRATCH_NOT_ALLOWED_MESSAGE = "Scratch gibt es in der Prüfung nich
 export function scratchHandlers(
   store: () => ScratchStore | undefined,
   workspaceRoot: () => string,
-  findExercise: (id: unknown) => Promise<Exercise | undefined> = async () => undefined
+  findExercise: (id: unknown) => Promise<Exercise | undefined> = async () => undefined,
+  /** Graded exercise: its graded hand-in (null = not graded). "Mit meinem Code" copies these files. */
+  gradedView: (id: string) => Promise<GradedViewResult> = async () => null
 ) {
   const refuse = { ok: false as const, message: SCRATCH_NOT_ALLOWED_MESSAGE };
   return {
@@ -52,7 +55,13 @@ export function scratchHandlers(
       if (!s) return refuse;
       const ex = isScratchId(id) ? undefined : await findExercise(id); // only server exercises
       if (!ex) return { ok: false, message: COPY_UNAVAILABLE_MESSAGE };
-      return s.copyExercise(ex, mode, workspaceRoot());
+      let graded: HandInFile[] | undefined;
+      if (mode === "mine") {
+        const g = await gradedView(ex.id);
+        if (g && !g.ok) return { ok: false, message: g.message };
+        graded = g?.grade.files;
+      }
+      return s.copyExercise(ex, mode, workspaceRoot(), graded);
     },
     pickAssignment: (id: unknown, path: unknown): Promise<ScratchResult> | { ok: false; message: string } =>
       store()?.pickAssignment(id, path) ?? refuse

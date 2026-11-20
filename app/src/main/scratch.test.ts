@@ -521,6 +521,36 @@ describe("import", () => {
       expect(await exists(join(ws, "summe"))).toBe(false);
     });
 
+    it("mit meinem Code of a graded exercise copies the graded hand-in, not the workspace", async () => {
+      const ex = await original();
+      await mkdir(join(ws, "summe"), { recursive: true });
+      await writeFile(join(ws, "summe", "Summe.java"), "class Summe { /* neuer Entwurf */ }", "utf8");
+      const r = await store.copyExercise(ex, "mine", ws, [{ path: "Summe.java", content: "class Summe { /* beurteilt */ }" }]);
+      if (!r.ok) throw new Error(r.message);
+      const copy = (await store.find(r.id))!;
+      expect(copy.originals["Summe.java"]).toBe("class Summe { /* beurteilt */ }");
+      expect(copy.originals["Hilfe.java"]).toBe("class Hilfe {}");
+      // "Neu beginnen" ignores the graded files
+      const fresh = await store.copyExercise(ex, "fresh", ws, [{ path: "Summe.java", content: "x" }]);
+      if (!fresh.ok) throw new Error(fresh.message);
+      expect((await store.find(fresh.id))!.originals["Summe.java"]).toBe("class Summe {}");
+    });
+
+    it("the handler passes the graded files for mine and reports an unavailable grade", async () => {
+      const ex = await original();
+      const find = async () => ex;
+      const graded = scratchHandlers(() => store, () => ws, find, async () => ({
+        ok: true,
+        grade: { symbol: "PLUS", comment: "", gradedAt: "", handinId: 1, submittedAt: "", files: [{ path: "Summe.java", content: "class Summe { /* g */ }" }], lineComments: [] }
+      }));
+      const r = await graded.copyExercise("summe", "mine");
+      if (!r.ok) throw new Error(r.message);
+      expect((await store.find(r.id))!.originals["Summe.java"]).toBe("class Summe { /* g */ }");
+      const offline = scratchHandlers(() => store, () => ws, find, async () => ({ ok: false, message: "offline" }));
+      expect(await offline.copyExercise("summe", "mine")).toEqual({ ok: false, message: "offline" });
+      expect((await offline.copyExercise("summe", "fresh")).ok).toBe(true); // starter code needs no grade
+    });
+
     it("copies twice into two items, an exercise without tests gets zero tests", async () => {
       const { "tests.yaml": _t, ...rest } = PACKAGE;
       const ex = await loadExercise(await folder(rest, "ohne"));

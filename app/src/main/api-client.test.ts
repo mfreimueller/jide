@@ -118,4 +118,19 @@ describe("ApiClient", () => {
     const { api: down } = client((async () => json(500, {})) as typeof fetch);
     expect((await failure(down.latestHandIn("a"))).kind).toBe("offline");
   });
+
+  it("grade maps 404 to null, rejects an answer without files and keeps the error code of a 409", async () => {
+    const body = { symbol: "WELLE", comment: "", gradedAt: "g", handinId: 1, submittedAt: "s", files: [], lineComments: [] };
+    const { api: ok } = client((async () => json(200, body)) as typeof fetch);
+    expect(await ok.grade("a")).toEqual(body);
+    const { api: none } = client((async () => json(404, { message: "Keine Beurteilung." })) as typeof fetch);
+    expect(await none.grade("a")).toBeNull();
+    const { api: odd } = client((async () => json(200, { symbol: "WELLE" })) as typeof fetch);
+    expect((await failure(odd.grade("a"))).kind).toBe("offline");
+    const { api: locked } = client(
+      (async () => json(409, { error: "GRADED", message: "Diese Aufgabe ist bereits beurteilt." })) as typeof fetch
+    );
+    const e = await failure(locked.handIn("a", { files: [], testSummary: null }));
+    expect([e.kind, e.status, e.code, e.message]).toEqual(["client", 409, "GRADED", "Diese Aufgabe ist bereits beurteilt."]);
+  });
 });

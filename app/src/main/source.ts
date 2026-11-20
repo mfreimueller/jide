@@ -1,6 +1,6 @@
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { listExercises, type Difficulty, type Exercise, type HandInFile, type StudentExerciseGroup, type TestSummary } from "@jide/shared";
+import { listExercises, type Difficulty, type Exercise, type HandInFile, type StudentExerciseGroup, type StudentGrade, type StudentGradeResponse, type TestSummary } from "@jide/shared";
 
 /** One exercise as the source knows it. */
 export interface SourceEntry {
@@ -12,6 +12,8 @@ export interface SourceEntry {
   groupId: number | null;
   /** From exercise.yaml (or the backend list), null/missing = none. */
   difficulty?: Difficulty | null;
+  /** Set once the exercise is graded (online source). */
+  grade?: StudentGrade | null;
   /** A Scratch item (own program without a server), listed in its own section. */
   scratch?: boolean;
   /** Scratch items: number of .java files. */
@@ -32,7 +34,10 @@ export interface SourceListing {
   offline: boolean;
 }
 
-export type HandInOutcome = { ok: true; submittedAt: string; late: boolean } | { ok: false; message: string };
+export type HandInOutcome = { ok: true; submittedAt: string; late: boolean } | { ok: false; message: string; graded?: boolean };
+
+/** null = the exercise is not graded. */
+export type GradedViewResult = null | { ok: true; grade: StudentGradeResponse } | { ok: false; message: string };
 
 /**
  * Where exercises come from. Local folder (dev, e2e), backend (online mode) and later the
@@ -56,6 +61,8 @@ export interface ExerciseSource {
     workspaceRoot: string,
     workspaceExists: boolean
   ): Promise<{ ok: true; submittedAt?: string; late?: boolean } | { ok: false; message: string }>;
+  /** Online source: the graded hand-in of a graded exercise (from the cache when offline); null if not graded. */
+  gradedView?(id: string): Promise<GradedViewResult>;
   /** Present when the source accepts hand-ins. */
   handIn?(ex: Exercise, files: HandInFile[], testSummary: TestSummary | null): Promise<HandInOutcome>;
 }

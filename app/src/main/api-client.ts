@@ -5,6 +5,7 @@ import type {
   StudentExerciseGroup,
   StudentExerciseListResponse,
   StudentExerciseSummary,
+  StudentGradeResponse,
   StudentSession
 } from "@jide/shared";
 
@@ -27,7 +28,9 @@ export class ApiError extends Error {
     public readonly kind: ApiErrorKind,
     /** German, safe to show to the student. */
     message: string,
-    public readonly status?: number
+    public readonly status?: number,
+    /** Machine-readable `error` of the server answer, e.g. "GRADED". */
+    public readonly code?: string
   ) {
     super(message);
     this.name = "ApiError";
@@ -53,6 +56,14 @@ function serverMessage(body: unknown): string | undefined {
   if (body && typeof body === "object" && "message" in body) {
     const m = (body as { message: unknown }).message;
     if (typeof m === "string" && m.trim() !== "") return m;
+  }
+  return undefined;
+}
+
+function serverCode(body: unknown): string | undefined {
+  if (body && typeof body === "object" && "error" in body) {
+    const c = (body as { error: unknown }).error;
+    if (typeof c === "string") return c;
   }
   return undefined;
 }
@@ -112,6 +123,18 @@ export class ApiClient {
     }
   }
 
+  /** The graded hand-in, or null if the exercise is not graded (404). */
+  async grade(id: string): Promise<StudentGradeResponse | null> {
+    try {
+      const r = await this.json<StudentGradeResponse>("GET", `/api/exercises/${encodeURIComponent(id)}/grade`);
+      if (!r || !Array.isArray(r.files) || !Array.isArray(r.lineComments)) throw new ApiError("offline", OFFLINE_MESSAGE);
+      return r;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  }
+
   handIn(id: string, req: HandInRequest): Promise<HandInResponse> {
     return this.json<HandInResponse>("POST", `/api/exercises/${encodeURIComponent(id)}/handins`, { body: req });
   }
@@ -154,8 +177,11 @@ export class ApiClient {
     if (res.ok || res.status === 304) return res;
 
     let message: string | undefined;
+    let code: string | undefined;
     try {
-      message = serverMessage(await res.json());
+      const body: unknown = await res.json();
+      message = serverMessage(body);
+      code = serverCode(body);
     } catch {
       message = undefined;
     }
@@ -166,6 +192,6 @@ export class ApiClient {
       throw new ApiError("unauthorized", SESSION_EXPIRED_MESSAGE, 401);
     }
     if (res.status === 429) throw new ApiError("rate-limited", message ?? RATE_LIMITED_FALLBACK, 429);
-    throw new ApiError("client", message ?? GENERIC_FAILURE, res.status);
+    throw new ApiError("client", message ?? GENERIC_FAILURE, res.status, code);
   }
 }
