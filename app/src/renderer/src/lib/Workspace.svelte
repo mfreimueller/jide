@@ -501,11 +501,12 @@
     {/if}
     <div class="center-col" bind:clientHeight={centerHeight}>
       {#if !codeDetached}
-      <div class="tabs" data-testid="tabs">
-        {#each session.openTabs as p (p)}
-          <button class="tab" class:active={session.active === p} onclick={() => session.openFile(p)}>{session.label(p)}</button>
-        {/each}
-        <span class="spacer"></span>
+      <div class="tabbar">
+        <div class="tabs" data-testid="tabs">
+          {#each session.openTabs as p (p)}
+            <button class="tab" class:active={session.active === p} onclick={() => session.openFile(p)}>{session.label(p)}</button>
+          {/each}
+        </div>
         {#if canDetach && !graded}
           <span class="tab-action"><PanelButton icon="external" tip="Code in eigenem Fenster öffnen" place="below-right" onclick={() => detachPanel("code")} testid="detach-code" /></span>
         {/if}
@@ -791,11 +792,17 @@
   .toast.error .mark {
     color: #ffb4b6;
   }
-  .tabs {
+  .tabbar {
     height: 38px;
     flex: none;
     background: var(--bg-subtle);
     border-bottom: 1px solid var(--border);
+    display: flex;
+    padding-right: 8px;
+  }
+  .tabs {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: flex-end;
     padding: 0 8px;
@@ -814,7 +821,6 @@
   .tab-action {
     align-self: center;
     display: flex;
-    padding-right: 2px;
   }
   .panel-chip {
     position: relative;
