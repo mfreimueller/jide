@@ -354,7 +354,41 @@ test("exam mode: no ⧉ buttons, no chips, no panel windows", async () => {
   await expect(page.locator('[data-testid="tabs"]:visible')).toBeVisible();
   for (const id of ["detach-code", "detach-assign", "detach-bottom"]) await expect(page.getByTestId(id)).toHaveCount(0);
   // main refuses even if the renderer asked
-  const opened = await page.evaluate(() => window.jide.panels.detach("assign"));
+  const opened = await page.evaluate(() =>
+    (window as unknown as { jide: { panels: { detach(p: string): Promise<boolean> } } }).jide.panels.detach("assign")
+  );
   expect(opened).toBe(false);
   expect(await panelWindowCount(app)).toBe(0);
+});
+
+test("reloading the main window ends the exercise: the panel windows close", async () => {
+  const { app, page } = await launch();
+  await openExercise(page, TITLE);
+  await detach(page, "assign");
+  await detach(page, "code");
+  await panelPage(app, "code");
+  await expect.poll(() => panelWindowCount(app)).toBe(2);
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => w.getTitle() === "J;DE")?.webContents.reload());
+  await expect.poll(() => panelWindowCount(app)).toBe(0);
+});
+
+test("a read-only file cannot be edited in the Code window either", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "jide-ro-"));
+  const ex = join(dir, "ro");
+  mkdirSync(join(ex, "files"), { recursive: true });
+  writeFileSync(join(ex, "exercise.yaml"), 'id: ro\ntitle: "Nur lesen"\nfiles:\n  - path: Main.java\n    editable: true\n  - path: Fest.java\n    editable: false\nmainFile: Main.java\n');
+  writeFileSync(join(ex, "aufgabe.md"), "x\n");
+  writeFileSync(join(ex, "files", "Main.java"), "void main() {\n}\n");
+  writeFileSync(join(ex, "files", "Fest.java"), "class Fest {}\n");
+  const { app, page } = await launch({ JIDE_EXERCISES_DIR: dir });
+  await openExercise(page, "Nur lesen");
+  await detach(page, "code");
+  const code = await panelPage(app, "code");
+  await page.getByTestId("file-list").getByRole("button", { name: /Fest\.java/ }).click();
+  await expect(code.locator(".monaco-editor .view-lines")).toContainText("class Fest");
+  await code.locator(".monaco-editor .view-lines").click();
+  await code.keyboard.press("ControlOrMeta+A");
+  await code.keyboard.type("kaputt");
+  await expect(code.locator(".monaco-editor .view-lines")).not.toContainText("kaputt");
+  await expect(code.getByTestId("save-status")).toHaveText("Gespeichert");
 });
