@@ -88,12 +88,12 @@
 					{#each keys as k (k.id)}
 						<tr>
 							<td class="nm">{k.name}</td>
-							<td><span class="code-pill">{k.prefix}…</span></td>
-							<td>
+							<td class="nowrap"><span class="code-pill">{k.prefix}…</span></td>
+							<td class="nowrap">
 								<span class="dot" class:never={k.lastUsedAt === null}></span>{k.lastUsedAt === null ? 'noch nie benutzt' : formatRelative(k.lastUsedAt)}
 							</td>
-							<td>{formatRelative(k.createdAt)}</td>
-							<td class="right"><button class="revoke" onclick={() => askRevoke(k)}>Widerrufen …</button></td>
+							<td class="nowrap">{formatRelative(k.createdAt)}</td>
+							<td class="right"><Button variant="danger" size="sm" onclick={() => askRevoke(k)}>Widerrufen …</Button></td>
 						</tr>
 					{:else}
 						<tr><td colspan="5" class="muted empty">Noch kein API-Schlüssel. Erzeuge rechts den ersten.</td></tr>
@@ -170,16 +170,8 @@
 	.dot.never {
 		background: var(--text-faint);
 	}
-	.revoke {
-		border: 0;
-		background: none;
-		color: var(--danger);
-		font-size: 13px;
-		font-weight: 500;
-		cursor: pointer;
-	}
-	.revoke:hover {
-		text-decoration: underline;
+	.nowrap {
+		white-space: nowrap;
 	}
 	form {
 		display: flex;
