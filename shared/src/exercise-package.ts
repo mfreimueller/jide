@@ -9,9 +9,14 @@ export const MAX_ENTRIES = 500;
 /** Largest accepted zip file (upload by a teacher, import by a student). */
 export const MAX_PACKAGE_BYTES = 10 * 1024 * 1024;
 
-/** Names are rejected (not silently fixed) when they could escape the extraction directory. */
+/** Some Windows tools (PowerShell 5.1 `Compress-Archive`) write `\` as the separator; treat it as `/`. */
+function entryName(name: string): string {
+  return name.replace(/\\/g, '/');
+}
+
+/** Names (after `entryName`) are rejected, not silently fixed, when they could escape the extraction directory. */
 function unsafeName(name: string): boolean {
-  if (name.includes('\0') || name.includes('\\') || name.startsWith('/') || /^[a-zA-Z]:/.test(name)) return true;
+  if (name.includes('\0') || name.startsWith('/') || /^[a-zA-Z]:/.test(name)) return true;
   const segments = name.replace(/\/$/, '').split('/');
   return segments.some((s) => s === '' || s === '.' || s === '..');
 }
@@ -52,11 +57,12 @@ function unpack(zip: Uint8Array): Map<string, Uint8Array> {
     raw = unzipSync(zip, {
       // Runs before inflating; fflate never writes more than the declared size, so these caps bound memory.
       filter(file) {
-        if (file.name.endsWith('/')) return false;
-        if (unsafeName(file.name)) {
+        const name = entryName(file.name);
+        if (name.endsWith('/')) return false;
+        if (unsafeName(name)) {
           throw new ExerciseError(`Ungültiger Dateipfad im ZIP: „${file.name}“. Pfade müssen relativ sein und dürfen kein „..“ enthalten.`);
         }
-        if (isJunk(file.name)) return false;
+        if (isJunk(name)) return false;
         if (++entries > MAX_ENTRIES) throw new ExerciseError(`Das ZIP enthält zu viele Dateien (höchstens ${MAX_ENTRIES}).`);
         total += file.originalSize;
         if (total > MAX_UNCOMPRESSED_BYTES) {
@@ -69,7 +75,13 @@ function unpack(zip: Uint8Array): Map<string, Uint8Array> {
     if (e instanceof ExerciseError) throw e;
     throw new ExerciseError('Die Datei ist kein gültiges ZIP-Archiv.');
   }
-  return new Map(Object.entries(raw));
+  const files = new Map<string, Uint8Array>();
+  for (const [rawName, data] of Object.entries(raw)) {
+    const name = entryName(rawName);
+    if (files.has(name)) throw new ExerciseError(`Die Datei „${name}“ kommt im ZIP doppelt vor.`);
+    files.set(name, data);
+  }
+  return files;
 }
 
 /** Finds the exercise root: files at the zip root, or one single top-level folder. Returns the path prefix. */

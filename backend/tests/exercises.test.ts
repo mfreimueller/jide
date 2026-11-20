@@ -217,10 +217,23 @@ describe('upload validation (400, German)', () => {
     const z2 = zipSync({ 'mini/exercise.yaml': strToU8('x'), 'mini/../../evil.txt': strToU8('x') });
     await expectBad(await upload(anna, z2), 'Ungültiger Dateipfad');
   });
-  it('rejects absolute paths and backslashes', async () => {
+  it('accepts backslashes as separators (PowerShell 5.1 Compress-Archive) and stores them as /', async () => {
+    const z: Zippable = {};
+    for (const [k, v] of Object.entries(MINIMAL)) z[`mini\\${k.replace(/\//g, '\\')}`] = strToU8(v);
+    const res = await upload(ben, zipSync(z));
+    expect(res.status).toBe(201);
+    expect(Object.keys(unzipSync(await downloadFor(ben, 'mini')))).toContain('mini/files/Mini.java');
+  });
+
+  it('rejects a file that appears twice once backslashes are read as /', async () =>
+    expectBad(await upload(anna, minimalZip({ 'files\\Mini.java': 'class Mini {}' })), 'doppelt'));
+
+  it('rejects absolute paths and .. also when written with backslashes', async () => {
     await expectBad(await upload(anna, zipSync({ '/etc/passwd': strToU8('x') })), 'Ungültiger Dateipfad');
     await expectBad(await upload(anna, zipSync({ 'C:/x.txt': strToU8('x') })), 'Ungültiger Dateipfad');
     await expectBad(await upload(anna, zipSync({ 'a\\..\\b.txt': strToU8('x') })), 'Ungültiger Dateipfad');
+    await expectBad(await upload(anna, zipSync({ '\\evil.txt': strToU8('x') })), 'Ungültiger Dateipfad');
+    await expectBad(await upload(anna, zipSync({ 'C:\\x.txt': strToU8('x') })), 'Ungültiger Dateipfad');
   });
   it('rejects symlinks', async () => {
     const z = zipSync({
