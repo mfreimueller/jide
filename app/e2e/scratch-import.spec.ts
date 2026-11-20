@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 import { zipSync, type Zippable } from "fflate";
 import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
 import { examplesDir, launch, screenshotDir, setEditorText, useTempApp } from "./helpers";
@@ -35,7 +35,8 @@ function readDir(dir: string, base = dir, out: Zippable = {}): Zippable {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) readDir(p, base, out);
-    else out[p.slice(base.length + 1)] = readFileSync(p);
+    // zip entry names always use "/" (join gives "\" on Windows, which the parser rejects)
+    else out[relative(base, p).split(sep).join("/")] = readFileSync(p);
   }
   return out;
 }
