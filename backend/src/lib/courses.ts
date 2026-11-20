@@ -194,3 +194,8 @@ export async function removeStudent(db: SQLInstance, courseId: number, studentId
   `;
   if (!res.affectedRows) throw new AppError(404, 'NOT_FOUND', 'Schüler:in nicht gefunden.');
 }
+
+export async function setHideGraded(db: SQLInstance, teacherId: number, courseId: number, hideGraded: boolean): Promise<void> {
+  await courseForTeacher(db, teacherId, courseId);
+  await db`UPDATE courses SET hide_graded = ${hideGraded ? 1 : 0} WHERE id = ${courseId}`;
+}

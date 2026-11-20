@@ -19,6 +19,8 @@ export interface CourseExerciseView extends ExerciseView {
   deadline: string | null;
   /** Group of the course the exercise is in, or null. */
   groupId: number | null;
+  /** Students (active) whose hand-in of this exercise is graded in this course. */
+  gradedCount: number;
 }
 
 interface ExerciseRow {
@@ -33,6 +35,7 @@ interface CourseExerciseRow extends ExerciseRow {
   unlocked: number | null;
   deadline: Date | null;
   groupId: number | null;
+  gradedCount: number | string | null;
 }
 
 const toView = (r: ExerciseRow): ExerciseView => ({
@@ -48,6 +51,7 @@ const toCourseView = (r: CourseExerciseRow): CourseExerciseView => ({
   unlocked: r.unlocked === 1,
   deadline: r.deadline ? r.deadline.toISOString() : null,
   groupId: r.groupId ?? null,
+  gradedCount: Number(r.gradedCount ?? 0),
 });
 
 export async function listExercises(db: SQLInstance, teacherId: number): Promise<ExerciseView[]> {
@@ -120,7 +124,9 @@ export async function saveExercise(
 export async function listForCourse(db: SQLInstance, teacherId: number, courseId: number): Promise<CourseExerciseView[]> {
   const rows = await db<CourseExerciseRow[]>`
     SELECT e.slug AS id, e.title, e.version, e.uploaded_at AS uploadedAt, e.size, ce.unlocked, ce.deadline,
-           ce.group_id AS groupId
+           ce.group_id AS groupId,
+           (SELECT COUNT(*) FROM grades gr JOIN students st ON st.id = gr.student_id
+            WHERE gr.exercise_id = e.id AND st.course_id = ${courseId} AND st.archived_at IS NULL) AS gradedCount
     FROM exercises e
     LEFT JOIN course_exercises ce ON ce.exercise_id = e.id AND ce.course_id = ${courseId}
     LEFT JOIN exercise_groups g ON g.id = ce.group_id
@@ -204,4 +210,18 @@ export async function unlockedPackage(db: SQLInstance, courseId: number, slug: s
     WHERE ce.course_id = ${courseId} AND ce.unlocked = 1 AND e.slug = ${slug}
   `;
   return rows[0] ?? null;
+}
+
+/** Manual matrix visibility of an exercise in a course; null = automatic. 404 unless the exercise is linked to the course. */
+export async function setMatrixVisibility(
+  db: SQLInstance,
+  teacherId: number,
+  courseId: number,
+  slug: string,
+  visibility: 'hidden' | 'shown' | null
+): Promise<void> {
+  const { rowId } = await exerciseForTeacher(db, teacherId, slug);
+  const link = await db<{ n: number }[]>`SELECT 1 AS n FROM course_exercises WHERE course_id = ${courseId} AND exercise_id = ${rowId}`;
+  if (!link[0]) throw new AppError(404, 'NOT_FOUND', 'Aufgabe nicht gefunden.');
+  await db`UPDATE course_exercises SET matrix_visibility = ${visibility} WHERE course_id = ${courseId} AND exercise_id = ${rowId}`;
 }

@@ -12,9 +12,10 @@ import {
   removeStudent,
   resetCode,
   setArchived,
+  setHideGraded,
 } from '../lib/courses.js';
 import { handInMatrix, lastHandInsZip } from '../lib/handins.js';
-import { exerciseForTeacher, listForCourse, updateForCourse } from '../lib/exercises.js';
+import { exerciseForTeacher, listForCourse, setMatrixVisibility, updateForCourse } from '../lib/exercises.js';
 import {
   MAX_GROUP_NAME_LENGTH,
   createGroup,
@@ -161,6 +162,33 @@ courseRoutes.get('/:id/handins', async (c) => {
   await courseForTeacher(db, c.get('teacher').id, id);
   // ?missing=1 keeps only students who lack a hand-in for at least one unlocked exercise.
   return c.json(await handInMatrix(db, id, c.req.query('missing') === '1'));
+});
+
+const matrixSettingsSchema = z.object({
+  hideGraded: z.boolean({ message: 'hideGraded muss true oder false sein.' }),
+});
+const visibilitySchema = z.object({
+  visibility: z.union([z.literal('hidden'), z.literal('shown'), z.null()], { message: 'visibility muss "hidden", "shown" oder null sein.' }),
+});
+
+courseRoutes.put('/:id/matrix-settings', async (c) => {
+  const db = getDb();
+  const teacherId = c.get('teacher').id;
+  const id = parseId(c.req.param('id'));
+  await courseForTeacher(db, teacherId, id);
+  const { hideGraded } = await parseJson(c, matrixSettingsSchema);
+  await setHideGraded(db, teacherId, id, hideGraded);
+  return c.json({ hideGraded });
+});
+
+courseRoutes.put('/:id/exercises/:exerciseId/visibility', async (c) => {
+  const db = getDb();
+  const teacherId = c.get('teacher').id;
+  const id = parseId(c.req.param('id'));
+  await courseForTeacher(db, teacherId, id);
+  const { visibility } = await parseJson(c, visibilitySchema);
+  await setMatrixVisibility(db, teacherId, id, c.req.param('exerciseId'), visibility);
+  return c.json({ visibility });
 });
 
 courseRoutes.get('/:id/exercises/:exerciseId/handins.zip', async (c) => {

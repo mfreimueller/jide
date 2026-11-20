@@ -11,7 +11,7 @@ Teacher routes need the teacher `Bearer` token, student routes the student code.
 | GET | `/api/teacher/exercises` | list: `id, title, version, uploadedAt, size` |
 | POST | `/api/teacher/exercises` | upload (see below); 201 new, 200 replaced; body `{ exercise, replaced }` |
 | GET | `/api/teacher/exercises/:id` | one exercise |
-| GET | `/api/teacher/courses/:courseId/exercises` | all of the teacher's exercises with `unlocked` and `deadline` for this course, sorted by group name (ungrouped last), then title |
+| GET | `/api/teacher/courses/:courseId/exercises` | all of the teacher's exercises with `unlocked` and `deadline` for this course, sorted by group name (ungrouped last), then title Each row has `gradedCount` (active students of the course with a graded hand-in). |
 | PUT | `/api/teacher/courses/:courseId/exercises/:id` | JSON `{ unlocked?: boolean, deadline?: ISO string \| null }` (at least one); `null` clears the deadline |
 | GET / POST | `/api/teacher/courses/:courseId/groups` | groups of the course sorted by name `{ groups: [{id, name}] }` / create `{ name }` (201 `{ group }`; 409 `Diese Gruppe gibt es schon.` for a duplicate name in the course) |
 | PUT / DELETE | `/api/teacher/courses/:courseId/groups/:groupId` | rename `{ name }` / delete (204; its exercises become ungrouped) |
@@ -33,9 +33,11 @@ All commands run from the repo root.
 | --- | --- | --- |
 | POST | `/api/exercises/:id/handins` | student: JSON `{ files: [{path, content}], testSummary: {passed, total} \| null }` (`testSummary` optional); 201 `{ submittedAt, late }`. 404 unless unlocked; 400 for unknown/read-only/duplicate paths; max 50 files (400) and 1 MB UTF-8 content (413). Server time only. |
 | GET | `/api/exercises/:id/handins/latest` | student: `{ submittedAt, files }` of the last hand-in, 404 if none |
-| GET | `/api/teacher/courses/:courseId/handins` | matrix `{ students, exercises, rows }`; `rows[i].cells[j]` = last hand-in of `students[i]` for `exercises[j]` (`handinId, submittedAt, late, testSummary, count`) or `null`. `?missing=1` keeps only students lacking a hand-in for an unlocked exercise (server side). |
-| GET | `/api/teacher/handins/:handinId` | `{ handin }` with student, exercise, files, `history` (newest first), `previous`/`next` (`{studentId, handinId}` of the neighbouring students by name who handed in this exercise) |
+| GET | `/api/teacher/courses/:courseId/handins` | matrix `{ students, exercises, rows }`; `rows[i].cells[j]` = last hand-in of `students[i]` for `exercises[j]` (`handinId, submittedAt, late, testSummary, count`) or `null`. `?missing=1` keeps only students lacking a hand-in for an unlocked exercise (server side). Each non-null cell also has `grade` (`{symbol, gradedAt}` of that hand-in, or `null`); each `exercises[j]` has `gradedCount` (active students with a graded hand-in), `visibility` (`null` automatic, `hidden`, `shown`) and `unlockedAt`; top level `hideGraded` (default `true`). All unlocked exercises are returned, the client filters. |
+| GET | `/api/teacher/handins/:handinId` | `{ handin }` with student, exercise, files, `history` (newest first), `previous`/`next` (`{studentId, handinId}` of the neighbouring students by name who handed in this exercise) `handin.grade` is `{symbol, comment, gradedAt, lineComments: [{path, line, text}]}` if this very hand-in is the graded one, else `null`; each `history` entry has `graded`. |
 | GET | `/api/teacher/courses/:courseId/exercises/:id/handins.zip` | last hand-in of every student, folder per student (Windows-safe name, clashes get ` (2)`) |
+| PUT | `/api/teacher/courses/:courseId/matrix-settings` | `{ hideGraded: boolean }` -> 200 `{ hideGraded }`; stored in `courses.hide_graded` (default true). 404 for a foreign course |
+| PUT | `/api/teacher/courses/:courseId/exercises/:id/visibility` | `{ visibility: "hidden" \| "shown" \| null }` -> 200 `{ visibility }`; stored in `course_exercises.matrix_visibility` (null = automatic). 404 for a foreign course/exercise or an exercise never linked to the course |
 
 Storage: `handins` (student, exercise row, `submitted_at` UTC server time, `exercise_version`, `tests_passed`/`tests_total`) and `handin_files` (one row per file, `content` MEDIUMTEXT). Every hand-in is kept; the highest id of a student and exercise counts. `late` is never stored: it is computed on read as `submitted_at > current course deadline`, so extending a deadline un-marks late hand-ins. `handInCount`/`unlockedExerciseCount` in the student list count unlocked exercises only.
 

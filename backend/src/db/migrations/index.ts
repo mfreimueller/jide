@@ -8,6 +8,7 @@ import { MIGRATION_0007_UNLOCKED_AT } from './0007_unlocked_at.js';
 import { MIGRATION_0008_DIFFICULTY } from './0008_difficulty.js';
 import { MIGRATION_0009_API_KEYS } from './0009_api_keys.js';
 import { MIGRATION_0010_GRADES } from './0010_grades.js';
+import { MIGRATION_0011_MATRIX_VISIBILITY } from './0011_matrix_visibility.js';
 
 export interface Migration {
   version: number;
@@ -26,4 +27,5 @@ export const MIGRATIONS: Migration[] = [
   MIGRATION_0008_DIFFICULTY,
   MIGRATION_0009_API_KEYS,
   MIGRATION_0010_GRADES,
+  MIGRATION_0011_MATRIX_VISIBILITY,
 ];

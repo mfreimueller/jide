@@ -1,5 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 import { ExerciseError, parseExerciseConfig, type HandInFile, type TestSummary } from '@jide/shared';
+import type { GradeSymbol } from '@jide/shared';
 import type { SQLInstance } from '../db/sql.js';
 import { AppError } from '../errors.js';
 
@@ -125,11 +126,24 @@ export interface MatrixCell {
   late: boolean;
   testSummary: TestSummary | null;
   count: number;
+  /** Grade of this (latest) hand-in, or null. */
+  grade: { symbol: GradeSymbol; gradedAt: string } | null;
 }
 
 export interface Matrix {
   students: { id: number; name: string }[];
-  exercises: { id: string; title: string; deadline: string | null }[];
+  exercises: {
+    id: string;
+    title: string;
+    deadline: string | null;
+    /** Students of the course (active) whose hand-in of this exercise is graded. */
+    gradedCount: number;
+    /** Manual override of the matrix visibility; null = automatic. */
+    visibility: 'hidden' | 'shown' | null;
+    unlockedAt: string | null;
+  }[];
+  /** Course setting: hide exercises with a graded hand-in (the client filters). */
+  hideGraded: boolean;
   /** rows[i] belongs to students[i]; cells[j] to exercises[j]; null = no hand-in. */
   rows: { studentId: number; cells: (MatrixCell | null)[] }[];
 }
@@ -138,8 +152,10 @@ const summaryOf = (passed: number | null, total: number | null): TestSummary | n
   passed === null || total === null ? null : { passed: Number(passed), total: Number(total) };
 
 export async function handInMatrix(db: SQLInstance, courseId: number, onlyMissing: boolean): Promise<Matrix> {
-  const exercises = await db<{ rowId: number; id: string; title: string; deadline: Date | null }[]>`
-    SELECT e.id AS rowId, e.slug AS id, e.title, ce.deadline
+  const exercises = await db<
+    { rowId: number; id: string; title: string; deadline: Date | null; visibility: 'hidden' | 'shown' | null; unlockedAt: Date | null }[]
+  >`
+    SELECT e.id AS rowId, e.slug AS id, e.title, ce.deadline, ce.matrix_visibility AS visibility, ce.unlocked_at AS unlockedAt
     FROM course_exercises ce JOIN exercises e ON e.id = ce.exercise_id
     WHERE ce.course_id = ${courseId} AND ce.unlocked = 1
     ORDER BY e.title, e.slug
@@ -157,6 +173,13 @@ export async function handInMatrix(db: SQLInstance, courseId: number, onlyMissin
     JOIN students s ON s.id = h.student_id AND s.course_id = ${courseId} AND s.archived_at IS NULL
     WHERE h.id = (SELECT MAX(y.id) FROM handins y WHERE y.student_id = h.student_id AND y.exercise_id = h.exercise_id)
   `;
+  const graded = await db<{ handinId: number; exerciseId: number; studentId: number; symbol: GradeSymbol; gradedAt: Date }[]>`
+    SELECT g.handin_id AS handinId, g.exercise_id AS exerciseId, g.student_id AS studentId, g.symbol, g.graded_at AS gradedAt
+    FROM grades g JOIN students s ON s.id = g.student_id AND s.course_id = ${courseId} AND s.archived_at IS NULL
+  `;
+  const gradeByHandin = new Map(graded.map((g) => [g.handinId, { symbol: g.symbol, gradedAt: g.gradedAt.toISOString() }]));
+  const gradedCount = (exerciseRowId: number) => graded.filter((g) => g.exerciseId === exerciseRowId).length;
+  const hide = await db<{ hideGraded: number }[]>`SELECT hide_graded AS hideGraded FROM courses WHERE id = ${courseId}`;
   const byKey = new Map(last.map((h) => [`${h.studentId}:${h.exerciseId}`, h]));
   let rows = students.map((s) => ({
     studentId: s.id,
@@ -169,6 +192,7 @@ export async function handInMatrix(db: SQLInstance, courseId: number, onlyMissin
         late: isLate(h.submittedAt, e.deadline),
         testSummary: summaryOf(h.passed, h.total),
         count: Number(h.cnt),
+        grade: gradeByHandin.get(h.id) ?? null,
       };
     }),
   }));
@@ -176,7 +200,15 @@ export async function handInMatrix(db: SQLInstance, courseId: number, onlyMissin
   const shown = new Set(rows.map((r) => r.studentId));
   return {
     students: students.filter((s) => shown.has(s.id)),
-    exercises: exercises.map((e) => ({ id: e.id, title: e.title, deadline: e.deadline ? e.deadline.toISOString() : null })),
+    exercises: exercises.map((e) => ({
+      id: e.id,
+      title: e.title,
+      deadline: e.deadline ? e.deadline.toISOString() : null,
+      gradedCount: gradedCount(e.rowId),
+      visibility: e.visibility ?? null,
+      unlockedAt: e.unlockedAt ? e.unlockedAt.toISOString() : null,
+    })),
+    hideGraded: Number(hide[0]?.hideGraded ?? 1) === 1,
     rows,
   };
 }
@@ -191,7 +223,14 @@ export interface HandInDetail {
   testSummary: TestSummary | null;
   files: HandInFile[];
   /** All hand-ins of this student for this exercise, newest first. */
-  history: { id: number; submittedAt: string; late: boolean }[];
+  history: { id: number; submittedAt: string; late: boolean; graded: boolean }[];
+  /** Grade of this hand-in (only the hand-in the grade belongs to has one), or null. */
+  grade: {
+    symbol: GradeSymbol;
+    comment: string;
+    gradedAt: string;
+    lineComments: { path: string; line: number; text: string }[];
+  } | null;
   /** Neighbouring students (by name) in the course who handed in this exercise, with their last hand-in. */
   previous: { studentId: number; handinId: number } | null;
   next: { studentId: number; handinId: number } | null;
@@ -220,6 +259,14 @@ export async function handInDetail(db: SQLInstance, teacherId: number, handinId:
     SELECT id, submitted_at AS submittedAt FROM handins
     WHERE student_id = ${h.studentId} AND exercise_id = ${h.exerciseRowId} ORDER BY id DESC
   `;
+  const gradeRows = await db<{ id: number; handinId: number; symbol: GradeSymbol; comment: string; gradedAt: Date }[]>`
+    SELECT id, handin_id AS handinId, symbol, comment, graded_at AS gradedAt FROM grades
+    WHERE student_id = ${h.studentId} AND exercise_id = ${h.exerciseRowId}
+  `;
+  const g = gradeRows[0];
+  const lineComments = g
+    ? await db<{ path: string; line: number; text: string }[]>`SELECT path, line, text FROM grade_comments WHERE grade_id = ${g.id} ORDER BY id`
+    : [];
   // Students with a hand-in for this exercise, in name order, with their last hand-in.
   const handedIn = await db<{ studentId: number; handinId: number }[]>`
     SELECT s.id AS studentId, MAX(x.id) AS handinId
@@ -239,7 +286,16 @@ export async function handInDetail(db: SQLInstance, teacherId: number, handinId:
     exerciseVersion: h.version,
     testSummary: summaryOf(h.passed, h.total),
     files: await filesOf(db, h.id),
-    history: history.map((x) => ({ id: x.id, submittedAt: x.submittedAt.toISOString(), late: isLate(x.submittedAt, h.deadline) })),
+    history: history.map((x) => ({ id: x.id, submittedAt: x.submittedAt.toISOString(), late: isLate(x.submittedAt, h.deadline), graded: g?.handinId === x.id })),
+    grade:
+      g && g.handinId === h.id
+        ? {
+            symbol: g.symbol,
+            comment: g.comment,
+            gradedAt: g.gradedAt.toISOString(),
+            lineComments: lineComments.map((l) => ({ path: l.path, line: Number(l.line), text: l.text })),
+          }
+        : null,
     previous: at > 0 ? pick(handedIn[at - 1]) : null,
     next: at >= 0 ? pick(handedIn[at + 1]) : null,
   };
