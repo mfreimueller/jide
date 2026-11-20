@@ -199,4 +199,4 @@ Decisions (user, 2026-11-20):
 - [x] **T51 Backend: grades for the teacher** – matrix cells carry `grade {symbol, gradedAt} | null`; hand-in detail carries grade + comment + line comments and `graded` per history entry; course exercise list carries `gradedCount`.
 - [x] **T52 Backend: hidden matrix columns** – migration (teacher, course, exercise, mode `hidden`/`shown`) + setting "Beurteilte ausblenden" per teacher and course (default on); GET/PUT endpoints; matrix + ZIP picker use them.
 - [x] **T53 Teacher web** – T02b/T02c matrix (chip, header count, switch, bar, ausblenden/einblenden), T03b detail, T07b count.
-- [ ] **T54 Student app: hiding** – local store in userData (per student code/course), ⋯ Ausblenden (disabled with reason when open), 7-day auto rule for graded, "Wieder anzeigen" override, Ausgeblendet section (31/32, light + dark); unit + e2e.
+- [x] **T54 Student app: hiding** – local store in userData (per student code/course), ⋯ Ausblenden (disabled with reason when open), 7-day auto rule for graded, "Wieder anzeigen" override, Ausgeblendet section (31/32, light + dark); unit + e2e.

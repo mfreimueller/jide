@@ -23,6 +23,8 @@ export interface GradeSpec {
   symbol: "PLUS" | "PLUS_WELLE" | "WELLE" | "MINUS_WELLE" | "MINUS";
   comment: string;
   lineComments: { path: string; line: number; text: string }[];
+  /** Backdates the grade by this many days (test hook; default: now). */
+  gradedDaysAgo?: number;
 }
 
 export interface Backend {
