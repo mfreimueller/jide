@@ -202,6 +202,24 @@ The backend and teacher app follow **parsonxam** (`~/git/Personal/_work/parsonxa
 | GET | `/api/exercises/:id` | exercise package (zip) |
 | POST | `/api/exercises/:id/handins` | upload hand-in (files + test summary) |
 | GET | `/api/exercises/:id/handins/latest` | restore on a new laptop |
+| GET | `/api/exercises/:id/grade` | the graded hand-in with symbol and comments (404 if not graded) |
+
+### Grading API (grader's Gradeflow, M8)
+
+Auth: `Authorization: Bearer jide_<32 random chars>`, an API key created by a teacher in the teacher web app. Stored as SHA-256 hash; the key is shown once. A key sees only its teacher's courses. Archived courses and students are left out. Errors use the usual `{ error, message }` body with German messages.
+
+| Method | Path | Response / body |
+|---|---|---|
+| GET | `/api/v1/courses` | `[{ id, subject, className, students: [{ id, name }] }]` |
+| GET | `/api/v1/courses/:courseId/exercises` | exercises unlocked for the course: `[{ id, slug, title, difficulty, unlockedAt, deadline }]` (`id` numeric, `slug` = `exercise.yaml` id) |
+| GET | `/api/v1/exercises/:exerciseId/package` | the exercise zip (same as the student download) |
+| GET | `/api/v1/courses/:courseId/exercises/:exerciseId/handins` | latest hand-in per student, students without a hand-in left out: `[{ handinId, studentId, submittedAt, late, testsPassed, testsTotal, graded, files: [{ path, content }] }]` |
+| PUT | `/api/v1/handins/:handinId/grade` | body `{ symbol, comment, lineComments: [{ path, line, text }] }` → `200 { gradedAt }`; replaces an earlier grade of the same student + exercise; `409 NEWER_HANDIN` if the student handed in again after `handinId` |
+
+- `symbol`: `PLUS` (+), `PLUS_WELLE` (+~), `WELLE` (~), `MINUS_WELLE` (−~), `MINUS` (−), as in grader.
+- `comment` up to 2000 characters (may be empty); `lineComments` up to 200, `text` up to 1000 characters, `line` 1-based in the hand-in file `path` (must be a file of that hand-in).
+- Grading locks the exercise for that student: `POST /api/exercises/:id/handins` then answers `409 GRADED`. No unlocking in M8.
+- Student list `GET /api/exercises`: every exercise gains `grade: { symbol, gradedAt } | null`. `GET /api/exercises/:id/grade`: `{ symbol, comment, gradedAt, handinId, submittedAt, files: [{ path, content }], lineComments: [{ path, line, text }] }`.
 
 ## 6. Project structure
 
