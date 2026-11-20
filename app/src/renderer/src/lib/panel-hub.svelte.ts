@@ -76,6 +76,7 @@ export class PanelHub {
       saveState: session.saveState,
       saveError: session.saveError,
       runState: run.state,
+      runnable: !exercise.graded,
       files: session.files.map((f) => ({ path: f.path, editable: f.editable, lineCount: session.lineCount(f.path) })),
       openTabs: [...session.openTabs],
       active: session.active,

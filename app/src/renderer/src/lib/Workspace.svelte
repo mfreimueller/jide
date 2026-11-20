@@ -23,6 +23,7 @@
     STRIP_WIDTH
   } from "./panel-layout";
   import PanelButton from "./PanelButton.svelte";
+  import { isRunShortcutKey, runShortcut } from "./run-shortcuts";
   import { PanelHub } from "./panel-hub.svelte";
   import { followDetachedPanels, isDetached, nextPanelEntry, panels } from "./panels.svelte";
   import PanelStrip from "./PanelStrip.svelte";
@@ -328,6 +329,17 @@
   // console (xterm) never see the key. Every mounted Workspace listens (the exam keeps one per tab),
   // but only the visible one reacts, so a key toggles exactly once.
   function onShortcut(e: KeyboardEvent): void {
+    if (isRunShortcutKey(e)) {
+      // F5 = Ausführen, Shift+F5 = Testen: only in the visible workspace, with the state of the buttons
+      if (!screenEl || screenEl.getClientRects().length === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.repeat || confirming || copying || classDialog) return;
+      const action = runShortcut(e, { runnable: !graded, runState: run.state, testsState: tests?.state });
+      if (action === "run") void run.start();
+      else if (action === "test") void tests?.start();
+      return;
+    }
     const panel = SHORTCUT_PANEL[e.code];
     if (!panel || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     if (!screenEl || screenEl.getClientRects().length === 0) return;

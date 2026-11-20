@@ -2,6 +2,7 @@
   import { flushSync, onMount } from "svelte";
   import type { PanelInit, PanelState } from "../../../shared-types/panel-messages";
   import { SHORTCUT_PANEL } from "./layout.svelte";
+  import { isRunShortcutKey, runShortcut } from "./run-shortcuts";
   import AssignmentWindow from "./AssignmentWindow.svelte";
   import CodeWindow from "./CodeWindow.svelte";
   import ConsoleWindow from "./ConsoleWindow.svelte";
@@ -18,6 +19,15 @@
 
   // Alt+1/2/3 toggle the panels of the main window (the same keys as there). Capture phase, like in Workspace.
   function onShortcut(e: KeyboardEvent): void {
+    // F5 = Ausführen, Shift+F5 = Testen, as in the main window (the main window does it)
+    if (isRunShortcutKey(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.repeat || !current) return;
+      const action = runShortcut(e, { runnable: current.runnable, runState: current.runState, testsState: current.tests?.state });
+      if (action) window.jide.panels.toOwner({ kind: action });
+      return;
+    }
     const target = SHORTCUT_PANEL[e.code];
     if (!target || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     e.preventDefault();

@@ -392,3 +392,51 @@ test("a read-only file cannot be edited in the Code window either", async () => 
   await expect(code.locator(".monaco-editor .view-lines")).not.toContainText("kaputt");
   await expect(code.getByTestId("save-status")).toHaveText("Gespeichert");
 });
+
+test("F5 runs and Shift+F5 tests in the main window, with the state of the buttons", async () => {
+  const { app, page } = await launch();
+  await openExercise(page, TITLE);
+  await setEditorText(app, page, SUMME);
+  await page.keyboard.press("F5");
+  const out = page.getByTestId("console").locator(".xterm-rows");
+  await expect(out).toContainText("Erste Zahl:");
+  await expect(page.getByTestId("run")).toBeDisabled();
+  // while the program runs both keys do nothing (the buttons are disabled)
+  await page.keyboard.press("F5");
+  await page.keyboard.press("Shift+F5");
+  await page.waitForTimeout(500);
+  await expect(page.getByTestId("tests-banner")).toHaveCount(0);
+  await expect(out).toContainText("Erste Zahl:");
+  await page.getByTestId("stop").click();
+  await expect(page.getByTestId("run")).toBeEnabled();
+  await setEditorText(app, page, SUMME_RIGHT);
+  await page.keyboard.press("Shift+F5");
+  await expect(page.getByTestId("tests-banner")).toContainText("3 von 3 Tests bestanden");
+});
+
+test("F5 / Shift+F5 in a detached Code window and in the Angabe window", async () => {
+  const { app, page } = await launch();
+  await openExercise(page, TITLE);
+  await detach(page, "assign");
+  const assign = await panelPage(app, "assign");
+  await detach(page, "code");
+  const code = await panelPage(app, "code");
+  await setEditorText(app, code, SUMME);
+  await code.keyboard.press("F5");
+  const out = page.getByTestId("console").locator(".xterm-rows");
+  await expect(out).toContainText("Erste Zahl:");
+  await expect(code.getByTestId("run")).toBeDisabled();
+  await code.keyboard.press("Shift+F5"); // disabled while running: nothing happens
+  await code.getByTestId("stop").click();
+  await expect(code.getByTestId("run")).toBeEnabled();
+  await expect(page.getByTestId("tests-banner")).toHaveCount(0);
+  await setEditorText(app, code, SUMME_RIGHT);
+  await code.keyboard.press("Shift+F5");
+  await expect(page.getByTestId("tests-banner")).toContainText("3 von 3 Tests bestanden");
+  // from the Angabe window
+  await page.getByTestId("clear-console").click();
+  await assign.bringToFront();
+  await assign.keyboard.press("F5");
+  await expect(out).toContainText("Erste Zahl:");
+  await code.getByTestId("stop").click();
+});

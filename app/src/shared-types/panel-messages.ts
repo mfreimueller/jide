@@ -36,6 +36,8 @@ export interface PanelState {
   saveState: "saved" | "saving" | "error";
   saveError: string;
   runState: RunStateName;
+  /** False in the graded read-only view: nothing can be run or tested there. */
+  runnable: boolean;
   files: PanelFileInfo[];
   openTabs: string[];
   active: string;
