@@ -70,7 +70,8 @@ test("hide, collapsed bar with count, expand, Wieder anzeigen brings the card ba
   await expect(page.getByTestId("hidden-section")).toContainText("Beurteilte Aufgaben kommen 7 Tage nach der Beurteilung von selbst hierher.");
   const row = page.getByTestId("hidden-exercise").filter({ hasText: GROESSER });
   await expect(row).toContainText("Weitere Übungen · Frist vorbei");
-  await expect(row).toContainText("Frist vorbei · Abgabe noch möglich");
+  await expect(row).toContainText("Nicht abgegeben");
+  await expect(row).not.toContainText("Abgabe noch möglich");
   await expect(row.getByRole("button", { name: "Öffnen" })).toBeVisible();
   await expect(row.getByTestId("exercise-menu")).toHaveCount(0);
 

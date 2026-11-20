@@ -191,7 +191,7 @@
     {:else if st.kind === "handed-in"}
       <span class="chip" class:done={!ex.late} class:late-hand={ex.late}>{ex.late ? "Abgegeben · verspätet" : "Abgegeben"}</span>
     {:else if st.kind === "late"}
-      <span class="chip late">Frist vorbei · Abgabe noch möglich</span>
+      <span class="chip grey">Nicht abgegeben</span>
     {/if}
     <button class="btn small-btn" onclick={() => void setMode(ex.id, "shown")} data-testid="hidden-show">Wieder anzeigen</button>
     <button class="btn small-btn" class:primary={!ex.grade && ex.status === "neu"} onclick={() => onOpen(ex.id)}>{openLabel(ex)}</button>
