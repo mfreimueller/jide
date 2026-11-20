@@ -43,12 +43,13 @@ function createWindow(): BrowserWindow {
     minHeight: 700
   });
   lockDownWindow(win);
+  const contents = win.webContents; // the window's own property cannot be read once it is closed
 
   // Closing handshake: let the renderer save pending edits first.
   let flushing = false;
   let mayClose = false;
   win.on("closed", () => {
-    closeAllPanelWindows(win.webContents);
+    closeAllPanelWindows(contents);
     if (quitRequested) app.quit();
   });
   win.on("close", (e) => {

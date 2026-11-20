@@ -1,32 +1,12 @@
 import type { OpenedExercise } from "../../../shared-types/api";
 import type { ConsoleOp, PanelInit, PanelState, WindowMessage } from "../../../shared-types/panel-messages";
+import { appendConsoleLog } from "./console-log";
 import type { LiveCompiler } from "./problems.svelte";
 import type { RunController } from "./run.svelte";
 import type { EditorSession } from "./session.svelte";
 import type { TestController } from "./test.svelte";
 import { isDetached, panels } from "./panels.svelte";
 import { togglePanel } from "./layout.svelte";
-
-/** The console history a new Konsole window replays is kept up to this many characters. */
-export const CONSOLE_LOG_LIMIT = 1_000_000;
-
-/**
- * Appends an op to the console history. A clear forgets everything before it; beyond the limit the
- * oldest ops are dropped (the terminal keeps only 5000 lines anyway).
- */
-export function appendConsoleLog(log: ConsoleOp[], op: ConsoleOp, size: number): number {
-  if (op.op === "clear") {
-    log.length = 0;
-    return 0;
-  }
-  log.push(op);
-  size += "text" in op ? op.text.length : 1;
-  while (size > CONSOLE_LOG_LIMIT && log.length > 1) {
-    const first = log.shift()!;
-    size -= "text" in first ? first.text.length : 1;
-  }
-  return size;
-}
 
 export interface PanelHubDeps {
   exercise: OpenedExercise;
@@ -64,7 +44,11 @@ export class PanelHub {
       api.toWindows({ kind: "reveal", path, line, column });
       api.focus("code");
     };
-    d.run.console.onOp = (op) => this.record(op, true);
+    d.run.console.onOp = (op) => {
+      this.record(op, true);
+      // like in the main window, the console gets the keyboard when a program starts (it waits for input)
+      if (op.op === "running" && op.running && isDetached("console")) api.focus("console");
+    };
     // Sends the state to the panel windows whenever something they show changes.
     this.stops.push(
       $effect.root(() => {
