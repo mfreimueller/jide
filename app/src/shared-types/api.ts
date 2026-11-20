@@ -1,4 +1,6 @@
 import type { GradeLineComment, GradeSymbol } from "./grade";
+import type { OwnerMessage, WindowMessage } from "./panel-messages";
+import type { DetachablePanel } from "./panel-windows";
 
 export type ExerciseStatus = "neu" | "in-arbeit" | "abgegeben";
 
@@ -212,7 +214,35 @@ export interface ReportEnv {
 
 export type ReportSaveResult = { ok: true } | { ok: false; canceled: boolean };
 
+/** Panels in their own windows (M10). */
+export interface PanelsApi {
+  /** Which panel this window shows; undefined = the main window. */
+  window: DetachablePanel | undefined;
+  /** The workspace of an exercise is shown (not in exam mode): main may open panel windows for it. */
+  enter: (title: string, id: number) => void;
+  /** The exercise is left: main closes all its panel windows. */
+  leave: (id: number) => void;
+  /** Opens the window of a panel; false if it is not possible (exam mode, no exercise). */
+  detach: (panel: DetachablePanel) => Promise<boolean>;
+  /** Docks the panel back: closes its window. */
+  dock: (panel: DetachablePanel) => void;
+  /** Brings the window of a detached panel to the front. */
+  focus: (panel: DetachablePanel) => void;
+  /** From a panel window: brings the main window to the front. */
+  focusMain: () => void;
+  getDetached: () => Promise<DetachablePanel[]>;
+  /** The set of detached panels changed (also by closing a window). */
+  onChange: (handler: (detached: DetachablePanel[]) => void) => () => void;
+  /** Panel window -> main window. */
+  toOwner: (msg: WindowMessage) => void;
+  onFromWindow: (handler: (msg: WindowMessage) => void) => () => void;
+  /** Main window -> all panel windows. */
+  toWindows: (msg: OwnerMessage) => void;
+  onFromOwner: (handler: (msg: OwnerMessage) => void) => () => void;
+}
+
 export interface JideApi {
+  panels: PanelsApi;
   versions: { electron: string; chrome: string; node: string };
   /** Tells the main process that the start screen has rendered (used by the smoke test). */
   notifyEditorReady: () => void;

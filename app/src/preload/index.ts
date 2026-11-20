@@ -1,7 +1,36 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
 import type { JideApi } from "../shared-types/api";
+import { isDetachablePanel, type DetachablePanel } from "../shared-types/panel-windows";
+
+/** Subscribes to a main -> page channel with one payload; returns the unsubscribe function. */
+function subscribe<T>(channel: string, handler: (payload: T) => void): () => void {
+  const listener = (_e: Electron.IpcRendererEvent, payload: T): void => handler(payload);
+  ipcRenderer.on(channel, listener);
+  return () => ipcRenderer.removeListener(channel, listener);
+}
+
+/** ?panel=<name> is set by main for the window of a detached panel; anything else is the main window. */
+function panelOfThisWindow(): DetachablePanel | undefined {
+  const p = new URLSearchParams(location.search).get("panel");
+  return isDetachablePanel(p) ? p : undefined;
+}
 
 const api: JideApi = {
+  panels: {
+    window: panelOfThisWindow(),
+    enter: (title, id) => ipcRenderer.send("jide:panels-enter", title, id),
+    leave: (id) => ipcRenderer.send("jide:panels-leave", id),
+    detach: (panel) => ipcRenderer.invoke("jide:panels-detach", panel),
+    dock: (panel) => ipcRenderer.send("jide:panels-dock", panel),
+    focus: (panel) => ipcRenderer.send("jide:panels-focus", panel),
+    focusMain: () => ipcRenderer.send("jide:panels-focus-main"),
+    getDetached: () => ipcRenderer.invoke("jide:panels-get"),
+    onChange: (handler) => subscribe("jide:panels-changed", handler),
+    toOwner: (msg) => ipcRenderer.send("jide:panels-to-owner", msg),
+    onFromWindow: (handler) => subscribe("jide:panels-from-window", handler),
+    toWindows: (msg) => ipcRenderer.send("jide:panels-to-windows", msg),
+    onFromOwner: (handler) => subscribe("jide:panels-from-owner", handler)
+  },
   versions: {
     electron: process.versions.electron,
     chrome: process.versions.chrome,

@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
-import icon from "../../resources/icon.png?asset";
 import { registerBugReportIpc } from "./bug-report";
 import { registerCompileIpc } from "./compile";
 import { askToClose, examCloseNeedsConfirm, registerExamSaveIpc } from "./exam-session";
@@ -11,9 +10,11 @@ import { installAppMenu } from "./menu";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
 import { registerTestIpc } from "./test";
-import { applyTheme, storedTheme, watchWindowBackground, windowBackground } from "./theme";
+import { closeAllPanelWindows, registerPanelWindowIpc } from "./panel-windows";
+import { applyTheme, storedTheme, watchWindowBackground } from "./theme";
 import { startAutoUpdate } from "./updater";
-import { registerZoomIpc, resetZoomOnLoad } from "./zoom";
+import { baseWindowOptions, loadRenderer, lockDownWindow } from "./window";
+import { registerZoomIpc } from "./zoom";
 
 const smoke = process.env.JIDE_SMOKE === "1";
 
@@ -35,32 +36,19 @@ app.on("before-quit", () => {
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    title: examMode() ? "J;DE – Prüfungsmodus" : "J;DE",
-    icon,
+    ...baseWindowOptions(examMode() ? "J;DE – Prüfungsmodus" : "J;DE"),
     width: 1280,
     height: 800,
     minWidth: 1024,
-    minHeight: 700,
-    show: false,
-    backgroundColor: windowBackground(),
-    webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true
-    }
+    minHeight: 700
   });
-  win.once("ready-to-show", () => win.show());
-  resetZoomOnLoad(win.webContents);
-
-  // The renderer must never navigate away or open windows (e.g. links in the assignment).
-  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-  win.webContents.on("will-navigate", (e) => e.preventDefault());
+  lockDownWindow(win);
 
   // Closing handshake: let the renderer save pending edits first.
   let flushing = false;
   let mayClose = false;
   win.on("closed", () => {
+    closeAllPanelWindows(win.webContents);
     if (quitRequested) app.quit();
   });
   win.on("close", (e) => {
@@ -101,14 +89,7 @@ function createWindow(): BrowserWindow {
     ipcMain.on("jide:flush-done", onDone);
     win.webContents.send("jide:flush-request");
   });
-  // The page sets its own title; keep "J;DE".
-  win.on("page-title-updated", (e) => e.preventDefault());
-
-  if (process.env["ELECTRON_RENDERER_URL"]) {
-    void win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
-  } else {
-    void win.loadFile(join(__dirname, "../renderer/index.html"));
-  }
+  loadRenderer(win);
   return win;
 }
 
@@ -140,6 +121,7 @@ app.whenReady().then(async () => {
   registerRunIpc();
   registerTestIpc();
   registerZoomIpc();
+  registerPanelWindowIpc();
   createWindow();
   if (!smoke && !examMode()) startAutoUpdate();
   app.on("activate", () => {
