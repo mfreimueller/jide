@@ -439,8 +439,9 @@ test("F5 / Shift+F5 in a detached Code window and in the Angabe window", async (
   await code.keyboard.press("Shift+F5");
   await expect(page.getByTestId("tests-banner")).toContainText("3 von 3 Tests bestanden");
   // from the Angabe window
+  await page.getByTestId("btab-Konsole").click();
   await page.getByTestId("clear-console").click();
   await assign.keyboard.press("F5");
-  await expect(out).toContainText("Erste Zahl:");
+  await expect(out).toContainText("▶ Summe.java wird ausgeführt …"); // SUMME_RIGHT waits for input without a prompt
   await code.getByTestId("stop").click();
 });
