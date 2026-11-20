@@ -200,3 +200,13 @@ Decisions (user, 2026-11-20):
 - [x] **T52 Backend: hidden matrix columns** – migration (teacher, course, exercise, mode `hidden`/`shown`) + setting "Beurteilte ausblenden" per teacher and course (default on); GET/PUT endpoints; matrix + ZIP picker use them.
 - [x] **T53 Teacher web** – T02b/T02c matrix (chip, header count, switch, bar, ausblenden/einblenden), T03b detail, T07b count.
 - [x] **T54 Student app: hiding** – local store in userData (per student code/course), ⋯ Ausblenden (disabled with reason when open), 7-day auto rule for graded, "Wieder anzeigen" override, Ausgeblendet section (31/32, light + dark); unit + e2e.
+
+## M10 – Panels in their own windows (#11, 2026-11-20)
+
+Decisions (user, 2026-11-20):
+- Five panels can be detached: Code (editor + file tabs only; the Dateien list stays in the main window), Angabe, Konsole, Probleme, Tests.
+- Button ⧉ (icon "open in new window") in the panel header: editor tab bar (Code), Angabe header, bottom panel header (detaches the active tab of Konsole / Probleme / Tests). Tooltip "<Panel> in eigenem Fenster öffnen".
+- Main window: the detached panel disappears, the others take its space; the header shows a chip per detached panel ("Angabe ↗") – click brings that window to the front. Tooltip "<Panel> ist in einem eigenen Fenster – Klick holt es nach vorne. Schließen holt es zurück."
+- Detached window: title "J;DE – <Panel> – <Aufgabe>", button "↙ Zurück ins Hauptfenster"; closing the window docks it back too. Only the Code window has a toolbar (Ausführen, Stopp, Testen; Abgeben stays in the main window). Shortcuts work in every J;DE window.
+- Leaving the exercise (back to the list or opening another one) closes all its windows (docked again). Nothing is remembered across restarts. Not in exam mode. Dark mode follows the main window.
+- Figma: Schüler-App 33 (79:68), 34 (79:218), 35 (81:68), 36 (82:68), 36b (82:116). Dark variants after approval.
