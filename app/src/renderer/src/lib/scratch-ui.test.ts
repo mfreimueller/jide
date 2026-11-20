@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canDeleteClass, classCountLabel, scratchLine } from "./scratch-ui";
+import { canDeleteClass, classCountLabel, importedLine, scratchLine } from "./scratch-ui";
 
 describe("scratch-ui", () => {
   it("uses singular and plural", () => {
@@ -18,5 +18,16 @@ describe("scratch-ui", () => {
     expect(canDeleteClass("Main.java", "Start.java")).toBe(false);
     expect(canDeleteClass("Start.java", "Start.java")).toBe(false);
     expect(canDeleteClass("Rechner.java", "Main.java")).toBe(true);
+  });
+
+  it("never offers to delete a class of an imported exercise", () => {
+    expect(canDeleteClass("Hilfe.java", "Summe.java", ["Summe.java", "Hilfe.java"])).toBe(false);
+    expect(canDeleteClass("Extra.java", "Summe.java", ["Summe.java", "Hilfe.java"])).toBe(true);
+  });
+
+  it("builds the line of an imported card", () => {
+    expect(importedLine(3)).toBe("Importiert · 3 Tests");
+    expect(importedLine(1)).toBe("Importiert · 1 Test");
+    expect(importedLine(0)).toBe("Importiert · keine Tests");
   });
 });

@@ -377,7 +377,7 @@
           <span class="java" class:ro={!f.editable}>J</span>{f.path}
           {#if !f.editable}<span class="lock">nur lesen</span>{/if}
           {#if errorsByFile.get(f.path)}<span class="err" data-testid="file-errors">{errorsByFile.get(f.path)}</span>{/if}
-          {#if scratch && canDeleteClass(f.path, exercise.mainFile)}
+          {#if scratch && canDeleteClass(f.path, exercise.mainFile, exercise.importedFiles)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <span
               class="del"

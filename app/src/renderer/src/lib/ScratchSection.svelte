@@ -1,7 +1,8 @@
 <!-- The "Scratch" section of the exercise list: own programs without a server (Figma: Schüler-App 20-24). -->
 <script lang="ts">
   import type { ExerciseSummary } from "../../../shared-types/api";
-  import { scratchLine } from "./scratch-ui";
+  import DifficultyPill from "./DifficultyPill.svelte";
+  import { importedLine, scratchLine } from "./scratch-ui";
   import TextDialog from "./TextDialog.svelte";
 
   let {
@@ -23,6 +24,24 @@
     | { kind: "delete"; item: ExerciseSummary };
   let dialog = $state.raw<Dialog | undefined>();
   let menuFor = $state<string | undefined>();
+  let importMenu = $state(false);
+  let importError = $state("");
+  let importing = $state(false);
+
+  async function importExercise(kind: "folder" | "zip"): Promise<void> {
+    importMenu = false;
+    importError = "";
+    importing = true;
+    try {
+      const r = await window.jide.scratchImport(kind);
+      if (!r.ok) importError = r.message;
+      else if (!r.canceled) await onChanged();
+    } catch {
+      importError = "Das hat leider nicht geklappt.";
+    } finally {
+      importing = false;
+    }
+  }
 
   async function create(name: string): Promise<string | undefined> {
     const r = await window.jide.scratchCreate(name);
@@ -56,25 +75,63 @@
 </script>
 
 <svelte:window
-  onclick={() => (menuFor = undefined)}
-  onkeydown={(e) => e.key === "Escape" && menuFor !== undefined && (menuFor = undefined)}
+  onclick={() => {
+    menuFor = undefined;
+    importMenu = false;
+  }}
+  onkeydown={(e) => {
+    if (e.key !== "Escape") return;
+    menuFor = undefined;
+    importMenu = false;
+  }}
 />
 
 <div class="section-head" data-testid="scratch-heading">
   <span class="scratch-title">Scratch</span>
   <span class="hint">{hint}</span>
   <span class="spacer"></span>
+  <div class="menu-wrap">
+    <button
+      class="btn small"
+      aria-haspopup="menu"
+      aria-expanded={importMenu}
+      disabled={importing}
+      onclick={(e) => {
+        e.stopPropagation();
+        importMenu = !importMenu;
+      }}
+      data-testid="scratch-import"
+    >
+      <span class="link">Aufgabe importieren …</span>
+    </button>
+    {#if importMenu}
+      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_interactive_supports_focus -->
+      <div class="menu" role="menu" onclick={(e) => e.stopPropagation()}>
+        <button class="menu-item" role="menuitem" onclick={() => importExercise("folder")} data-testid="scratch-import-folder">Ordner wählen …</button>
+        <button class="menu-item" role="menuitem" onclick={() => importExercise("zip")} data-testid="scratch-import-zip">ZIP-Datei wählen …</button>
+      </div>
+    {/if}
+  </div>
   <button class="btn small" onclick={() => (dialog = { kind: "create" })} data-testid="scratch-new">
     <span class="link">+ Neues Programm</span>
   </button>
 </div>
+{#if importError}
+  <div class="import-error" role="alert" data-testid="scratch-import-error">
+    <span>{importError}</span>
+    <button class="btn small" onclick={() => (importError = "")} data-testid="scratch-import-error-close">Schließen</button>
+  </div>
+{/if}
 
 {#each items as item (item.id)}
   <div class="ex" data-testid="scratch-item" data-id={item.id}>
     <div class="icon" aria-hidden="true">{"{ }"}</div>
     <div class="ex-main">
-      <span class="ex-title">{item.title}</span>
-      <span class="muted">{scratchLine(item.classCount ?? 1)}</span>
+      <div class="ex-head">
+        <span class="ex-title">{item.title}</span>
+        {#if item.difficulty}<DifficultyPill level={item.difficulty} />{/if}
+      </div>
+      <span class="muted" data-testid="scratch-line">{item.imported ? importedLine(item.testCount ?? 0) : scratchLine(item.classCount ?? 1)}</span>
     </div>
     <div class="menu-wrap">
       <button
@@ -152,6 +209,25 @@
     color: var(--text-faint);
     text-transform: uppercase;
     letter-spacing: 0.06em;
+  }
+  .ex-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .import-error {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--bg-warn);
+    border: 1px solid var(--border-warn);
+    color: var(--text-warn);
+    font-size: 13px;
+    line-height: 19px;
   }
   .hint {
     font-size: 13px;
