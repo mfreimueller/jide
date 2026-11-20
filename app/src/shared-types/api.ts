@@ -1,4 +1,4 @@
-import type { GradeLineComment, GradeSymbol } from "@jide/shared";
+import type { GradeLineComment, GradeSymbol } from "./grade";
 
 export type ExerciseStatus = "neu" | "in-arbeit" | "abgegeben";
 

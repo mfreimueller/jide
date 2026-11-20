@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Exercise, StudentGradeResponse } from "@jide/shared";
+import { GRADE_SYMBOLS, type Exercise, type StudentGradeResponse } from "@jide/shared";
+import { GRADE_TEXT } from "../shared-types/grade";
 import { gradedExercise } from "./graded";
 
 const ex = {
@@ -44,5 +45,11 @@ describe("gradedExercise", () => {
   it("late = handed in after the deadline", () => {
     expect(gradedExercise(ex, grade, "2026-11-10T00:00:00.000Z").late).toBe(true);
     expect(gradedExercise(ex, grade, "2026-11-20T00:00:00.000Z").late).toBe(false);
+  });
+});
+
+describe("grade symbols", () => {
+  it("the renderer knows exactly the symbols of the shared API", () => {
+    expect(Object.keys(GRADE_TEXT).sort()).toEqual([...GRADE_SYMBOLS].sort());
   });
 });
