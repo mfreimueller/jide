@@ -18,6 +18,13 @@ export function dbReachable(port = 3307): Promise<boolean> {
   });
 }
 
+export interface GradeSpec {
+  exerciseId: string;
+  symbol: "PLUS" | "PLUS_WELLE" | "WELLE" | "MINUS_WELLE" | "MINUS";
+  comment: string;
+  lineComments: { path: string; line: number; text: string }[];
+}
+
 export interface Backend {
   url: string;
   /** The seeded student's code as printed on the slip, XXXX-XXXX. */
@@ -30,6 +37,8 @@ export interface Backend {
   deleteExercise: (exerciseId: string) => Promise<void>;
   /** Replaces the course's exercise groups (names in the teacher's order, exercise ids inside each). */
   setGroups: (groups: { name: string; exercises: string[] }[]) => Promise<void>;
+  /** Grades the student's latest hand-in of an exercise (symbol, overall comment, line comments), like grader does. */
+  grade: (spec: GradeSpec) => Promise<void>;
   /** Count and test summary of the student's last hand-in of an exercise, as the teacher matrix reads them. */
   handInCell: (exerciseId: string) => Promise<{ count: number; testSummary: { passed: number; total: number } | null } | null>;
 }
@@ -73,6 +82,10 @@ export async function startBackend(): Promise<Backend> {
     setGroups: async (groups) => {
       const r = await fetch(`${info.url}/__test/groups`, { method: "POST", body: JSON.stringify({ groups }) });
       if (!r.ok) throw new Error(`groups failed: ${r.status}`);
+    },
+    grade: async (spec) => {
+      const r = await fetch(`${info.url}/__test/grade`, { method: "POST", body: JSON.stringify(spec) });
+      if (!r.ok) throw new Error(`grade failed: ${r.status}`);
     },
     handInCell: async (exerciseId) => {
       const m = (await (await fetch(`${info.url}/__test/matrix`)).json()) as {

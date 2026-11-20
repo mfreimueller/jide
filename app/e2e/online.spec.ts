@@ -377,3 +377,190 @@ test("a failed run on unchanged code: the dialog shows the count and the summary
   await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert");
   expect(await backend.handInCell("summe")).toMatchObject({ testSummary: { passed: 1, total: 3 } });
 });
+
+// ---- graded exercises (M8, T48) ----
+
+const SOLUTION = `void main() {
+    Scanner sc = new Scanner(System.in);
+    int a = sc.nextInt();
+    int b = sc.nextInt();
+    IO.println("Summe: " + (a + b));
+}
+`;
+const DRAFT = 'void main() {\n    IO.println("NEUER-ENTWURF");\n}\n';
+const FEEDBACK = "Gut gelöst. Achte noch auf die Namen der Variablen.";
+
+/** Hands in the (correct) solution, keeps working on a different draft and lets the teacher grade the hand-in. */
+async function gradedSumme(backend: Backend, symbol: "PLUS" | "PLUS_WELLE" | "MINUS" = "PLUS_WELLE") {
+  const l = await loggedIn(backend);
+  await openExercise(l.page, SUMME);
+  await setEditorText(l.app, l.page, SOLUTION);
+  await handIn(l.page);
+  await expect(l.page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  await setEditorText(l.app, l.page, DRAFT);
+  await expect(l.page.getByTestId("save-status")).toHaveText("Gespeichert");
+  await backend.grade({
+    exerciseId: "summe",
+    symbol,
+    comment: FEEDBACK,
+    lineComments: [
+      { path: "Summe.java", line: 2, text: "Gute Idee mit dem Scanner." },
+      { path: "Summe.java", line: 99, text: "Dieser Kommentar gehört ans Ende." }
+    ]
+  });
+  await l.page.getByRole("button", { name: "← Aufgaben" }).click();
+  return l;
+}
+
+test("a graded exercise shows the grade chip, Beurteilt am and Ansehen on its card", async () => {
+  const backend = await startBackend();
+  const { page } = await gradedSumme(backend);
+  const c = card(page, SUMME);
+  await expect(c.getByTestId("grade-chip")).toHaveText(/Beurteilt\s+\+~/);
+  await expect(c.getByTestId("grade-chip")).toHaveAttribute("data-symbol", "PLUS_WELLE");
+  await expect(c.getByTestId("grade-subtitle")).toHaveText(/^Beurteilt am \w\w, \d+\.\d+\.$/);
+  await expect(c).not.toContainText("Abgegeben");
+  await expect(c.getByRole("button", { name: "Ansehen" })).toBeVisible();
+  await expect(card(page, "Größere Zahl").getByTestId("grade-chip")).toHaveCount(0);
+  await page.screenshot({ path: join(screenshotDir, "online-graded-list.png") });
+});
+
+test("opening a graded exercise: graded files read-only, Rückmeldung, line comments, no run / test / hand-in", async () => {
+  const backend = await startBackend();
+  const { page } = await gradedSumme(backend);
+  await openExercise(page, SUMME);
+
+  // header
+  await expect(page.getByTestId("grade-chip")).toHaveText(/Beurteilt\s+\+~/);
+  await expect(page.getByTestId("graded-status")).toHaveText(/^Abgegeben: \w\w, \d+\.\d+\. um \d\d:\d\d · nur lesen$/);
+  await expect(page.getByTestId("copy-to-scratch")).toHaveText("In Scratch kopieren …");
+  for (const id of ["run", "stop", "test", "hand-in"]) await expect(page.getByTestId(id)).toHaveCount(0);
+  await expect(page.getByTestId("save-status")).toHaveCount(0);
+  // no Konsole / Probleme panel, no "Neue Klasse"
+  await expect(page.getByRole("button", { name: /Konsole/ })).toHaveCount(0);
+  await expect(page.getByTestId("bottom-handle")).toHaveCount(0);
+  await expect(page.getByTestId("add-class")).toHaveCount(0);
+
+  // the graded hand-in, not the local draft
+  const lines = page.locator(".monaco-editor .view-lines");
+  await expect(lines).toContainText("Scanner sc");
+  await expect(lines).not.toContainText("NEUER-ENTWURF");
+
+  // Rückmeldung above the code
+  await expect(page.getByTestId("feedback")).toContainText("Rückmeldung");
+  await expect(page.getByTestId("feedback")).toContainText(/beurteilt am \w\w, \d+\.\d+\./);
+  await expect(page.getByTestId("feedback-text")).toHaveText(FEEDBACK);
+
+  // line comments as boxes in the code; the one beyond the end follows the last line
+  const comments = page.getByTestId("line-comment");
+  await expect(comments).toHaveCount(2);
+  await expect(comments.nth(0)).toContainText("Gute Idee mit dem Scanner.");
+  await expect(comments.nth(1)).toContainText("Dieser Kommentar gehört ans Ende.");
+  const line2 = await page.locator(".monaco-editor .view-line").filter({ hasText: "Scanner sc" }).boundingBox();
+  const line3 = await page.locator(".monaco-editor .view-line").filter({ hasText: "int a = sc.nextInt();" }).boundingBox();
+  const first = await comments.nth(0).boundingBox();
+  const last = await comments.nth(1).boundingBox();
+  const closing = await page.locator(".monaco-editor .view-line").filter({ hasText: /^}$/ }).boundingBox();
+  expect(first!.y).toBeGreaterThanOrEqual(line2!.y + line2!.height - 1); // directly below line 2 ...
+  expect(first!.y).toBeLessThan(line3!.y + 1); // ... and line 3 is pushed down below the box
+  expect(last!.y).toBeGreaterThan(closing!.y); // after the last line
+  await expect(page.getByTestId("file-comments")).toHaveText("💬 2");
+  await page.screenshot({ path: join(screenshotDir, "online-graded-workspace.png") });
+
+  // read-only: typing changes nothing
+  await lines.click();
+  await page.keyboard.type("XYZ");
+  await expect(lines).not.toContainText("XYZ");
+});
+
+test("a minus grade is shown with the real minus sign and the red chip", async () => {
+  const backend = await startBackend();
+  const { page } = await gradedSumme(backend, "MINUS");
+  await expect(card(page, SUMME).getByTestId("grade-symbol")).toHaveText("\u2212");
+  await expect(card(page, SUMME).getByTestId("grade-chip")).toHaveClass(/bad/);
+});
+
+test("In Scratch kopieren from a graded exercise: Mit meinem Code copies the graded code, Neu beginnen the starter", async () => {
+  const backend = await startBackend();
+  const { page } = await gradedSumme(backend);
+  await openExercise(page, SUMME);
+  await page.getByTestId("copy-to-scratch").click();
+  await expect(page.getByTestId("copy-mine")).toBeChecked();
+  await page.getByTestId("copy-confirm").click();
+  await expect(page.getByTestId("toast")).toContainText("In Scratch kopiert");
+  await expect(page.getByTestId("copy-dialog")).toHaveCount(0);
+  await page.getByTestId("copy-to-scratch").click();
+  await page.getByTestId("copy-fresh").check();
+  await page.getByTestId("copy-confirm").click();
+  await expect(page.getByTestId("copy-dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "← Aufgaben" }).click();
+
+  const items = page.getByTestId("scratch-item").filter({ hasText: SUMME });
+  await expect(items).toHaveCount(2);
+  const results: string[] = [];
+  for (const n of [0, 1]) {
+    await items.nth(n).getByTestId("scratch-open").click();
+    await expect(page.getByTestId("hand-in")).toHaveCount(0);
+    const text = await page.locator(".monaco-editor .view-lines").innerText();
+    expect(text).not.toContain("NEUER-ENTWURF"); // never the local draft
+    await page.getByTestId("test").click();
+    await expect(page.getByTestId("tests-banner")).toBeVisible();
+    results.push((await page.getByTestId("tests-banner").innerText()).includes("3 von 3 Tests bestanden") ? "graded" : "starter");
+    await page.getByRole("button", { name: "← Aufgaben" }).click();
+  }
+  expect(results.sort()).toEqual(["graded", "starter"]);
+});
+
+test("a hand-in answered with GRADED shows the server message and the list shows the grade afterwards", async () => {
+  const backend = await startBackend();
+  const { page } = await loggedIn(backend);
+  await openExercise(page, SUMME);
+  await handIn(page);
+  await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  // graded while the exercise is open
+  await backend.grade({ exerciseId: "summe", symbol: "WELLE", comment: "", lineComments: [] });
+  await handIn(page);
+  await expect(page.getByTestId("toast")).toContainText("Diese Aufgabe ist bereits beurteilt. Du kannst sie nicht mehr abgeben.");
+  await page.screenshot({ path: join(screenshotDir, "online-graded-409.png") });
+  await page.getByRole("button", { name: "← Aufgaben" }).click();
+  await expect(card(page, SUMME).getByTestId("grade-chip")).toHaveText(/Beurteilt\s+~/);
+  // an empty overall comment: no Rückmeldung box
+  await openExercise(page, SUMME);
+  await expect(page.getByTestId("grade-chip")).toBeVisible();
+  await expect(page.getByTestId("feedback")).toHaveCount(0);
+  await expect(page.getByTestId("line-comment")).toHaveCount(0);
+  await expect(page.getByTestId("file-comments")).toHaveCount(0);
+});
+
+test("offline: a graded exercise seen before opens from the cache", async () => {
+  const backend = await startBackend();
+  const first = await gradedSumme(backend);
+  await openExercise(first.page, SUMME); // caches the grade
+  await first.page.getByRole("button", { name: "← Aufgaben" }).click();
+  await first.app.close();
+  await backend.stop();
+
+  const { page } = await launchOnline(backend);
+  await expect(page.getByTestId("offline-hint")).toBeVisible();
+  await expect(card(page, SUMME).getByTestId("grade-chip")).toHaveText(/Beurteilt\s+\+~/);
+  await openExercise(page, SUMME);
+  await expect(page.locator(".monaco-editor .view-lines")).toContainText("Scanner sc");
+  await expect(page.getByTestId("feedback-text")).toHaveText(FEEDBACK);
+  await expect(page.getByTestId("line-comment")).toHaveCount(2);
+});
+
+test("offline: a graded exercise that was never opened cannot be shown and says so", async () => {
+  const backend = await startBackend();
+  const first = await gradedSumme(backend); // back on the list: the grade is in the cached list, the grade itself is not
+  await expect(card(first.page, SUMME).getByTestId("grade-chip")).toBeVisible();
+  await first.app.close();
+  await backend.stop();
+
+  const { page } = await launchOnline(backend);
+  await expect(card(page, SUMME).getByTestId("grade-chip")).toBeVisible();
+  await card(page, SUMME).getByRole("button", { name: "Ansehen" }).click();
+  await expect(page.getByRole("alert")).toHaveText(
+    "Die Beurteilung ist gerade nicht verfügbar. Verbinde dich mit dem Internet und versuche es noch einmal."
+  );
+  await expect(page.getByTestId("exercise").first()).toBeVisible(); // still on the list
+});
