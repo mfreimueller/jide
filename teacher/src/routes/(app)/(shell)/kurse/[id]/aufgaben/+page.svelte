@@ -219,7 +219,7 @@
 	<div class="panel table">
 		<table class="data">
 			<thead>
-				<tr><th>Aufgabe</th><th>Freigeschaltet</th><th>Frist (Wiener Zeit)</th><th>Abgaben</th><th>Gruppe</th><th></th></tr>
+				<tr><th>Aufgabe</th><th>Freigeschaltet</th><th>Frist (Wiener Zeit)</th><th>{data.exercises.some((e) => e.gradedCount > 0) ? 'Abgaben · 🔒' : 'Abgaben'}</th><th>Gruppe</th><th></th></tr>
 			</thead>
 			<tbody>
 				{#each sections as section (section.group?.id ?? 'none')}

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import Button from '#lib/components/Button.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
-	import { highlightJava } from '#lib/highlight.js';
+	import { highlightJava, splitHighlightedLines } from '#lib/highlight.js';
+	import { lineCommentsText, symbolName, symbolText, symbolTone } from '#lib/matrix.js';
 	import { formatDateTime } from '#lib/time.js';
 
 	let { data } = $props();
@@ -14,8 +15,17 @@
 	const file = $derived(h.files[index]);
 	// A trailing newline would show as an empty last line.
 	const source = $derived(file ? file.content.replace(/\n$/, '') : '');
-	const lineCount = $derived(source.split('\n').length);
-	const html = $derived(highlightJava(source));
+	const lines = $derived(splitHighlightedLines(highlightJava(source)));
+	const grade = $derived(h.grade);
+	// Line comments of the shown file, by line number.
+	const commentsByLine = $derived.by(() => {
+		const map = new Map<number, string[]>();
+		for (const c of grade?.lineComments ?? []) {
+			if (c.path !== file?.path) continue;
+			map.set(c.line, [...(map.get(c.line) ?? []), c.text]);
+		}
+		return map;
+	});
 
 	const tests = $derived(h.testSummary);
 	const toneClass = $derived(!tests || tests.total === 0 ? '' : tests.passed >= tests.total ? 'good' : 'partial');
@@ -27,6 +37,7 @@
 <PageHeader title={h.student.name} crumb="Abgaben › {h.exercise.title}" crumbHref="/kurse/{course.id}/abgaben">
 	{#snippet badge()}
 		{#if h.late}<span class="chip late">verspätet</span>{/if}
+		{#if grade}<span class="chip grade {symbolTone(grade.symbol)}">🔒 Beurteilt {symbolText(grade.symbol)}</span>{/if}
 	{/snippet}
 	{#snippet actions()}
 		{#if h.previous}
@@ -50,8 +61,14 @@
 			</div>
 			{#if file}
 				<div class="code-area" role="tabpanel">
-					<div class="gutter" aria-hidden="true">{#each { length: lineCount } as _, n}{n + 1}<br />{/each}</div>
-					<pre class="code"><code>{@html html}</code></pre>
+					<div class="lines">
+						{#each lines as line, n (n)}
+							<div class="line"><span class="gutter" aria-hidden="true">{n + 1}</span><pre class="code"><code>{@html line}</code></pre></div>
+							{#each commentsByLine.get(n + 1) ?? [] as text}
+								<div class="lc"><span aria-hidden="true">💬</span> {text}</div>
+							{/each}
+						{/each}
+					</div>
 				</div>
 			{:else}
 				<p class="muted pad">Diese Abgabe enthält keine Dateien.</p>
@@ -59,6 +76,22 @@
 		</div>
 
 		<div class="infocol">
+			{#if grade}
+				<div class="panel card-pad">
+					<span class="card-title">Beurteilung</span>
+					<div class="kv">
+						<span>Note</span>
+						<span class="sym {symbolTone(grade.symbol)}">{symbolText(grade.symbol)}&nbsp; {symbolName(grade.symbol)}</span>
+					</div>
+					<div class="kv"><span>Beurteilt</span><span>{formatDateTime(grade.gradedAt)}</span></div>
+					<div class="kv"><span>Abgabe</span><span class="locked">🔒 gesperrt</span></div>
+					{#if grade.comment.trim() !== ''}<div class="gcomment">„{grade.comment}“</div>{/if}
+					<span class="small">
+						{h.student.name.split(' ')[0]} kann diese Aufgabe nicht mehr abgeben. Ändern: in Grader neu beurteilen.
+						{lineCommentsText(grade.lineComments.length)}
+					</span>
+				</div>
+			{/if}
 			<div class="panel card-pad">
 				<span class="card-title">Abgabe</span>
 				<div class="kv"><span>Abgegeben</span><span>{formatDateTime(h.submittedAt)}</span></div>
@@ -85,7 +118,7 @@
 				{#each h.history as item, i (item.id)}
 					<a class="hist" class:cur={item.id === h.id} href="/kurse/{course.id}/abgaben/{item.id}">
 						<span>{formatDateTime(item.submittedAt)}</span>
-						<span>{#if item.late}verspätet{/if}{#if item.late && i === 0} · {/if}{#if i === 0}zählt{/if}</span>
+						<span>{#if item.late}verspätet{/if}{#if item.late && i === 0} · {/if}{#if i === 0}zählt{/if}{#if item.graded}{i === 0 || item.late ? ' · ' : ''}🔒{/if}</span>
 					</a>
 				{/each}
 			</div>
@@ -132,6 +165,13 @@
 		font-size: 13.5px;
 		line-height: 22px;
 	}
+	.lines {
+		min-width: 100%;
+	}
+	.line {
+		display: flex;
+		min-height: 22px;
+	}
 	.gutter {
 		flex: none;
 		width: 50px;
@@ -139,6 +179,54 @@
 		text-align: right;
 		color: var(--text-ghost);
 		user-select: none;
+	}
+	.lc {
+		margin: 3px 16px 3px 64px;
+		padding: 5px 10px;
+		border: 1px solid var(--primary-line);
+		border-radius: 8px;
+		background: var(--primary-wash);
+		color: var(--text-body);
+		font-family: var(--font-sans);
+		font-size: 12.5px;
+		line-height: 18px;
+		white-space: normal;
+	}
+	.chip.grade.good {
+		background: var(--success-soft);
+		color: var(--success);
+	}
+	.chip.grade.mid {
+		background: var(--warn-soft);
+		color: var(--warn);
+	}
+	.chip.grade.bad {
+		background: var(--danger-soft);
+		color: var(--danger);
+	}
+	.sym {
+		font-weight: 600;
+	}
+	.sym.good {
+		color: var(--success);
+	}
+	.sym.mid {
+		color: var(--warn);
+	}
+	.sym.bad {
+		color: var(--danger);
+	}
+	.locked {
+		font-weight: 600;
+	}
+	.gcomment {
+		padding: 10px 12px;
+		border-radius: 8px;
+		background: var(--surface-alt);
+		color: var(--text-body);
+		font-size: 13px;
+		line-height: 1.45;
+		white-space: pre-wrap;
 	}
 	.code {
 		margin: 0;

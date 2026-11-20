@@ -1,5 +1,6 @@
 import { api } from '#lib/api.js';
 import { failLoad } from '#lib/errors.js';
+import { handInsText } from '#lib/matrix.js';
 import type { CourseExercise, ExerciseGroup, Matrix } from '#lib/types.js';
 
 export async function load({ params, depends }) {
@@ -13,7 +14,7 @@ export async function load({ params, depends }) {
 		const handIns: Record<string, string> = {};
 		matrix.exercises.forEach((ex, j) => {
 			const done = matrix.rows.filter((r) => r.cells[j] !== null).length;
-			handIns[ex.id] = `${done} / ${matrix.students.length}`;
+			handIns[ex.id] = handInsText(done, matrix.students.length, ex.gradedCount);
 		});
 		return { exercises: exercises.exercises, groups: exercises.groups, handIns };
 	} catch (err) {

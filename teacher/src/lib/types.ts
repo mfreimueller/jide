@@ -47,12 +47,18 @@ export interface Exercise {
 	size: number;
 }
 
+export type GradeSymbol = 'PLUS' | 'PLUS_WELLE' | 'WELLE' | 'MINUS_WELLE' | 'MINUS';
+/** Manual matrix override: null = automatic. */
+export type MatrixVisibility = 'hidden' | 'shown' | null;
+
 export interface CourseExercise extends Exercise {
 	unlocked: boolean;
 	/** ISO instant (UTC) or null */
 	deadline: string | null;
 	/** Group of this course or null */
 	groupId: number | null;
+	/** Students of the course whose hand-in of this exercise is graded. */
+	gradedCount: number;
 }
 
 export interface ExerciseGroup {
@@ -66,11 +72,22 @@ export interface MatrixCell {
 	late: boolean;
 	testSummary: TestSummary | null;
 	count: number;
+	grade: { symbol: GradeSymbol; gradedAt: string } | null;
+}
+
+export interface MatrixExercise {
+	id: string;
+	title: string;
+	deadline: string | null;
+	gradedCount: number;
+	visibility: MatrixVisibility;
+	unlockedAt: string | null;
 }
 
 export interface Matrix {
 	students: { id: number; name: string }[];
-	exercises: { id: string; title: string; deadline: string | null }[];
+	exercises: MatrixExercise[];
+	hideGraded: boolean;
 	rows: { studentId: number; cells: (MatrixCell | null)[] }[];
 }
 
@@ -84,7 +101,14 @@ export interface HandInDetail {
 	testSummary: TestSummary | null;
 	files: HandInFile[];
 	/** Newest first. */
-	history: { id: number; submittedAt: string; late: boolean; testSummary?: TestSummary | null }[];
+	history: { id: number; submittedAt: string; late: boolean; graded: boolean; testSummary?: TestSummary | null }[];
+	/** Grade of this very hand-in, or null (also for non-graded hand-ins of a graded exercise). */
+	grade: {
+		symbol: GradeSymbol;
+		comment: string;
+		gradedAt: string;
+		lineComments: { path: string; line: number; text: string }[];
+	} | null;
 	previous: { studentId: number; handinId: number } | null;
 	next: { studentId: number; handinId: number } | null;
 }
