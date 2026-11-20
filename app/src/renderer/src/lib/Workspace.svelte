@@ -2,6 +2,9 @@
   import { onDestroy, onMount, type Snippet } from "svelte";
   import type { OpenedExercise, ReportEnv } from "../../../shared-types/api";
   import { formatDate, formatDateTime, formatTime } from "../../../shared-types/datetime";
+  import { commentCounts, feedbackDate } from "../../../shared-types/grade";
+  import CopyToScratchDialog from "./CopyToScratchDialog.svelte";
+  import GradeChip from "./GradeChip.svelte";
   import { handInToast } from "./exam-ui";
   import AssignmentPanel from "./AssignmentPanel.svelte";
   import BottomPanel, { type BottomTab } from "./BottomPanel.svelte";
@@ -65,7 +68,13 @@
   registerSession(session);
   // svelte-ignore state_referenced_locally
   const problems = new LiveCompiler(session, exercise.id);
-  void problems.compileNow();
+  // A graded hand-in is only read: nothing is compiled or run.
+  // svelte-ignore state_referenced_locally
+  const graded = exercise.graded;
+  if (!graded) void problems.compileNow();
+  // svelte-ignore state_referenced_locally
+  const lineCommentCounts = commentCounts(graded?.lineComments ?? []);
+  let copying = $state(false);
   let bottomTab = $state<BottomTab>("Konsole");
   // svelte-ignore state_referenced_locally
   const run = new RunController(session, problems, exercise.id, exercise.mainFile, (t) => (bottomTab = t));
@@ -328,6 +337,17 @@
       testid="class-dialog"
     />
   {/if}
+  {#if copying && graded}
+    <CopyToScratchDialog
+      exerciseId={exercise.id}
+      title={exercise.title}
+      onCancel={() => (copying = false)}
+      onCopied={() => {
+        copying = false;
+        showToast("ok", "In Scratch kopiert – du findest es unter „Scratch“ in der Aufgabenliste.");
+      }}
+    />
+  {/if}
   <div class="topbar">
     {#if leading}
       {@render leading()}
@@ -335,25 +355,32 @@
       <button class="btn ghost" onclick={back}>← Aufgaben</button>
       <span class="title">{exercise.title}</span>
       {#if scratch}<span class="chip grey" data-testid="scratch-chip">Scratch</span>{/if}
+      {#if graded}<GradeChip symbol={graded.symbol} />{/if}
     {/if}
-    {#if session.saveState === "error"}
+    {#if graded}
+      <span class="status" data-testid="graded-status">Abgegeben: {formatDateTime(graded.submittedAt)} · nur lesen</span>
+    {:else if session.saveState === "error"}
       <span class="status err" title={session.saveError} data-testid="save-status">Speichern fehlgeschlagen</span>
     {:else if session.saveState === "saving"}
       <span class="status" data-testid="save-status">Wird gespeichert …</span>
     {:else}
       <span class="status" data-testid="save-status">Gespeichert</span>
     {/if}
-    {#if submittedAt}
+    {#if submittedAt && !graded}
       <span class="chip" class:done={!late} class:late-hand={late} data-testid="handed-in">{handInChip(submittedAt)}</span>
     {/if}
     <span class="spacer"></span>
-    <Toolbar
-      {run}
-      {tests}
-      handIn={canHandIn
-        ? { label: submittedAt ? "Erneut abgeben" : "Abgeben", busy: handInBusy, onClick: () => void handIn() }
-        : undefined}
-    />
+    {#if graded}
+      <button class="btn" onclick={() => (copying = true)} data-testid="copy-to-scratch">In Scratch kopieren …</button>
+    {:else}
+      <Toolbar
+        {run}
+        {tests}
+        handIn={canHandIn
+          ? { label: submittedAt ? "Erneut abgeben" : "Abgeben", busy: handInBusy, onClick: () => void handIn() }
+          : undefined}
+      />
+    {/if}
   </div>
   <div class="work" bind:clientWidth={workWidth}>
     {#if layout.filesCollapsed}
@@ -377,6 +404,7 @@
           <span class="java" class:ro={!f.editable}>J</span>{f.path}
           {#if !f.editable}<span class="lock">nur lesen</span>{/if}
           {#if errorsByFile.get(f.path)}<span class="err" data-testid="file-errors">{errorsByFile.get(f.path)}</span>{/if}
+          {#if lineCommentCounts.get(f.path)}<span class="badge" data-testid="file-comments" title="Kommentare in dieser Datei">💬 {lineCommentCounts.get(f.path)}</span>{/if}
           {#if scratch && canDeleteClass(f.path, exercise.mainFile, exercise.importedFiles)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <span
@@ -419,31 +447,42 @@
           <button class="tab" class:active={session.active === p} onclick={() => session.openFile(p)}>{session.label(p)}</button>
         {/each}
       </div>
+      {#if graded && graded.comment.trim() !== ""}
+        <div class="feedback" data-testid="feedback">
+          <div class="feedback-head">
+            <span class="feedback-title">Rückmeldung</span>
+            <span class="feedback-date">{feedbackDate(graded.gradedAt)}</span>
+          </div>
+          <p class="feedback-text" data-testid="feedback-text">{graded.comment}</p>
+        </div>
+      {/if}
       <CodeEditor {session} hidden={!session.editorVisible} />
       {#if !session.editorVisible}
         {#each session.images.filter((i) => i.path === session.active) as img (img.path)}
           <ImageViewer path={img.path} svg={img.svg} />
         {/each}
       {/if}
-      {#if !layout.bottomCollapsed}
-        <ResizeHandle dir="row" begin={() => (dragStart = layout.bottomHeight)} apply={dragBottom} testid="bottom-handle" />
+      {#if !graded}
+        {#if !layout.bottomCollapsed}
+          <ResizeHandle dir="row" begin={() => (dragStart = layout.bottomHeight)} apply={dragBottom} testid="bottom-handle" />
+        {/if}
+        <BottomPanel
+          bind:tab={bottomTab}
+          {problems}
+          {session}
+          {run}
+          {tests}
+          collapsed={layout.bottomCollapsed}
+          height={layout.bottomHeight}
+          ontoggle={() => togglePanel("bottom")}
+          onopen={openBottom}
+        />
       {/if}
-      <BottomPanel
-        bind:tab={bottomTab}
-        {problems}
-        {session}
-        {run}
-        {tests}
-        collapsed={layout.bottomCollapsed}
-        height={layout.bottomHeight}
-        ontoggle={() => togglePanel("bottom")}
-        onopen={openBottom}
-      />
       {#if toast}
         <div
           class="toast"
           class:error={toast.kind === "error"}
-          style:bottom="{(layout.bottomCollapsed ? BOTTOM_BAR_HEIGHT : layout.bottomHeight) + 20}px"
+          style:bottom="{graded ? 20 : (layout.bottomCollapsed ? BOTTOM_BAR_HEIGHT : layout.bottomHeight) + 20}px"
           role="status"
           data-testid="toast"
         >
@@ -590,6 +629,49 @@
   .file .del:hover {
     background: var(--bg-err);
     color: var(--text-err);
+  }
+  .file .badge {
+    margin-left: auto;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--text-link);
+    background: var(--bg-selected);
+    border-radius: 999px;
+    padding: 0 6px;
+  }
+  .file.active .badge {
+    background: var(--bg-panel);
+  }
+  .feedback {
+    flex: none;
+    background: var(--feedback-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .feedback-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .feedback-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .feedback-date {
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .feedback-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 21px;
+    color: var(--text);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   .file .lock + .err {
     margin-left: 0;

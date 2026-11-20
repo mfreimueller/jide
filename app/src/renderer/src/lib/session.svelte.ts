@@ -2,9 +2,12 @@ import { flushSync } from "svelte";
 import { monaco } from "./monaco";
 import type { OpenedExercise, OpenedFile, OpenedImage } from "../../../shared-types/api";
 import type { MarkerData } from "./diagnostics";
+import { placeComments } from "../../../shared-types/grade";
+import { CommentZones } from "./line-comment-zones";
 
 export const AUTOSAVE_DELAY_MS = 800;
 export const READONLY_MESSAGE = "Diese Datei ist vorgegeben und kann nicht geändert werden.";
+export const GRADED_READONLY_MESSAGE = "Diese Abgabe ist beurteilt und kann nicht mehr geändert werden.";
 
 type Editor = monaco.editor.IStandaloneCodeEditor;
 
@@ -29,6 +32,7 @@ export class EditorSession {
   private inFlight = 0;
   private chain: Promise<void> = Promise.resolve();
   private editor: Editor | undefined;
+  private zones: CommentZones | undefined;
   private disposed = false;
 
   constructor(private readonly exercise: OpenedExercise) {
@@ -41,7 +45,7 @@ export class EditorSession {
     const uri = monaco.Uri.from({ scheme: "jide", path: `/${this.exercise.id}/${f.path}` });
     const model = monaco.editor.createModel(f.content, "java", uri);
     this.models.set(f.path, model);
-    if (f.editable) {
+    if (f.editable && !this.exercise.graded) {
       model.onDidChangeContent(() => this.onEdit(f.path));
     }
   }
@@ -75,10 +79,12 @@ export class EditorSession {
 
   attach(editor: Editor): void {
     this.editor = editor;
+    if (this.exercise.graded) this.zones = new CommentZones(editor);
     this.openFile(this.exercise.mainFile);
   }
 
   isEditable(path: string): boolean {
+    if (this.exercise.graded) return false; // the graded hand-in is read-only
     return this.files.find((f) => f.path === path)?.editable ?? false;
   }
 
@@ -127,8 +133,11 @@ export class EditorSession {
     this.editor.setModel(model);
     this.editor.updateOptions({
       readOnly: !this.isEditable(path),
-      readOnlyMessage: { value: READONLY_MESSAGE }
+      readOnlyMessage: { value: this.exercise.graded ? GRADED_READONLY_MESSAGE : READONLY_MESSAGE }
     });
+    if (this.zones && this.exercise.graded) {
+      this.zones.show(placeComments(this.exercise.graded.lineComments, path, this.lineCount(path)));
+    }
     const vs = this.viewStates.get(path);
     if (vs) this.editor.restoreViewState(vs);
     this.editor.focus();

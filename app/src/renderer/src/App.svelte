@@ -107,7 +107,7 @@
     {#key exercise.id}
       <Workspace
         {exercise}
-        canHandIn={s.mode === "online" && !exercise.scratch}
+        canHandIn={s.mode === "online" && !exercise.scratch && !exercise.graded}
         onBack={() => (exercise = undefined)}
         registerSession={(es) => (es ? sessions.set("current", es) : sessions.delete("current"))}
       />

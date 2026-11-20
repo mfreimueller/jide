@@ -5,6 +5,8 @@
   import { sectionExercises } from "../../../shared-types/grouping";
   import CopyToScratchDialog from "./CopyToScratchDialog.svelte";
   import DifficultyPill from "./DifficultyPill.svelte";
+  import GradeChip from "./GradeChip.svelte";
+  import { gradeSubtitle } from "../../../shared-types/grade";
   import ScratchSection from "./ScratchSection.svelte";
   import type { ExerciseList, ExerciseSummary, StudentInfo } from "../../../shared-types/api";
 
@@ -63,7 +65,7 @@
   });
 
   function late(ex: ExerciseSummary): boolean {
-    return ex.status !== "abgegeben" && isPast(ex.deadline);
+    return ex.status !== "abgegeben" && !ex.grade && isPast(ex.deadline);
   }
 </script>
 
@@ -74,13 +76,17 @@
         <span class="ex-title">{ex.title}</span>
         {#if ex.difficulty}<DifficultyPill level={ex.difficulty} />{/if}
       </div>
-      {#if ex.submittedAt}
+      {#if ex.grade}
+        <span class="muted" data-testid="grade-subtitle">{gradeSubtitle(ex.grade.gradedAt)}</span>
+      {:else if ex.submittedAt}
         <span class="muted">Zuletzt abgegeben: {formatDateTime(ex.submittedAt)}</span>
       {/if}
     </div>
     <div class="meta">
       {#if ex.deadline}<span class="small">bis {formatDate(ex.deadline)}</span>{/if}
-      {#if ex.status === "abgegeben"}
+      {#if ex.grade}
+        <GradeChip symbol={ex.grade.symbol} />
+      {:else if ex.status === "abgegeben"}
         <span class="chip" class:done={!ex.late} class:late-hand={ex.late}>{ex.late ? "Abgegeben · verspätet" : "Abgegeben"}</span>
       {:else if late(ex)}
         <span class="chip late">Frist vorbei · Abgabe noch möglich</span>
@@ -117,7 +123,9 @@
         </div>
       {/if}
     </div>
-    {#if ex.status === "neu"}
+    {#if ex.grade}
+      <button class="btn" onclick={() => onOpen(ex.id)}>Ansehen</button>
+    {:else if ex.status === "neu"}
       <button class="btn primary" onclick={() => onOpen(ex.id)}>Öffnen</button>
     {:else if ex.status === "abgegeben"}
       <button class="btn" onclick={() => onOpen(ex.id)}>Ansehen</button>

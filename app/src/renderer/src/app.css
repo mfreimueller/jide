@@ -53,6 +53,13 @@
   --diff-advanced-bg: #fef3e2;
   --diff-pro: #6d28d9;
   --diff-pro-bg: #f3ecfe;
+  /* grade chip: + and +~ use the "Abgegeben" green, ~ the "In Arbeit" amber, −~ and − this red */
+  --grade-bad: #b42318;
+  --grade-bad-bg: #fdecec;
+  /* feedback box above the code and line comments in the code */
+  --feedback-bg: #f8faf9;
+  --comment-bg: #eef3ff;
+  --comment-border: #c7d6fa;
 }
 
 /* Dark palette: follows the OS, or the choice in the menu Ansicht > Darstellung (main sets nativeTheme.themeSource). */
@@ -100,6 +107,11 @@
     --diff-advanced-bg: #331e0b;
     --diff-pro: #d19dff;
     --diff-pro-bg: #2b1f3d;
+    --grade-bad: #ff9592;
+    --grade-bad-bg: #3b1219;
+    --feedback-bg: #1b1d1f;
+    --comment-bg: #1d2a4d;
+    --comment-border: #2c3e75;
   }
 }
 
@@ -196,6 +208,10 @@ body {
   background: var(--bg-warn);
   color: var(--text-warn);
 }
+.chip.bad {
+  background: var(--grade-bad-bg);
+  color: var(--grade-bad);
+}
 .chip.grey {
   background: var(--bg-subtle);
   color: var(--text-muted);
@@ -205,4 +221,30 @@ body {
 .monaco-editor .suggest-details code {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* line comments of a graded hand-in (Monaco view zones, see line-comment-zones.ts) */
+.jide-comment-zone {
+  box-sizing: border-box;
+  padding: 4px 24px 4px 0;
+  font-family: "Inter Variable", Inter, sans-serif;
+}
+.jide-comment {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  box-sizing: border-box;
+  padding: 8px 14px;
+  background: var(--comment-bg);
+  border: 1px solid var(--comment-border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 19px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.jide-comment .mark {
+  flex: none;
 }
