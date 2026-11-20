@@ -29,6 +29,16 @@ export interface Student {
 	unlockedExerciseCount: number;
 }
 
+export interface ApiKey {
+	id: number;
+	name: string;
+	/** Start of the key, e.g. `jide_k7Q2`. The full key is shown once, on creation. */
+	prefix: string;
+	createdAt: string;
+	/** null = never used */
+	lastUsedAt: string | null;
+}
+
 export interface Exercise {
 	id: string;
 	title: string;

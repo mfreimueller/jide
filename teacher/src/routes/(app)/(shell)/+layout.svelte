@@ -93,6 +93,7 @@
 		{/if}
 
 		<div class="foot">
+			<a class="nav" class:active={page.url.pathname === '/konto/api-schluessel'} href="/konto/api-schluessel"><span class="ico" aria-hidden="true">⚿</span>API-Schlüssel</a>
 			<a class="nav" class:active={page.url.pathname === '/kurse'} href="/kurse"><span class="ico" aria-hidden="true">⚙</span>Kurse verwalten</a>
 			<button class="nav" onclick={signOut}><span class="ico" aria-hidden="true">↩</span>Abmelden</button>
 		</div>
