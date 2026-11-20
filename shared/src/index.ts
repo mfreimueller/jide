@@ -6,3 +6,4 @@ export * from "./exam.js";
 export * from "./errors.js";
 export * from "./workspace.js";
 export * from "./api.js";
+export * from "./exercise-package.js";

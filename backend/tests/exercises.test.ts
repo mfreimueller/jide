@@ -205,6 +205,12 @@ describe('upload validation (400, German)', () => {
   it('accepts a valid tests.yaml', async () =>
     expect((await upload(anna, minimalZip({ 'tests.yaml': 'tests:\n  - {name: a, type: io, expected: "1"}\n' }))).status).toBeLessThan(300));
 
+  it('rejects ids starting with scratch- (reserved for the students Scratch programs)', async () =>
+    expectBad(
+      await upload(anna, minimalZip({ 'exercise.yaml': MINIMAL['exercise.yaml']!.replace('id: mini', 'id: scratch-abc') })),
+      'nicht mit „scratch-“ beginnen'
+    ));
+
   it('rejects zip-slip entries', async () => {
     const z = zipSync({ ...Object.fromEntries(Object.entries(MINIMAL).map(([k, v]) => [k, strToU8(v)])), '../evil.txt': strToU8('x') });
     await expectBad(await upload(anna, z), 'Ungültiger Dateipfad');
