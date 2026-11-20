@@ -6,6 +6,8 @@ import { ExerciseError, loadExercise, type Exercise } from "./exercise.js";
 
 export const MAX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024;
 export const MAX_ENTRIES = 500;
+/** Largest accepted zip file (upload by a teacher, import by a student). */
+export const MAX_PACKAGE_BYTES = 10 * 1024 * 1024;
 
 /** Names are rejected (not silently fixed) when they could escape the extraction directory. */
 function unsafeName(name: string): boolean {

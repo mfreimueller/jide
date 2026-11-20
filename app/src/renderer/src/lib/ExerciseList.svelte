@@ -3,6 +3,7 @@
   import iconUrl from "../assets/icon.svg";
   import { formatDate, formatDateTime, isPast } from "../../../shared-types/datetime";
   import { sectionExercises } from "../../../shared-types/grouping";
+  import DifficultyPill from "./DifficultyPill.svelte";
   import ScratchSection from "./ScratchSection.svelte";
   import type { ExerciseList, ExerciseSummary, StudentInfo } from "../../../shared-types/api";
 
@@ -57,12 +58,6 @@
     requestAnimationFrame(() => window.jide.notifyEditorReady());
   });
 
-  const LEVELS = {
-    newbie: { label: "Newbie", bars: 1 },
-    advanced: { label: "Advanced", bars: 2 },
-    pro: { label: "Pro", bars: 3 }
-  } as const;
-
   function late(ex: ExerciseSummary): boolean {
     return ex.status !== "abgegeben" && isPast(ex.deadline);
   }
@@ -73,15 +68,7 @@
     <div class="ex-main">
       <div class="ex-head">
         <span class="ex-title">{ex.title}</span>
-        {#if ex.difficulty}
-          {@const level = LEVELS[ex.difficulty]}
-          <span class="diff {ex.difficulty}" data-testid="difficulty" data-level={ex.difficulty}>
-            <span class="bars" aria-hidden="true">
-              {#each [1, 2, 3] as n}<span class="bar b{n}" class:on={n <= level.bars}></span>{/each}
-            </span>
-            {level.label}
-          </span>
-        {/if}
+        {#if ex.difficulty}<DifficultyPill level={ex.difficulty} />{/if}
       </div>
       {#if ex.submittedAt}
         <span class="muted">Zuletzt abgegeben: {formatDateTime(ex.submittedAt)}</span>
@@ -229,55 +216,6 @@
     display: flex;
     align-items: center;
     gap: 10px;
-  }
-  .diff {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 9px 2px 8px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
-    background: var(--bg);
-    color: var(--c);
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 16px;
-  }
-  .diff.newbie {
-    --c: var(--diff-newbie);
-    --bg: var(--diff-newbie-bg);
-  }
-  .diff.advanced {
-    --c: var(--diff-advanced);
-    --bg: var(--diff-advanced-bg);
-  }
-  .diff.pro {
-    --c: var(--diff-pro);
-    --bg: var(--diff-pro-bg);
-  }
-  .bars {
-    display: inline-flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 12px;
-  }
-  .bar {
-    width: 3px;
-    border-radius: 1px;
-    background: var(--c);
-    opacity: 0.25;
-  }
-  .bar.on {
-    opacity: 1;
-  }
-  .b1 {
-    height: 6px;
-  }
-  .b2 {
-    height: 9px;
-  }
-  .b3 {
-    height: 12px;
   }
   .meta {
     display: flex;
