@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadExercise, openWorkspace, type Exercise } from "@jide/shared";
+import { strToU8, zipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CompositeSource, scratchEntry } from "./composite-source";
 import { classNameProblem, isScratchId, ScratchStore } from "./scratch";
@@ -340,5 +341,135 @@ describe("package on disk", () => {
     expect(yaml).toContain(`id: ${id}`);
     expect(yaml).toContain("mainFile: Main.java");
     expect(yaml).toContain("path: Hund.java");
+  });
+});
+
+describe("import", () => {
+  const SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>";
+  const PACKAGE: Record<string, string> = {
+    "exercise.yaml":
+      "id: summe\ntitle: Summe\nfiles:\n  - path: Summe.java\n  - path: Hilfe.java\n    editable: false\nmainFile: Summe.java\nimages:\n  - path: bild.svg\ndifficulty: advanced\n",
+    "aufgabe.md": "# Summe\n",
+    "tests.yaml": 'tests:\n  - {name: a, type: io, expected: "1"}\n  - {name: b, type: io, expected: "2"}\n',
+    "files/Summe.java": "class Summe {}",
+    "files/Hilfe.java": "class Hilfe {}",
+    "files/bild.svg": SVG
+  };
+
+  async function folder(files: Record<string, string> = PACKAGE, name = "summe"): Promise<string> {
+    const dir = join(tmp, "src", name);
+    for (const [rel, content] of Object.entries(files)) {
+      await mkdir(join(dir, rel, ".."), { recursive: true });
+      await writeFile(join(dir, rel), content, "utf8");
+    }
+    return dir;
+  }
+
+  async function zip(files: Record<string, string> = PACKAGE, wrapper = ""): Promise<string> {
+    const z: Record<string, Uint8Array> = {};
+    for (const [k, v] of Object.entries(files)) z[wrapper + k] = strToU8(v);
+    const p = join(tmp, `${wrapper ? "wrapped" : "flat"}.zip`);
+    await writeFile(p, zipSync(z));
+    return p;
+  }
+
+  async function imported(kind: "folder" | "zip", source: string): Promise<string> {
+    const r = await store.importExercise(kind, source);
+    if (!r.ok) throw new Error(r.message);
+    return r.id;
+  }
+
+  it("imports a folder as a new scratch item with tests, image and difficulty", async () => {
+    const id = await imported("folder", await folder());
+    expect(isScratchId(id)).toBe(true);
+    const ex = (await store.find(id))!;
+    expect(ex.id).toBe(id);
+    expect(ex.title).toBe("Summe");
+    expect(ex.difficulty).toBe("advanced");
+    expect(ex.tests).toHaveLength(2);
+    expect(ex.imageContents["bild.svg"]).toBe(SVG);
+    expect(ex.originals["Hilfe.java"]).toBe("class Hilfe {}");
+    expect(ex.files.find((f) => f.path === "Hilfe.java")!.editable).toBe(false);
+    expect(ex.assignment).toBe("# Summe\n");
+    const { exercises, imported: info } = await store.list();
+    expect(exercises.map((e) => e.id)).toEqual([id]);
+    expect(scratchEntry(exercises[0]!, info.get(id))).toMatchObject({ imported: true, testCount: 2, difficulty: "advanced", scratch: true });
+  });
+
+  it("imports a flat zip and a zip with one wrapping folder the same way", async () => {
+    const a = await imported("zip", await zip());
+    const b = await imported("zip", await zip(PACKAGE, "summe/"));
+    for (const id of [a, b]) {
+      const ex = (await store.find(id))!;
+      expect(ex.tests).toHaveLength(2);
+      expect(ex.files.map((f) => f.path)).toEqual(["Summe.java", "Hilfe.java"]);
+    }
+  });
+
+  it("importing the same exercise again adds a second copy", async () => {
+    const dir = await folder();
+    const a = await imported("folder", dir);
+    const b = await imported("folder", dir);
+    expect(a).not.toBe(b);
+    expect((await store.list()).exercises).toHaveLength(2);
+  });
+
+  it("an exercise without tests.yaml imports with zero tests", async () => {
+    const { "tests.yaml": _t, ...noTests } = PACKAGE;
+    const id = await imported("folder", await folder(noTests));
+    expect((await store.find(id))!.tests).toBeUndefined();
+    expect((await store.importedInfo(id))!.tests).toBe(0);
+  });
+
+  it("gives the German parser errors for invalid input and leaves nothing behind", async () => {
+    const bad = await store.importExercise("folder", await folder({ ...PACKAGE, "exercise.yaml": "id: x\n" }, "kaputt"));
+    expect(!bad.ok && bad.message).toContain("exercise.yaml ist ungültig");
+    const empty = join(tmp, "leer");
+    await mkdir(empty);
+    const r = await store.importExercise("folder", empty);
+    expect(!r.ok && r.message).toContain("exercise.yaml fehlt");
+    const notZip = join(tmp, "x.zip");
+    await writeFile(notZip, "hallo");
+    const z = await store.importExercise("zip", notZip);
+    expect(!z.ok && z.message).toContain("kein gültiges ZIP");
+    const slip = join(tmp, "slip.zip");
+    await writeFile(slip, zipSync({ "../evil.txt": strToU8("x"), "exercise.yaml": strToU8(PACKAGE["exercise.yaml"]!) }));
+    expect((await store.importExercise("zip", slip)).ok).toBe(false);
+    expect((await store.importExercise("zip", join(tmp, "missing.zip"))).ok).toBe(false);
+    expect((await store.importExercise("folder", join(tmp, "missing"))).ok).toBe(false);
+    expect((await store.importExercise("pdf", "x")).ok).toBe(false);
+    expect((await store.list()).exercises).toEqual([]);
+  });
+
+  it("classes that came with the exercise cannot be deleted, added ones can", async () => {
+    const id = await imported("folder", await folder());
+    const refused = await store.deleteClass(id, "Hilfe.java", ws);
+    expect(!refused.ok && refused.message).toContain("importierten Aufgabe");
+    expect((await store.deleteClass(id, "Summe.java", ws)).ok).toBe(false);
+    expect((await store.find(id))!.files).toHaveLength(2);
+    expect(await store.addClass(id, "Extra")).toEqual({ ok: true, path: "Extra.java" });
+    expect((await store.importedInfo(id))!.files).toEqual(["Summe.java", "Hilfe.java"]);
+    expect(await store.deleteClass(id, "Extra.java", ws)).toEqual({ ok: true });
+  });
+
+  it("rename and delete work like for other items; images and tests survive a rename", async () => {
+    const id = await imported("folder", await folder());
+    expect(await store.rename(id, "Meine Summe")).toEqual({ ok: true });
+    const ex = (await store.find(id))!;
+    expect(ex.title).toBe("Meine Summe");
+    expect(ex.tests).toHaveLength(2);
+    expect(ex.images).toHaveLength(1);
+    expect(await store.delete(id, ws)).toEqual({ ok: true });
+    expect(await store.find(id)).toBeUndefined();
+  });
+
+  it("the handlers refuse in exam mode and report a canceled dialog", async () => {
+    const off = scratchHandlers(() => undefined, () => ws);
+    expect(await off.importExercise("folder", async () => "x")).toEqual({ ok: false, message: SCRATCH_NOT_ALLOWED_MESSAGE });
+    expect(await off.importPath("folder", "x")).toEqual({ ok: false, message: SCRATCH_NOT_ALLOWED_MESSAGE });
+    const h = scratchHandlers(() => store, () => ws);
+    expect(await h.importExercise("zip", async () => undefined)).toEqual({ ok: true, canceled: true });
+    const r = await h.importExercise("folder", async () => folder());
+    expect(r.ok && r.id !== undefined && isScratchId(r.id)).toBe(true);
   });
 });

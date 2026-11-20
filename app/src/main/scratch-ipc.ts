@@ -23,5 +23,17 @@ export function registerScratchIpc(): void {
       return r.canceled ? undefined : r.filePaths[0];
     })
   );
+  ipcMain.handle("jide:scratch-import", (e, kind: unknown) =>
+    h.importExercise(kind, async (k) => {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      const options: Electron.OpenDialogOptions =
+        k === "folder"
+          ? { title: "Aufgabenordner wählen", properties: ["openDirectory"] }
+          : { title: "ZIP-Datei wählen", properties: ["openFile"], filters: [{ name: "ZIP-Datei (.zip)", extensions: ["zip"] }] };
+      const r = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+      return r.canceled ? undefined : r.filePaths[0];
+    })
+  );
+  ipcMain.handle("jide:scratch-import-path", (_e, kind: unknown, path: unknown) => h.importPath(kind, path));
   ipcMain.handle("jide:scratch-pick-assignment", (_e, id: unknown, path: unknown) => h.pickAssignment(id, path));
 }

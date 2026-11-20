@@ -13,7 +13,7 @@ import { context } from "./context";
 import { examStudentName, examMode, testsAllowed } from "./exam-state";
 import { examWorkspaceKey } from "./exam-store";
 import { scratchEntry } from "./composite-source";
-import { isScratchId } from "./scratch";
+import { isScratchId, type ImportedInfo } from "./scratch";
 import type { SourceEntry } from "./source";
 import { parseTestSummary } from "./test-summary";
 
@@ -67,7 +67,8 @@ async function summarise(exercises: SourceEntry[]): Promise<ExerciseSummary[]> {
       late: handIn?.late ?? false,
       groupId: ex.groupId,
       difficulty: ex.difficulty ?? null,
-      ...(ex.scratch ? { scratch: true, classCount: ex.classCount ?? 0 } : {})
+      ...(ex.scratch ? { scratch: true, classCount: ex.classCount ?? 0 } : {}),
+      ...(ex.imported ? { imported: true, testCount: ex.testCount ?? 0 } : {})
     });
   }
   return summaries;
@@ -83,8 +84,15 @@ export function registerExerciseIpc(): void {
   // Scratch only: never asks the backend (before login a 401 there would send the app to the code screen).
   ipcMain.handle("jide:list-scratch", async (): Promise<ExerciseList> => {
     const scratch = context().scratch;
-    const { exercises, errors } = scratch ? await scratch.list() : { exercises: [], errors: [] };
-    return { exercises: await summarise(exercises.map(scratchEntry)), groups: [], errors, offline: false };
+    const { exercises, errors, imported } = scratch
+      ? await scratch.list()
+      : { exercises: [], errors: [], imported: new Map<string, ImportedInfo>() };
+    return {
+      exercises: await summarise(exercises.map((e) => scratchEntry(e, imported.get(e.id)))),
+      groups: [],
+      errors,
+      offline: false
+    };
   });
 
   ipcMain.handle("jide:open-exercise", async (_e, id: unknown): Promise<OpenResult> => {
@@ -100,6 +108,7 @@ export function registerExerciseIpc(): void {
       if (!prepared.ok) return { ok: false, message: prepared.message };
       if (prepared.submittedAt) handIns.set(ex.id, prepared.submittedAt, prepared.late === true);
       const ws = await openWorkspace(ex, workspaceRoot());
+      const importedInfo = await context().scratch?.importedInfo(ex.id);
       return {
         ok: true,
         exercise: {
@@ -114,7 +123,8 @@ export function registerExerciseIpc(): void {
           submittedAt: handIns.get(ex.id)?.submittedAt ?? null,
           late: handIns.get(ex.id)?.late ?? false,
           hasTests: (ex.tests?.length ?? 0) > 0,
-          ...(isScratchId(ex.id) ? { scratch: true } : {})
+          ...(isScratchId(ex.id) ? { scratch: true } : {}),
+          ...(importedInfo ? { importedFiles: importedInfo.files } : {})
         }
       };
     } catch (e) {

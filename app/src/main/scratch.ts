@@ -1,7 +1,15 @@
 import { randomBytes } from "node:crypto";
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { ExerciseError, listExercises, loadExercise, parseExerciseConfig, type Exercise } from "@jide/shared";
+import { dirname, join, resolve } from "node:path";
+import {
+  ExerciseError,
+  listExercises,
+  loadExercise,
+  MAX_PACKAGE_BYTES,
+  parseExerciseConfig,
+  readExerciseZip,
+  type Exercise
+} from "@jide/shared";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
 /** Every Scratch id starts with this, so it can never clash with a server exercise id. */
@@ -11,6 +19,14 @@ const SCRATCH_ID = /^scratch-[a-f0-9]{12}$/;
 const MAIN_FILE = "Main.java";
 const MAX_TITLE = 80;
 const MAX_ASSIGNMENT_BYTES = 1024 * 1024;
+/** Remembers what an import brought along: the classes that cannot be deleted and the number of tests. */
+const IMPORTED_FILE = "imported.json";
+
+export interface ImportedInfo {
+  /** Paths (as in exercise.yaml) of the classes that came with the exercise. */
+  files: string[];
+  tests: number;
+}
 
 export type ScratchResult<T = unknown> = ({ ok: true } & T) | { ok: false; message: string };
 
@@ -89,12 +105,18 @@ export class ScratchStore {
     return join(this.root, id);
   }
 
-  async list(): Promise<{ exercises: Exercise[]; errors: string[] }> {
+  async list(): Promise<{ exercises: Exercise[]; errors: string[]; imported: Map<string, ImportedInfo> }> {
     try {
       const r = await listExercises(this.root);
-      return { exercises: r.exercises.filter((e) => isScratchId(e.id)), errors: r.errors.map((e) => e.message) };
+      const exercises = r.exercises.filter((e) => isScratchId(e.id));
+      const imported = new Map<string, ImportedInfo>();
+      for (const e of exercises) {
+        const info = await this.importedInfo(e.id);
+        if (info) imported.set(e.id, info);
+      }
+      return { exercises, errors: r.errors.map((e) => e.message), imported };
     } catch {
-      return { exercises: [], errors: [] }; // no scratch folder yet
+      return { exercises: [], errors: [], imported: new Map() }; // no scratch folder yet
     }
   }
 
@@ -197,7 +219,7 @@ export class ScratchStore {
     });
   }
 
-  /** `Main.java` and the main file are never deleted. */
+  /** `Main.java`, the main file and the classes of an imported exercise are never deleted. */
   deleteClass(id: unknown, path: unknown, workspaceRoot: string): Promise<ScratchResult> {
     return this.serial(async () => {
       const ex = await this.find(id);
@@ -208,6 +230,9 @@ export class ScratchStore {
       if (path === MAIN_FILE || path === ex.mainFile) {
         return { ok: false, message: `${path} ist die Hauptdatei und kann nicht gelöscht werden.` };
       }
+      if ((await this.importedInfo(ex.id))?.files.includes(path)) {
+        return { ok: false, message: `${path} gehört zur importierten Aufgabe und kann nicht gelöscht werden.` };
+      }
       try {
         const config = await this.readConfig(ex.id);
         config["files"] = (config["files"] as { path: string }[]).filter((f) => f.path !== path);
@@ -216,6 +241,87 @@ export class ScratchStore {
         await rm(join(workspaceRoot, ex.id, path), { force: true });
         return { ok: true };
       } catch (e) {
+        return this.fail(e);
+      }
+    });
+  }
+
+  /** What an import brought along; undefined for items the student created. */
+  async importedInfo(id: unknown): Promise<ImportedInfo | undefined> {
+    if (!isScratchId(id)) return undefined;
+    try {
+      const j = JSON.parse(await readFile(join(this.dir(id), IMPORTED_FILE), "utf8")) as Partial<ImportedInfo>;
+      if (!Array.isArray(j.files)) return undefined;
+      return { files: j.files.filter((f): f is string => typeof f === "string"), tests: typeof j.tests === "number" ? j.tests : 0 };
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Imports a teacher-format exercise (a folder, or a zip with the files at its root or in one top-level folder)
+   * as a new Scratch item. Validation is the same parser as for the teacher upload (`loadExercise` /
+   * `readExerciseZip`). Importing the same exercise twice gives two items.
+   */
+  importExercise(kind: unknown, source: unknown): Promise<ScratchResult<{ id: string }>> {
+    return this.serial(async () => {
+      if ((kind !== "folder" && kind !== "zip") || typeof source !== "string" || source === "") {
+        return { ok: false, message: "Ungültige Anfrage." };
+      }
+      let ex: Exercise;
+      let testsYaml: string | undefined;
+      try {
+        if (kind === "folder") {
+          if (!(await isDir(source))) return { ok: false, message: "Der Ordner wurde nicht gefunden." };
+          ex = await loadExercise(source);
+          testsYaml = await readFile(join(source, "tests.yaml"), "utf8").catch(() => undefined);
+        } else {
+          const st = await stat(source);
+          if (!st.isFile()) return { ok: false, message: "Die Datei wurde nicht gefunden." };
+          if (st.size > MAX_PACKAGE_BYTES) {
+            return { ok: false, message: `Die Datei ist zu groß (höchstens ${MAX_PACKAGE_BYTES / 1024 / 1024} MB).` };
+          }
+          const pkg = await readExerciseZip(new Uint8Array(await readFile(source)));
+          ex = pkg.exercise;
+          const raw = pkg.files.get("tests.yaml");
+          testsYaml = raw === undefined ? undefined : Buffer.from(raw).toString("utf8");
+        }
+      } catch (e) {
+        if (e instanceof ExerciseError) return { ok: false, message: e.message };
+        const code = (e as NodeJS.ErrnoException).code;
+        return { ok: false, message: code === "ENOENT" ? "Die Datei wurde nicht gefunden." : "Die Datei konnte nicht gelesen werden." };
+      }
+
+      const id = `${SCRATCH_PREFIX}${randomBytes(6).toString("hex")}`;
+      const dir = this.dir(id);
+      try {
+        // Written from the validated exercise, so only what exercise.yaml lists is copied.
+        const put = async (rel: string, content: string): Promise<void> => {
+          await mkdir(dirname(join(dir, rel)), { recursive: true });
+          await writeFile(join(dir, rel), content, "utf8");
+        };
+        for (const [path, content] of Object.entries(ex.originals)) await put(join("files", path), content);
+        for (const [path, content] of Object.entries(ex.imageContents)) await put(join("files", path), content);
+        if (ex.harness && ex.harnessContent !== undefined) await put(ex.harness.file, ex.harnessContent);
+        await put("aufgabe.md", ex.assignment);
+        if (testsYaml !== undefined) await put("tests.yaml", testsYaml);
+        const config: Record<string, unknown> = {
+          id,
+          title: ex.title,
+          files: ex.files.map((f) => ({ path: f.path, editable: f.editable })),
+          mainFile: ex.mainFile
+        };
+        if (ex.harness) config["harness"] = ex.harness;
+        if (ex.images.length > 0) config["images"] = ex.images;
+        if (ex.difficulty) config["difficulty"] = ex.difficulty;
+        await mkdir(dir, { recursive: true });
+        await this.writeConfig(id, config);
+        await loadExercise(dir); // what was written must load again
+        const info: ImportedInfo = { files: ex.files.map((f) => f.path), tests: ex.tests?.length ?? 0 };
+        await writeFile(join(dir, IMPORTED_FILE), JSON.stringify(info), "utf8");
+        return { ok: true, id };
+      } catch (e) {
+        await rm(dir, { recursive: true, force: true });
         return this.fail(e);
       }
     });

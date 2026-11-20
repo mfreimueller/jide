@@ -16,6 +16,10 @@ export interface SourceEntry {
   scratch?: boolean;
   /** Scratch items: number of .java files. */
   classCount?: number;
+  /** Scratch items made by "Aufgabe importieren": no hand-in, tests from tests.yaml. */
+  imported?: boolean;
+  /** Imported items: number of tests (0 without tests.yaml). */
+  testCount?: number;
 }
 
 export interface SourceListing {

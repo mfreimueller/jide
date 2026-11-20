@@ -26,6 +26,19 @@ export function scratchHandlers(store: () => ScratchStore | undefined, workspace
       const path = await pick();
       return path === undefined ? { ok: true, canceled: true } : s.pickAssignment(id, path);
     },
+    /** `pick` shows the dialog for a folder or a zip and returns the chosen path (undefined = canceled). */
+    importExercise: async (
+      kind: unknown,
+      pick: (kind: "folder" | "zip") => Promise<string | undefined>
+    ): Promise<ScratchResult<{ id?: string; canceled?: boolean }>> => {
+      const s = store();
+      if (!s) return refuse;
+      if (kind !== "folder" && kind !== "zip") return { ok: false, message: "Ungültige Anfrage." };
+      const path = await pick(kind);
+      return path === undefined ? { ok: true, canceled: true } : s.importExercise(kind, path);
+    },
+    importPath: (kind: unknown, path: unknown): Promise<ScratchResult<{ id: string }>> | { ok: false; message: string } =>
+      store()?.importExercise(kind, path) ?? refuse,
     pickAssignment: (id: unknown, path: unknown): Promise<ScratchResult> | { ok: false; message: string } =>
       store()?.pickAssignment(id, path) ?? refuse
   };

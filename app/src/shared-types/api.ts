@@ -16,6 +16,10 @@ export interface ExerciseSummary {
   scratch?: boolean;
   /** Scratch items: number of .java files ("Eigenes Programm · 2 Klassen"). */
   classCount?: number;
+  /** A Scratch item made by "Aufgabe importieren" ("Importiert · N Tests"). Absent = false. */
+  imported?: boolean;
+  /** Imported items: number of tests. */
+  testCount?: number;
   /** From exercise.yaml; null = none. Shown as a pill on the card (never in exam mode). */
   difficulty: "newbie" | "advanced" | "pro" | null;
 }
@@ -99,6 +103,8 @@ export interface OpenedExercise {
   hasTests: boolean;
   /** A Scratch program: no "Abgeben", classes can be added, the Angabe can be picked. Absent = false. */
   scratch?: boolean;
+  /** Imported Scratch items: the classes that came with the exercise; they cannot be deleted. */
+  importedFiles?: string[];
 }
 
 export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };
@@ -210,6 +216,10 @@ export interface JideApi {
   scratchPickAssignment: (id: string, path: string) => Promise<ScratchResult>;
   /** Opens the file dialog (.md) and copies the chosen file into the item; `canceled` = nothing chosen. */
   scratchChooseAssignment: (id: string) => Promise<ScratchResult<{ canceled?: boolean }>>;
+  /** Imports a teacher-format exercise into Scratch: shows the dialog (a folder or a .zip). Refused in exam mode. */
+  scratchImport: (kind: "folder" | "zip") => Promise<ScratchResult<{ id?: string; canceled?: boolean }>>;
+  /** Same with a known path (tests). */
+  scratchImportPath: (kind: "folder" | "zip", path: string) => Promise<ScratchResult<{ id: string }>>;
   /** Local mode or online mode (with or without a stored code). */
   getSession: () => Promise<AppSession>;
   /** Exam mode: stores the student's name in main (trimmed; it goes into abgabe.json in T25). */

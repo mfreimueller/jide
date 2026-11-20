@@ -1,10 +1,12 @@
 import type { Exercise, HandInFile, TestSummary } from "@jide/shared";
-import { isScratchId, SCRATCH_PREFIX, type ScratchStore } from "./scratch";
+import { isScratchId, SCRATCH_PREFIX, type ImportedInfo, type ScratchStore } from "./scratch";
 import type { ExerciseSource, HandInOutcome, SourceEntry, SourceListing } from "./source";
 
 /** How a Scratch program appears in a list. */
-export function scratchEntry(e: Exercise): SourceEntry {
+export function scratchEntry(e: Exercise, imported?: ImportedInfo): SourceEntry {
   return {
+    ...(imported ? { imported: true, testCount: imported.tests } : {}),
+    difficulty: e.difficulty ?? null,
     id: e.id,
     title: e.title,
     deadline: null,
@@ -43,7 +45,7 @@ export class CompositeSource implements ExerciseSource {
       // The prefix is reserved for Scratch: a server exercise with such an id would be unreachable anyway.
       exercises: [
         ...listing.exercises.filter((e) => !e.id.startsWith(SCRATCH_PREFIX)),
-        ...mine.exercises.map(scratchEntry)
+        ...mine.exercises.map((e) => scratchEntry(e, mine.imported.get(e.id)))
       ],
       errors: [...listing.errors, ...mine.errors]
     };
