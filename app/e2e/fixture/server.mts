@@ -86,12 +86,18 @@ const server = serve(
           symbol: "PLUS" | "PLUS_WELLE" | "WELLE" | "MINUS_WELLE" | "MINUS";
           comment: string;
           lineComments: { path: string; line: number; text: string }[];
+          gradedDaysAgo?: number;
         };
         const rows = await db<{ id: number }[]>`
           SELECT h.id FROM handins h JOIN exercises e ON e.id = h.exercise_id
           WHERE e.slug = ${spec.exerciseId} AND h.student_id = ${student!.id} ORDER BY h.id DESC LIMIT 1`;
         if (!rows[0]) return new Response("no hand-in", { status: 409 });
         await saveGrade(db, teacher.id, rows[0].id, spec);
+        if (spec.gradedDaysAgo) {
+          // backdates the grade (the student app hides graded exercises 7 days after grading)
+          const at = new Date(Date.now() - spec.gradedDaysAgo * 86_400_000);
+          await db`UPDATE grades SET graded_at = ${at} WHERE handin_id = ${rows[0].id}`;
+        }
         return new Response(null, { status: 204 });
       }
       if (req.method === "GET" && url.pathname === "/__test/matrix") {

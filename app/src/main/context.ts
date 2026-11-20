@@ -10,6 +10,7 @@ import { PackageCache } from "./package-cache";
 import { SessionStore } from "./session-store";
 import { CompositeSource } from "./composite-source";
 import { ScratchStore } from "./scratch";
+import { accountKey, HiddenStore } from "./hidden-store";
 import { LocalSource, type ExerciseSource } from "./source";
 
 // Set by electron-vite `define` (see electron.vite.config.ts).
@@ -34,6 +35,8 @@ export interface MainContext {
   session?: { store: SessionStore; api: ApiClient };
   /** Scratch programs (online and local mode, never in exam mode). */
   scratch?: ScratchStore;
+  /** Which exercises the student hid or showed by hand (online and local mode, never in exam mode). */
+  hidden?: HiddenStore;
 }
 
 let ctx: MainContext | undefined;
@@ -65,7 +68,8 @@ export function context(): MainContext {
       return ctx;
     }
     const scratch = new ScratchStore(join(userData, "scratch"));
-    ctx = { source: new CompositeSource(new LocalSource(dir), scratch), handIns, scratch };
+    const hidden = new HiddenStore(join(userData, "hidden.json"), () => accountKey(apiUrl(), undefined));
+    ctx = { source: new CompositeSource(new LocalSource(dir), scratch), handIns, scratch, hidden };
     return ctx;
   }
   const store = new SessionStore(join(userData, "session.json"));
@@ -81,6 +85,7 @@ export function context(): MainContext {
   });
   const scratch = new ScratchStore(join(userData, "scratch"));
   const source = new CompositeSource(new OnlineSource(api, new PackageCache(join(userData, "cache"))), scratch);
-  ctx = { source, handIns, session: { store, api }, scratch };
+  const hidden = new HiddenStore(join(userData, "hidden.json"), () => accountKey(apiUrl(), store.get()?.code));
+  ctx = { source, handIns, session: { store, api }, scratch, hidden };
   return ctx;
 }

@@ -36,5 +36,8 @@ export function registerScratchIpc(): void {
   );
   ipcMain.handle("jide:scratch-import-path", (_e, kind: unknown, path: unknown) => h.importPath(kind, path));
   ipcMain.handle("jide:scratch-copy-exercise", (_e, id: unknown, mode: unknown) => h.copyExercise(id, mode));
+  // Hiding exercises (T54): choices per account, only on this laptop; refused in exam mode.
+  ipcMain.handle("jide:hidden-get", () => context().hidden?.get() ?? {});
+  ipcMain.handle("jide:hidden-set", (_e, id: unknown, mode: unknown) => context().hidden?.set(id, mode) ?? {});
   ipcMain.handle("jide:scratch-pick-assignment", (_e, id: unknown, path: unknown) => h.pickAssignment(id, path));
 }

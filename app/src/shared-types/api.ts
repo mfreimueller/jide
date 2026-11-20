@@ -244,6 +244,13 @@ export interface JideApi {
   scratchCopyExercise: (id: string, mode: "fresh" | "mine") => Promise<ScratchResult<{ id: string }>>;
   /** Same with a known path (tests). */
   scratchImportPath: (kind: "folder" | "zip", path: string) => Promise<ScratchResult<{ id: string }>>;
+  /**
+   * Exercises the student hid or showed by hand (only on this laptop, per account); empty in exam mode.
+   * Everything else follows the automatic rule (see hiding.ts).
+   */
+  hiddenGet: () => Promise<Record<string, "hidden" | "shown">>;
+  /** Sets the choice of one exercise (null = automatic again); returns all choices. */
+  hiddenSet: (id: string, mode: "hidden" | "shown" | null) => Promise<Record<string, "hidden" | "shown">>;
   /** Local mode or online mode (with or without a stored code). */
   getSession: () => Promise<AppSession>;
   /** Exam mode: stores the student's name in main (trimmed; it goes into abgabe.json in T25). */
