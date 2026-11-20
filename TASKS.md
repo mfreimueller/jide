@@ -196,7 +196,7 @@ Decisions (user, 2026-11-20):
 - Many hidden (≈20): teacher bar stays one line – the 3 newest hidden as chips, then "+N weitere" opening a popover (search, newest first, scrollable rows with reason + "Einblenden"). Student "Ausgeblendet" section uses compact one-line rows (number, title, group · date, chip, "Wieder anzeigen", "Ansehen"/"Öffnen").
 - Figma: Schüler-App 31 (68:56), 32 (70:59); Lehrer-Web T02b (70:296), T02c (73:62), T02d (75:63), T03b (71:62), T07b (72:62). Dark variants 31d/32d after approval.
 
-- [ ] **T51 Backend: grades for the teacher** – matrix cells carry `grade {symbol, gradedAt} | null`; hand-in detail carries grade + comment + line comments and `graded` per history entry; course exercise list carries `gradedCount`.
-- [ ] **T52 Backend: hidden matrix columns** – migration (teacher, course, exercise, mode `hidden`/`shown`) + setting "Beurteilte ausblenden" per teacher and course (default on); GET/PUT endpoints; matrix + ZIP picker use them.
-- [ ] **T53 Teacher web** – T02b/T02c matrix (chip, header count, switch, bar, ausblenden/einblenden), T03b detail, T07b count.
+- [x] **T51 Backend: grades for the teacher** – matrix cells carry `grade {symbol, gradedAt} | null`; hand-in detail carries grade + comment + line comments and `graded` per history entry; course exercise list carries `gradedCount`.
+- [x] **T52 Backend: hidden matrix columns** – migration (teacher, course, exercise, mode `hidden`/`shown`) + setting "Beurteilte ausblenden" per teacher and course (default on); GET/PUT endpoints; matrix + ZIP picker use them.
+- [x] **T53 Teacher web** – T02b/T02c matrix (chip, header count, switch, bar, ausblenden/einblenden), T03b detail, T07b count.
 - [ ] **T54 Student app: hiding** – local store in userData (per student code/course), ⋯ Ausblenden (disabled with reason when open), 7-day auto rule for graded, "Wieder anzeigen" override, Ausgeblendet section (31/32, light + dark); unit + e2e.
