@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { AppError } from './errors.js';
 import { corsMiddleware } from './middleware/cors.js';
+import { gradingApiRoutes } from './routes/grading_api.js';
 import { exerciseRoutes } from './routes/exercises.js';
 import { studentExerciseRoutes } from './routes/student_exercises.js';
 import { health } from './routes/health.js';
@@ -21,6 +22,7 @@ app.route('/api/teacher/courses', courseRoutes);
 app.route('/api/teacher/exercises', exerciseRoutes);
 app.route('/api/teacher/handins', teacherHandInRoutes);
 app.route('/api/teacher/api-keys', apiKeyRoutes);
+app.route('/api/v1', gradingApiRoutes);
 app.route('/api/exercises', studentExerciseRoutes);
 app.route('/api/exercises', studentHandInRoutes);
 app.route('/api/student', studentRoutes);

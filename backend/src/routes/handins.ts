@@ -12,6 +12,7 @@ import {
   unlockedExerciseRef,
   validateHandInFiles,
 } from '../lib/handins.js';
+import { isGraded } from '../lib/grading.js';
 import { parseJson } from '../lib/http.js';
 import { studentAuth, type StudentVariables } from '../middleware/student_auth.js';
 
@@ -49,6 +50,9 @@ studentHandInRoutes.post('/:id/handins', async (c) => {
 
   const ex = await unlockedExerciseRef(db, courseId, c.req.param('id'));
   if (!ex) throw notFound();
+  if (await isGraded(db, studentId, ex.rowId)) {
+    throw new AppError(409, 'GRADED', 'Diese Aufgabe ist bereits beurteilt. Du kannst sie nicht mehr abgeben.');
+  }
   const body = await parseJson(c, bodySchema);
   validateHandInFiles(body.files, editablePaths(ex.zip, c.req.param('id')));
   // The client clock is never used: createHandIn takes the server time.

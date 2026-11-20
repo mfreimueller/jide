@@ -26,7 +26,41 @@ export interface StudentExerciseSummary {
   groupId?: number | null;
   /** From exercise.yaml; null/missing = none (also for packages uploaded before the field existed and for older backends). */
   difficulty?: Difficulty | null;
+  /** Set once a teacher has graded the exercise (it is then locked for hand-ins); null/missing = not graded (also for older backends). */
+  grade?: StudentGrade | null;
 }
+
+/** Grade symbols as in grader: + / +~ / ~ / −~ / −. */
+export const GRADE_SYMBOLS = ["PLUS", "PLUS_WELLE", "WELLE", "MINUS_WELLE", "MINUS"] as const;
+export type GradeSymbol = (typeof GRADE_SYMBOLS)[number];
+
+/** The grade as shown on the exercise card. */
+export interface StudentGrade {
+  symbol: GradeSymbol;
+  /** ISO 8601 instant (UTC). */
+  gradedAt: string;
+}
+
+/** A comment on one line (1-based) of a hand-in file. */
+export interface GradeLineComment {
+  path: string;
+  line: number;
+  text: string;
+}
+
+/** GET /api/exercises/:id/grade (404 if not graded): the graded hand-in with symbol and comments. */
+export interface StudentGradeResponse {
+  symbol: GradeSymbol;
+  comment: string;
+  gradedAt: string;
+  handinId: number;
+  submittedAt: string;
+  files: HandInFile[];
+  lineComments: GradeLineComment[];
+}
+
+/** Error code of POST /api/exercises/:id/handins (409) on a graded exercise. */
+export const GRADED_ERROR_CODE = "GRADED";
 
 /** An exercise group of the course, as the students see it. */
 export interface StudentExerciseGroup {

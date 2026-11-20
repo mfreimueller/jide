@@ -378,7 +378,7 @@ describe('student API', () => {
     expect(l1.exercises).toHaveLength(1);
     expect(l1.exercises[0]).toMatchObject({ id: 'summe', title: 'Summe zweier Zahlen', deadline: '2026-12-01T22:59:00.000Z' });
     expect(l1.exercises[0].version).toMatch(/^[0-9a-f]{64}$/);
-    expect(Object.keys(l1.exercises[0]).sort()).toEqual(['deadline', 'difficulty', 'groupId', 'id', 'title', 'version']);
+    expect(Object.keys(l1.exercises[0]).sort()).toEqual(['deadline', 'difficulty', 'grade', 'groupId', 'id', 'title', 'version']);
     expect(l1.exercises[0].difficulty).toBe('newbie'); // examples/summe has difficulty: newbie
 
     const l2 = await json(await s2.call('/api/exercises'));

@@ -1,8 +1,9 @@
-import type { Difficulty } from '@jide/shared';
+import type { Difficulty, StudentGrade } from '@jide/shared';
 import type { SQLInstance } from '../db/sql.js';
 import { sql } from '../db/sql.js';
 import { AppError } from '../errors.js';
 import type { ValidatedPackage } from './exercise_package.js';
+import { gradesOfStudent } from './grading.js';
 import { setExerciseGroup } from './groups.js';
 
 export interface ExerciseView {
@@ -170,16 +171,21 @@ export interface StudentExerciseRow {
   groupId: number | null;
   /** newbie | advanced | pro, or null (no difficulty, or uploaded before it existed). */
   difficulty: Difficulty | null;
+  /** Set once the exercise is graded (it is then locked for hand-ins). */
+  grade: StudentGrade | null;
 }
 
-export async function unlockedForCourse(db: SQLInstance, courseId: number): Promise<StudentExerciseRow[]> {
-  const rows = await db<{ id: string; title: string; version: string; deadline: Date | null; groupId: number | null; difficulty: Difficulty | null }[]>`
-    SELECT e.slug AS id, e.title, e.version, ce.deadline, ce.group_id AS groupId, e.difficulty
+export async function unlockedForCourse(db: SQLInstance, courseId: number, studentId: number): Promise<StudentExerciseRow[]> {
+  const rows = await db<
+    { rowId: number; id: string; title: string; version: string; deadline: Date | null; groupId: number | null; difficulty: Difficulty | null }[]
+  >`
+    SELECT e.id AS rowId, e.slug AS id, e.title, e.version, ce.deadline, ce.group_id AS groupId, e.difficulty
     FROM course_exercises ce JOIN exercises e ON e.id = ce.exercise_id
     WHERE ce.course_id = ${courseId} AND ce.unlocked = 1
     ORDER BY ce.unlocked_at IS NULL, ce.unlocked_at DESC, e.title, e.slug
   `;
-  return rows.map((r) => ({ ...r, deadline: r.deadline ? r.deadline.toISOString() : null }));
+  const grades = await gradesOfStudent(db, studentId);
+  return rows.map(({ rowId, ...r }) => ({ ...r, deadline: r.deadline ? r.deadline.toISOString() : null, grade: grades.get(rowId) ?? null }));
 }
 
 export async function unlockedVersion(db: SQLInstance, courseId: number, slug: string): Promise<string | null> {

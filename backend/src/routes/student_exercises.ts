@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
-import { EXERCISE_PACKAGE_CONTENT_TYPE, type StudentExerciseListResponse } from '@jide/shared';
+import { EXERCISE_PACKAGE_CONTENT_TYPE, type StudentExerciseListResponse, type StudentGradeResponse } from '@jide/shared';
+import { gradeForStudent } from '../lib/grading.js';
+import { unlockedExerciseRef } from '../lib/handins.js';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
 import { unlockedForCourse, unlockedPackage, unlockedVersion } from '../lib/exercises.js';
@@ -11,10 +13,20 @@ studentExerciseRoutes.use('*', studentAuth);
 
 studentExerciseRoutes.get('/', async (c) => {
   const db = getDb();
-  const { courseId } = c.get('student');
-  const exercises = await unlockedForCourse(db, courseId);
+  const { id: studentId, courseId } = c.get('student');
+  const exercises = await unlockedForCourse(db, courseId, studentId);
   const groups = await visibleGroups(db, courseId);
   return c.json({ exercises, groups } satisfies StudentExerciseListResponse);
+});
+
+studentExerciseRoutes.get('/:id/grade', async (c) => {
+  const db = getDb();
+  const { id: studentId, courseId } = c.get('student');
+  const ex = await unlockedExerciseRef(db, courseId, c.req.param('id'));
+  if (!ex) throw new AppError(404, 'NOT_FOUND', 'Diese Aufgabe ist nicht verfügbar.');
+  const grade = await gradeForStudent(db, studentId, ex.rowId);
+  if (!grade) throw new AppError(404, 'NOT_FOUND', 'Diese Aufgabe ist noch nicht beurteilt.');
+  return c.json(grade satisfies StudentGradeResponse);
 });
 
 function matchesEtag(header: string | undefined, version: string): boolean {
