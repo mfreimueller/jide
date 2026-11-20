@@ -21,6 +21,7 @@ const api: JideApi = {
   scratchPickAssignment: (id, path) => ipcRenderer.invoke("jide:scratch-pick-assignment", id, path),
   scratchChooseAssignment: (id) => ipcRenderer.invoke("jide:scratch-choose-assignment", id),
   scratchImport: (kind) => ipcRenderer.invoke("jide:scratch-import", kind),
+  scratchCopyExercise: (id, mode) => ipcRenderer.invoke("jide:scratch-copy-exercise", id, mode),
   scratchImportPath: (kind, path) => ipcRenderer.invoke("jide:scratch-import-path", kind, path),
   getSession: () => ipcRenderer.invoke("jide:session"),
   startExam: (name) => ipcRenderer.invoke("jide:exam-start", name),

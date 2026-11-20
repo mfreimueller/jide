@@ -292,36 +292,71 @@ export class ScratchStore {
         return { ok: false, message: code === "ENOENT" ? "Die Datei wurde nicht gefunden." : "Die Datei konnte nicht gelesen werden." };
       }
 
-      const id = `${SCRATCH_PREFIX}${randomBytes(6).toString("hex")}`;
-      const dir = this.dir(id);
+      return this.install(ex, testsYaml, {});
+    });
+  }
+
+  /** Writes `ex` (plus tests.yaml) as a new Scratch item. `overrides` replaces the starter content of editable files. Call inside `serial`. */
+  private async install(
+    ex: Exercise,
+    testsYaml: string | undefined,
+    overrides: Record<string, string>
+  ): Promise<ScratchResult<{ id: string }>> {
+    const id = `${SCRATCH_PREFIX}${randomBytes(6).toString("hex")}`;
+    const dir = this.dir(id);
+    try {
+      // Written from the validated exercise, so only what exercise.yaml lists is copied.
+      const put = async (rel: string, content: string): Promise<void> => {
+        await mkdir(dirname(join(dir, rel)), { recursive: true });
+        await writeFile(join(dir, rel), content, "utf8");
+      };
+      for (const [path, content] of Object.entries({ ...ex.originals, ...overrides })) await put(join("files", path), content);
+      for (const [path, content] of Object.entries(ex.imageContents)) await put(join("files", path), content);
+      if (ex.harness && ex.harnessContent !== undefined) await put(ex.harness.file, ex.harnessContent);
+      await put("aufgabe.md", ex.assignment);
+      if (testsYaml !== undefined) await put("tests.yaml", testsYaml);
+      const config: Record<string, unknown> = {
+        id,
+        title: ex.title,
+        files: ex.files.map((f) => ({ path: f.path, editable: f.editable })),
+        mainFile: ex.mainFile
+      };
+      if (ex.harness) config["harness"] = ex.harness;
+      if (ex.images.length > 0) config["images"] = ex.images;
+      if (ex.difficulty) config["difficulty"] = ex.difficulty;
+      await mkdir(dir, { recursive: true });
+      await this.writeConfig(id, config);
+      await loadExercise(dir); // what was written must load again
+      const info: ImportedInfo = { files: ex.files.map((f) => f.path), tests: ex.tests?.length ?? 0 };
+      await writeFile(join(dir, IMPORTED_FILE), JSON.stringify(info), "utf8");
+      return { ok: true, id };
+    } catch (e) {
+      await rm(dir, { recursive: true, force: true });
+      return this.fail(e);
+    }
+  }
+
+  /**
+   * Copies a server exercise into Scratch like an import. `fresh` uses the package's starter files, `mine` the
+   * student's working copy of the editable files (starter file where there is none yet). Reads only; the
+   * workspace of the original is not touched.
+   */
+  copyExercise(ex: Exercise | undefined, mode: unknown, workspaceRoot: string): Promise<ScratchResult<{ id: string }>> {
+    return this.serial(async () => {
+      if (!ex) return { ok: false, message: "Diese Aufgabe gibt es nicht." };
+      if (mode !== "fresh" && mode !== "mine") return { ok: false, message: "Ungültige Anfrage." };
       try {
-        // Written from the validated exercise, so only what exercise.yaml lists is copied.
-        const put = async (rel: string, content: string): Promise<void> => {
-          await mkdir(dirname(join(dir, rel)), { recursive: true });
-          await writeFile(join(dir, rel), content, "utf8");
-        };
-        for (const [path, content] of Object.entries(ex.originals)) await put(join("files", path), content);
-        for (const [path, content] of Object.entries(ex.imageContents)) await put(join("files", path), content);
-        if (ex.harness && ex.harnessContent !== undefined) await put(ex.harness.file, ex.harnessContent);
-        await put("aufgabe.md", ex.assignment);
-        if (testsYaml !== undefined) await put("tests.yaml", testsYaml);
-        const config: Record<string, unknown> = {
-          id,
-          title: ex.title,
-          files: ex.files.map((f) => ({ path: f.path, editable: f.editable })),
-          mainFile: ex.mainFile
-        };
-        if (ex.harness) config["harness"] = ex.harness;
-        if (ex.images.length > 0) config["images"] = ex.images;
-        if (ex.difficulty) config["difficulty"] = ex.difficulty;
-        await mkdir(dir, { recursive: true });
-        await this.writeConfig(id, config);
-        await loadExercise(dir); // what was written must load again
-        const info: ImportedInfo = { files: ex.files.map((f) => f.path), tests: ex.tests?.length ?? 0 };
-        await writeFile(join(dir, IMPORTED_FILE), JSON.stringify(info), "utf8");
-        return { ok: true, id };
+        const testsYaml = await readFile(join(ex.dir, "tests.yaml"), "utf8").catch(() => undefined);
+        const content: Record<string, string> = {};
+        if (mode === "mine") {
+          for (const f of ex.files) {
+            if (!f.editable) continue;
+            const mine = await readFile(join(workspaceRoot, ex.id, f.path), "utf8").catch(() => undefined);
+            if (mine !== undefined) content[f.path] = mine;
+          }
+        }
+        return await this.install(ex, testsYaml, content);
       } catch (e) {
-        await rm(dir, { recursive: true, force: true });
         return this.fail(e);
       }
     });

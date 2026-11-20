@@ -218,6 +218,11 @@ export interface JideApi {
   scratchChooseAssignment: (id: string) => Promise<ScratchResult<{ canceled?: boolean }>>;
   /** Imports a teacher-format exercise into Scratch: shows the dialog (a folder or a .zip). Refused in exam mode. */
   scratchImport: (kind: "folder" | "zip") => Promise<ScratchResult<{ id?: string; canceled?: boolean }>>;
+  /**
+   * "In Scratch kopieren": copies a server exercise (package + `mode` "fresh" = starter code, "mine" = the student's
+   * current code) into a new Scratch item, like an import. `id` is the new item. Refused in exam mode.
+   */
+  scratchCopyExercise: (id: string, mode: "fresh" | "mine") => Promise<ScratchResult<{ id: string }>>;
   /** Same with a known path (tests). */
   scratchImportPath: (kind: "folder" | "zip", path: string) => Promise<ScratchResult<{ id: string }>>;
   /** Local mode or online mode (with or without a stored code). */

@@ -1,11 +1,11 @@
 import { BrowserWindow, dialog, ipcMain } from "electron";
 import { context } from "./context";
-import { workspaceRoot } from "./exercises";
+import { findExercise, workspaceRoot } from "./exercises";
 import { scratchHandlers } from "./scratch-handlers";
 
 /** Scratch operations for the renderer. Not available in exam mode (the context has no Scratch there). */
 export function registerScratchIpc(): void {
-  const h = scratchHandlers(() => context().scratch, workspaceRoot);
+  const h = scratchHandlers(() => context().scratch, workspaceRoot, findExercise);
   ipcMain.handle("jide:scratch-create", (_e, title: unknown) => h.create(title));
   ipcMain.handle("jide:scratch-rename", (_e, id: unknown, title: unknown) => h.rename(id, title));
   ipcMain.handle("jide:scratch-delete", (_e, id: unknown) => h.delete(id));
@@ -35,5 +35,6 @@ export function registerScratchIpc(): void {
     })
   );
   ipcMain.handle("jide:scratch-import-path", (_e, kind: unknown, path: unknown) => h.importPath(kind, path));
+  ipcMain.handle("jide:scratch-copy-exercise", (_e, id: unknown, mode: unknown) => h.copyExercise(id, mode));
   ipcMain.handle("jide:scratch-pick-assignment", (_e, id: unknown, path: unknown) => h.pickAssignment(id, path));
 }

@@ -6,7 +6,7 @@ import { strToU8, zipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CompositeSource, scratchEntry } from "./composite-source";
 import { classNameProblem, isScratchId, ScratchStore } from "./scratch";
-import { SCRATCH_NOT_ALLOWED_MESSAGE, scratchHandlers } from "./scratch-handlers";
+import { COPY_UNAVAILABLE_MESSAGE, SCRATCH_NOT_ALLOWED_MESSAGE, scratchHandlers } from "./scratch-handlers";
 import type { ExerciseSource } from "./source";
 
 let tmp: string;
@@ -471,5 +471,84 @@ describe("import", () => {
     expect(await h.importExercise("zip", async () => undefined)).toEqual({ ok: true, canceled: true });
     const r = await h.importExercise("folder", async () => folder());
     expect(r.ok && r.id !== undefined && isScratchId(r.id)).toBe(true);
+  });
+
+  describe("copyExercise (In Scratch kopieren)", () => {
+    async function original(): Promise<Exercise> {
+      return loadExercise(await folder());
+    }
+
+    it("neu beginnen: starter files, tests, image, difficulty, title; imported.json locks the classes", async () => {
+      const ex = await original();
+      // the student worked on the original; "fresh" ignores that
+      await mkdir(join(ws, "summe"), { recursive: true });
+      await writeFile(join(ws, "summe", "Summe.java"), "class Summe { /* mein Code */ }", "utf8");
+      const r = await store.copyExercise(ex, "fresh", ws);
+      if (!r.ok) throw new Error(r.message);
+      expect(isScratchId(r.id)).toBe(true);
+      const copy = (await store.find(r.id))!;
+      expect(copy.title).toBe("Summe");
+      expect(copy.difficulty).toBe("advanced");
+      expect(copy.tests).toHaveLength(2);
+      expect(copy.imageContents["bild.svg"]).toBe(SVG);
+      expect(copy.assignment).toBe("# Summe\n");
+      expect(copy.originals["Summe.java"]).toBe("class Summe {}");
+      expect(copy.originals["Hilfe.java"]).toBe("class Hilfe {}");
+      expect(await store.importedInfo(r.id)).toEqual({ files: ["Summe.java", "Hilfe.java"], tests: 2 });
+      const refused = await store.deleteClass(r.id, "Hilfe.java", ws);
+      expect(refused.ok).toBe(false);
+    });
+
+    it("mit meinem Code: the working copy of the editable files; the original workspace is untouched", async () => {
+      const ex = await original();
+      await mkdir(join(ws, "summe"), { recursive: true });
+      await writeFile(join(ws, "summe", "Summe.java"), "class Summe { /* mein Code */ }", "utf8");
+      const r = await store.copyExercise(ex, "mine", ws);
+      if (!r.ok) throw new Error(r.message);
+      const copy = (await store.find(r.id))!;
+      expect(copy.originals["Summe.java"]).toBe("class Summe { /* mein Code */ }");
+      expect(copy.originals["Hilfe.java"]).toBe("class Hilfe {}"); // not editable: from the package
+      expect(copy.tests).toHaveLength(2);
+      expect(await readFile(join(ws, "summe", "Summe.java"), "utf8")).toBe("class Summe { /* mein Code */ }");
+      expect(await exists(join(ws, r.id))).toBe(false); // not opened
+    });
+
+    it("mit meinem Code without a local copy uses the starter files and creates no workspace", async () => {
+      const ex = await original();
+      const r = await store.copyExercise(ex, "mine", ws);
+      if (!r.ok) throw new Error(r.message);
+      expect((await store.find(r.id))!.originals["Summe.java"]).toBe("class Summe {}");
+      expect(await exists(join(ws, "summe"))).toBe(false);
+    });
+
+    it("copies twice into two items, an exercise without tests gets zero tests", async () => {
+      const { "tests.yaml": _t, ...rest } = PACKAGE;
+      const ex = await loadExercise(await folder(rest, "ohne"));
+      const a = await store.copyExercise(ex, "fresh", ws);
+      const b = await store.copyExercise(ex, "fresh", ws);
+      expect(a.ok && b.ok && a.id !== b.id).toBe(true);
+      if (a.ok) expect(await store.importedInfo(a.id)).toMatchObject({ tests: 0 });
+      expect((await store.list()).exercises).toHaveLength(2);
+    });
+
+    it("refuses an unknown exercise and a bad mode, leaving nothing behind", async () => {
+      const ex = await original();
+      expect((await store.copyExercise(undefined, "fresh", ws)).ok).toBe(false);
+      expect((await store.copyExercise(ex, "x", ws)).ok).toBe(false);
+      expect((await store.list()).exercises).toEqual([]);
+    });
+
+    it("the handler: refused in exam mode, unavailable package, Scratch ids, success", async () => {
+      const ex = await original();
+      const find = async (id: unknown) => (id === "summe" ? ex : undefined);
+      const off = scratchHandlers(() => undefined, () => ws, find);
+      expect(await off.copyExercise("summe", "fresh")).toEqual({ ok: false, message: SCRATCH_NOT_ALLOWED_MESSAGE });
+      const h = scratchHandlers(() => store, () => ws, find);
+      expect(await h.copyExercise("andere", "fresh")).toEqual({ ok: false, message: COPY_UNAVAILABLE_MESSAGE });
+      const own = await make();
+      expect(await h.copyExercise(own, "fresh")).toEqual({ ok: false, message: COPY_UNAVAILABLE_MESSAGE });
+      const r = await h.copyExercise("summe", "mine");
+      expect(r.ok && isScratchId(r.id)).toBe(true);
+    });
   });
 });
