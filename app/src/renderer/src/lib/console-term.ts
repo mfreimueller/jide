@@ -1,5 +1,6 @@
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
+import type { ConsoleOp } from "../../../shared-types/panel-messages";
 import { isDarkScheme, onColorSchemeChange } from "./color-scheme";
 import { RESET, processInput } from "./console-input";
 import { findStackLinks, type KnownFile } from "./stacktrace";
@@ -22,6 +23,8 @@ export class ConsoleTerm {
   private opened = false;
   private readonly stopSchemeWatch: () => void;
   private onLine: (line: string) => void = () => undefined;
+  /** Called for every change of the console (not for `applyOp`), so a detached Konsole window can mirror it. */
+  onOp: ((op: ConsoleOp) => void) | undefined;
 
   constructor(
     knownFiles: () => KnownFile[],
@@ -90,31 +93,65 @@ export class ConsoleTerm {
 
   /** Typing only works while a program runs; the cursor is shown only then. */
   setRunning(running: boolean): void {
-    this.inputEnabled = running;
-    this.buffer = "";
-    this.term.write(running ? "\x1b[?25h" : "\x1b[?25l");
+    this.do({ op: "running", running });
   }
 
   writeSystem(text: string): void {
-    this.line(SYSTEM_COLOR + text + RESET);
+    this.do({ op: "system", text });
   }
 
   writeError(text: string): void {
-    this.line(ERROR_COLOR + text + RESET);
+    this.do({ op: "error", text });
   }
 
   /** Program output; stderr in red. */
   writeOutput(stream: "stdout" | "stderr", text: string): void {
     if (text === "") return;
-    this.term.write(stream === "stderr" ? ERROR_COLOR + text + RESET : text);
-    this.atLineStart = text.endsWith("\n");
+    this.do({ op: "output", stream, text });
   }
 
   clear(): void {
-    this.term.reset();
-    this.atLineStart = true;
-    this.buffer = "";
-    this.term.write(this.inputEnabled ? "\x1b[?25h" : "\x1b[?25l");
+    this.do({ op: "clear" });
+  }
+
+  /** Applies a change that happened in another window's copy of this console (no `onOp` call). */
+  applyOp(op: ConsoleOp): void {
+    this.apply(op);
+  }
+
+  private do(op: ConsoleOp): void {
+    this.apply(op);
+    this.onOp?.(op);
+  }
+
+  private apply(op: ConsoleOp): void {
+    switch (op.op) {
+      case "running":
+        this.inputEnabled = op.running;
+        this.buffer = "";
+        this.term.write(op.running ? "\x1b[?25h" : "\x1b[?25l");
+        break;
+      case "system":
+        this.line(SYSTEM_COLOR + op.text + RESET);
+        break;
+      case "error":
+        this.line(ERROR_COLOR + op.text + RESET);
+        break;
+      case "output":
+        this.term.write(op.stream === "stderr" ? ERROR_COLOR + op.text + RESET : op.text);
+        this.atLineStart = op.text.endsWith("\n");
+        break;
+      case "echo":
+        this.term.write(op.text);
+        this.atLineStart = op.text.endsWith("\n");
+        break;
+      case "clear":
+        this.term.reset();
+        this.atLineStart = true;
+        this.buffer = "";
+        this.term.write(this.inputEnabled ? "\x1b[?25h" : "\x1b[?25l");
+        break;
+    }
   }
 
   dispose(): void {
@@ -132,10 +169,7 @@ export class ConsoleTerm {
     if (!this.inputEnabled) return;
     const r = processInput(this.buffer, data);
     this.buffer = r.buffer;
-    if (r.echo) {
-      this.term.write(r.echo);
-      this.atLineStart = r.echo.endsWith("\n");
-    }
+    if (r.echo) this.do({ op: "echo", text: r.echo });
     for (const line of r.lines) this.onLine(line);
   }
 }

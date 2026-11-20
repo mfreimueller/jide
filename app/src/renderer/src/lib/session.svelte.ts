@@ -35,7 +35,24 @@ export class EditorSession {
   private zones: CommentZones | undefined;
   private disposed = false;
 
-  constructor(private readonly exercise: OpenedExercise) {
+  /**
+   * True while the Code panel is in its own window: this session then has no editor, the window has the
+   * only live one. Tabs still follow clicks in the file list; edits arrive through `applyRemoteEdit`.
+   */
+  remote = false;
+  /** `remote`: a position to show (the Code window reveals it). */
+  onReveal: ((path: string, line: number, column: number) => void) | undefined;
+  /** Mirror (the editor of the Code window): every edit goes to the owner, which saves and compiles. */
+  onMirrorEdit: ((path: string, content: string) => void) | undefined;
+
+  /**
+   * `mirror`: this is the editor in the Code window. It holds the live text of the files, but the
+   * session of the main window saves them (autosave, compile and run happen there).
+   */
+  constructor(
+    private readonly exercise: OpenedExercise,
+    private readonly mirror = false
+  ) {
     this.files = exercise.files;
     this.images = exercise.images;
     for (const f of this.files) this.createModel(f);
@@ -46,7 +63,7 @@ export class EditorSession {
     const model = monaco.editor.createModel(f.content, "java", uri);
     this.models.set(f.path, model);
     if (f.editable && !this.exercise.graded) {
-      model.onDidChangeContent(() => this.onEdit(f.path));
+      model.onDidChangeContent(() => (this.mirror ? this.onMirrorEdit?.(f.path, model.getValue()) : this.onEdit(f.path)));
     }
   }
 
@@ -80,7 +97,30 @@ export class EditorSession {
   attach(editor: Editor): void {
     this.editor = editor;
     if (this.exercise.graded) this.zones = new CommentZones(editor);
-    this.openFile(this.exercise.mainFile);
+    this.openFile(this.active || this.exercise.mainFile);
+  }
+
+  /** The editor component goes away (Code panel detached): the models and the tabs stay. */
+  detachEditor(editor: Editor): void {
+    if (this.editor !== editor) return;
+    if (this.active && !this.isImage(this.active)) this.viewStates.set(this.active, editor.saveViewState());
+    this.zones = undefined;
+    this.editor = undefined;
+  }
+
+  /** An edit made in the Code window: the model takes the new text and the normal autosave / compile follows. */
+  applyRemoteEdit(path: string, content: string): void {
+    const model = this.models.get(path);
+    if (!model || !this.isEditable(path) || model.getValue() === content) return;
+    model.setValue(content);
+  }
+
+  /** Mirror: the owner's tabs and active file. */
+  applyTabs(tabs: string[], active: string): void {
+    this.openTabs = [...tabs];
+    if (!active || active === this.active) return;
+    if (this.editor || this.isImage(active)) this.openFile(active);
+    else this.active = active;
   }
 
   isEditable(path: string): boolean {
@@ -120,6 +160,11 @@ export class EditorSession {
   openFile(path: string): void {
     if (this.isImage(path)) return this.openImage(path);
     const model = this.models.get(path);
+    if (this.remote && model) {
+      if (!this.openTabs.includes(path)) this.openTabs.push(path);
+      this.active = path;
+      return;
+    }
     if (!model || !this.editor) return;
     if (this.active !== path) this.leaveJava();
     const fromImage = this.isImage(this.active);
@@ -146,6 +191,11 @@ export class EditorSession {
   /** Opens the file and puts the cursor at the given position (Probleme list, exception links). */
   openAt(path: string, line: number, column = 1): void {
     const model = this.models.get(path);
+    if (this.remote && model) {
+      this.openFile(path);
+      this.onReveal?.(path, line, column);
+      return;
+    }
     if (!model || !this.editor) return;
     this.openFile(path);
     const pos = model.validatePosition({ lineNumber: line, column });
@@ -207,6 +257,7 @@ export class EditorSession {
 
   /** Saves the given file (or all dirty files) now. Resolves once the writes have finished. */
   flush(path?: string): Promise<void> {
+    if (this.mirror) return Promise.resolve();
     const paths = path ? [path] : [...this.dirty];
     for (const p of paths) {
       clearTimeout(this.timers.get(p));

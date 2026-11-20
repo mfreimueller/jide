@@ -34,6 +34,7 @@
     });
     return () => {
       cancelled = true;
+      if (editor) session.detachEditor(editor);
       editor?.dispose();
     };
   });

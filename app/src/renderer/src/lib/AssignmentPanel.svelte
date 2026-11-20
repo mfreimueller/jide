@@ -1,6 +1,7 @@
 <script lang="ts">
   import { stripLeadingHeading } from "./exam-ui";
   import { renderMarkdown } from "./markdown";
+  import { BACK_LABEL, detachTip } from "../../../shared-types/panel-windows";
   import PanelButton from "./PanelButton.svelte";
   import PanelStrip from "./PanelStrip.svelte";
 
@@ -16,7 +17,10 @@
     collapsed = false,
     width = 330,
     ontoggle,
-    onpick
+    onpick,
+    ondetach,
+    windowed = false,
+    onback
   }: {
     markdown: string;
     deadline?: string | null;
@@ -32,6 +36,11 @@
     ontoggle: () => void;
     /** Scratch: opens the file dialog for an Angabe (.md). Present = empty state with "Angabe wählen …" / "Ändern …". */
     onpick?: () => void;
+    /** M10: the ⧉ button; absent = no button (exam mode). */
+    ondetach?: () => void;
+    /** M10: shown in its own window: fills the window, no collapsing, "Zurück ins Hauptfenster" instead. */
+    windowed?: boolean;
+    onback?: () => void;
   } = $props();
   const empty = $derived(onpick !== undefined && markdown.trim() === "");
   const html = $derived(renderMarkdown(heading ? stripLeadingHeading(markdown, title) : markdown));
@@ -42,17 +51,24 @@
   }
 </script>
 
-{#if collapsed}
+{#if collapsed && !windowed}
   <PanelStrip side="right" label="Angabe" tip="Angabe aufklappen (Alt+2)" onclick={ontoggle} testid="assign" />
 {/if}
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-<aside class="assign" class:collapsed style:width="{width}px" data-testid="assignment" onclick={blockLinks}>
+<aside class="assign" class:collapsed={collapsed && !windowed} class:windowed style:width={windowed ? undefined : `${width}px`} data-testid="assignment" onclick={blockLinks}>
   <div class="head">
     <span class="pane-title">Angabe</span>
     {#if onpick && !empty}
       <button class="change" onclick={onpick} data-testid="assign-change">Ändern …</button>
     {/if}
-    <PanelButton icon="right" tip="Angabe einklappen (Alt+2)" place="below-right" onclick={ontoggle} testid="assign-collapse" />
+    {#if windowed}
+      <button class="btn back" onclick={onback} data-testid="panel-back">{BACK_LABEL}</button>
+    {:else}
+      {#if ondetach}
+        <PanelButton icon="external" tip={detachTip("assign")} place="below-right" onclick={ondetach} testid="detach-assign" />
+      {/if}
+      <PanelButton icon="right" tip="Angabe einklappen (Alt+2)" place="below-right" onclick={ontoggle} testid="assign-collapse" />
+    {/if}
   </div>
   <div class="body">
   {#if deadline}
@@ -90,6 +106,16 @@
   /* collapsed: stays mounted (and in the DOM for the tests' sake) but takes no room */
   .assign.collapsed {
     display: none;
+  }
+  .assign.windowed {
+    flex: 1;
+    min-height: 0;
+    border-left: none;
+  }
+  .back {
+    height: 26px;
+    font-size: 12px;
+    white-space: nowrap;
   }
   .head {
     flex: none;

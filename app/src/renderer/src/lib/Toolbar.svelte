@@ -2,18 +2,30 @@
   Action buttons on the right side of the workspace top bar:
   Ausführen / Stopp (T6), Testen (M3, only with tests), Abgeben (online mode).
 -->
+<script lang="ts" module>
+  /** What the buttons need: the controllers in the main window, a thin proxy in the Code window. */
+  export interface RunLike {
+    state: "idle" | "starting" | "running";
+    start: () => void | Promise<void>;
+    stop: () => void;
+  }
+  export interface TestsLike {
+    state: "idle" | "running";
+    start: () => void | Promise<void>;
+  }
+</script>
+
 <script lang="ts">
-  import type { RunController } from "./run.svelte";
-  import { MSG_TEST_BLOCKED, type TestController } from "./test.svelte";
+  import { MSG_TEST_BLOCKED } from "./test.svelte";
 
   let {
     run,
     tests,
     handIn
   }: {
-    run: RunController;
+    run: RunLike;
     /** Only for exercises that have tests. */
-    tests?: TestController;
+    tests?: TestsLike;
     /** Online mode only. */
     handIn?: { label: string; busy: boolean; onClick: () => void };
   } = $props();

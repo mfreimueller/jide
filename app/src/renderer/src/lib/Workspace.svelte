@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount, type Snippet } from "svelte";
+  import type { BottomTab } from "../../../shared-types/panel-windows";
+  import { bottomPanelVisible, PANEL_LABEL, chips, panelOfTab, remainingBottomTabs, type DetachablePanel } from "../../../shared-types/panel-windows";
   import type { OpenedExercise, ReportEnv } from "../../../shared-types/api";
   import { formatDate, formatDateTime, formatTime } from "../../../shared-types/datetime";
   import { commentCounts, feedbackDate } from "../../../shared-types/grade";
@@ -7,7 +9,7 @@
   import GradeChip from "./GradeChip.svelte";
   import { handInToast } from "./exam-ui";
   import AssignmentPanel from "./AssignmentPanel.svelte";
-  import BottomPanel, { type BottomTab } from "./BottomPanel.svelte";
+  import BottomPanel from "./BottomPanel.svelte";
   import CodeEditor from "./CodeEditor.svelte";
   import ImageViewer from "./ImageViewer.svelte";
   import { layout, openBottom, SHORTCUT_PANEL, togglePanel } from "./layout.svelte";
@@ -21,6 +23,8 @@
     STRIP_WIDTH
   } from "./panel-layout";
   import PanelButton from "./PanelButton.svelte";
+  import { PanelHub } from "./panel-hub.svelte";
+  import { followDetachedPanels, isDetached, nextPanelEntry, panels } from "./panels.svelte";
   import PanelStrip from "./PanelStrip.svelte";
   import ResizeHandle from "./ResizeHandle.svelte";
   import { LiveCompiler } from "./problems.svelte";
@@ -44,7 +48,8 @@
     leading,
     assignmentHeading,
     allowTests = true,
-    handInTarget
+    handInTarget,
+    detachable = false
   }: {
     exercise: OpenedExercise;
     /** Online mode: show "Abgeben". */
@@ -59,6 +64,8 @@
     allowTests?: boolean;
     /** Exam mode: the hand-in drive ("P:\"), named in the success toast. */
     handInTarget?: string;
+    /** M10: panels can get their own window (⧉ buttons, chips). Never in exam mode. */
+    detachable?: boolean;
   } = $props();
 
   // The exercise never changes for the lifetime of this component (App re-mounts it).
@@ -180,6 +187,49 @@
     } catch {
       showToast("error", "Das hat leider nicht geklappt.");
     }
+  }
+
+  // Panels in their own windows (M10): this window keeps all state, the panel windows are views of it.
+  // svelte-ignore state_referenced_locally
+  const canDetach = detachable;
+  const entryId = nextPanelEntry();
+  let hub: PanelHub | undefined;
+  if (canDetach) {
+    panels.detached = [];
+    // svelte-ignore state_referenced_locally
+    window.jide.panels.enter(exercise.title, entryId);
+    hub = new PanelHub({
+      // svelte-ignore state_referenced_locally
+      exercise,
+      session,
+      problems,
+      run,
+      tests,
+      assignment: () => ({ markdown: assignmentMd, deadline: exercise.deadline, submittedAt, late }),
+      canPickAssignment: scratch,
+      pickAssignment: () => void pickAssignment()
+    });
+  }
+  onMount(() => (canDetach ? followDetachedPanels() : undefined));
+  onDestroy(() => {
+    if (!canDetach) return;
+    hub?.dispose();
+    window.jide.panels.leave(entryId);
+    panels.detached = [];
+  });
+
+  function detachPanel(panel: DetachablePanel): void {
+    void window.jide.panels.detach(panel);
+  }
+  const bottomTabs = $derived(remainingBottomTabs(panels.detached, tests !== undefined));
+  const codeDetached = $derived(isDetached("code"));
+  const bottomShown = $derived(!graded && bottomPanelVisible(panels.detached, tests !== undefined));
+  const panelChips = $derived(chips(panels.detached));
+
+  /** A click in the file list: the file opens where the editor is (and that window comes to the front). */
+  function openFromList(path: string): void {
+    session.openFile(path);
+    if (codeDetached) window.jide.panels.focus("code");
   }
 
   /** Flushes pending edits; asks first if the tests do not vouch for the code (SPEC 3.5), then uploads. */
@@ -369,6 +419,14 @@
     {#if submittedAt && !graded}
       <span class="chip" class:done={!late} class:late-hand={late} data-testid="handed-in">{handInChip(submittedAt)}</span>
     {/if}
+    {#each panelChips as c (c.panel)}
+      <button class="panel-chip" data-tip={c.tip} aria-label={c.text} onclick={() => window.jide.panels.focus(c.panel)} data-testid="panel-chip-{c.panel}">
+        {PANEL_LABEL[c.panel]}
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M13 9.5V12a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 12V5a1.5 1.5 0 0 1 1.5-1.5H7M13.5 2.5 8 8M10 2.5h3.5V6" />
+        </svg>
+      </button>
+    {/each}
     <span class="spacer"></span>
     {#if graded}
       <button class="btn" onclick={() => (copying = true)} data-testid="copy-to-scratch">In Scratch kopieren …</button>
@@ -399,7 +457,7 @@
         <button
           class="file"
           class:active={session.active === f.path}
-          onclick={() => session.openFile(f.path)}
+          onclick={() => openFromList(f.path)}
         >
           <span class="java" class:ro={!f.editable}>J</span>{f.path}
           {#if !f.editable}<span class="lock">nur lesen</span>{/if}
@@ -425,7 +483,7 @@
         <button
           class="file"
           class:active={session.active === img.path}
-          onclick={() => session.openFile(img.path)}
+          onclick={() => openFromList(img.path)}
           data-testid="image-file"
         >
           <span class="java img">
@@ -442,10 +500,15 @@
       <ResizeHandle dir="col" begin={() => (dragStart = layout.filesWidth)} apply={dragFiles} testid="files-handle" />
     {/if}
     <div class="center-col" bind:clientHeight={centerHeight}>
+      {#if !codeDetached}
       <div class="tabs" data-testid="tabs">
         {#each session.openTabs as p (p)}
           <button class="tab" class:active={session.active === p} onclick={() => session.openFile(p)}>{session.label(p)}</button>
         {/each}
+        <span class="spacer"></span>
+        {#if canDetach && !graded}
+          <span class="tab-action"><PanelButton icon="external" tip="Code in eigenem Fenster öffnen" place="below-right" onclick={() => detachPanel("code")} testid="detach-code" /></span>
+        {/if}
       </div>
       {#if graded && graded.comment.trim() !== ""}
         <div class="feedback" data-testid="feedback">
@@ -462,27 +525,31 @@
           <ImageViewer path={img.path} svg={img.svg} />
         {/each}
       {/if}
+      {/if}
       {#if !graded}
-        {#if !layout.bottomCollapsed}
+        {#if !layout.bottomCollapsed && !codeDetached && bottomShown}
           <ResizeHandle dir="row" begin={() => (dragStart = layout.bottomHeight)} apply={dragBottom} testid="bottom-handle" />
         {/if}
         <BottomPanel
           bind:tab={bottomTab}
+          visibleTabs={bottomTabs}
           {problems}
           {session}
           {run}
           {tests}
           collapsed={layout.bottomCollapsed}
+          fill={codeDetached}
           height={layout.bottomHeight}
           ontoggle={() => togglePanel("bottom")}
           onopen={openBottom}
+          ondetach={canDetach ? (t) => detachPanel(panelOfTab(t)) : undefined}
         />
       {/if}
       {#if toast}
         <div
           class="toast"
           class:error={toast.kind === "error"}
-          style:bottom="{graded ? 20 : (layout.bottomCollapsed ? BOTTOM_BAR_HEIGHT : layout.bottomHeight) + 20}px"
+          style:bottom="{graded || !bottomShown || codeDetached ? 20 : (layout.bottomCollapsed ? BOTTOM_BAR_HEIGHT : layout.bottomHeight) + 20}px"
           role="status"
           data-testid="toast"
         >
@@ -490,9 +557,10 @@
         </div>
       {/if}
     </div>
-    {#if !layout.assignCollapsed}
+    {#if !layout.assignCollapsed && !isDetached("assign")}
       <ResizeHandle dir="col" begin={() => (dragStart = layout.assignWidth)} apply={dragAssign} testid="assign-handle" />
     {/if}
+    {#if !isDetached("assign")}
     <AssignmentPanel
       markdown={assignmentMd}
       onpick={scratch ? () => void pickAssignment() : undefined}
@@ -504,7 +572,9 @@
       collapsed={layout.assignCollapsed}
       width={layout.assignWidth}
       ontoggle={() => togglePanel("assign")}
+      ondetach={canDetach ? () => detachPanel("assign") : undefined}
     />
+    {/if}
   </div>
 </div>
 
@@ -740,6 +810,45 @@
     border-radius: 6px 6px 0 0;
     color: var(--text-muted);
     cursor: pointer;
+  }
+  .tab-action {
+    align-self: center;
+    display: flex;
+    padding-right: 2px;
+  }
+  .panel-chip {
+    position: relative;
+    flex: none;
+    font: inherit;
+    font-size: 12px;
+    line-height: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    background: var(--bg-subtle);
+    color: var(--text-2);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .panel-chip:hover {
+    background: var(--bg-selected);
+  }
+  .panel-chip:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30;
+    background: var(--bg-dark);
+    color: #fff;
+    font-size: 12px;
+    line-height: 16px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    pointer-events: none;
   }
   .tab.active {
     background: var(--bg-panel);

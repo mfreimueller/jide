@@ -1,64 +1,63 @@
-<script lang="ts" module>
-  export const BOTTOM_TABS = ["Konsole", "Probleme", "Tests"] as const;
-  export type BottomTab = (typeof BOTTOM_TABS)[number];
-</script>
-
 <script lang="ts">
+  import type { Diagnostic } from "../../../shared-types/api";
+  import { BOTTOM_TABS, detachTip, panelOfTab, type BottomTab } from "../../../shared-types/panel-windows";
   import Console from "./Console.svelte";
   import PanelButton from "./PanelButton.svelte";
-  import TestDiff from "./TestDiff.svelte";
-  import { failSummary, firstDiffIndex, hasLineDiff, MSG_NOTE_CONTAINS } from "./diff-view";
-  import { locationLabel } from "./diagnostics";
+  import ProblemsBody from "./ProblemsBody.svelte";
+  import TestsBody from "./TestsBody.svelte";
   import type { LiveCompiler } from "./problems.svelte";
   import type { RunController } from "./run.svelte";
   import type { EditorSession } from "./session.svelte";
   import type { TestController } from "./test.svelte";
-  import { allPassed, countLabel, MSG_TESTS_FAILED, MSG_TESTS_OK } from "./test-state";
+  import { allPassed } from "./test-state";
   import { formatTime } from "../../../shared-types/datetime";
 
   // Konsole (T6), Probleme (T5), Tests (T19, only for exercises with tests).
   let {
     tab = $bindable("Konsole"),
+    visibleTabs = [...BOTTOM_TABS],
     problems,
     session,
     run,
     tests,
     collapsed = false,
+    fill = false,
     height = 230,
     ontoggle,
-    onopen
+    onopen,
+    ondetach
   }: {
+    /** The tab the student chose; if it is in its own window, the first visible one is shown. */
     tab?: BottomTab;
+    /** M10: the tabs that are not in their own window; none = the whole panel is hidden. */
+    visibleTabs?: BottomTab[];
     problems: LiveCompiler;
     session: EditorSession;
     run: RunController;
     tests?: TestController;
     /** T29: only the tab bar stays / height of the open panel / button and Alt+3 / a tab was clicked. */
     collapsed?: boolean;
+    /** M10: the Code panel is in its own window, the bottom panel fills the middle. */
+    fill?: boolean;
     height?: number;
     ontoggle: () => void;
     onopen: () => void;
+    /** M10: the ⧉ button; absent = no button (exam mode). */
+    ondetach?: (tab: BottomTab) => void;
   } = $props();
 
   const errors = $derived(problems.errorCount);
-  const tabs = $derived(BOTTOM_TABS.filter((t) => t !== "Tests" || tests));
+  const tabs = $derived(visibleTabs.filter((t) => t !== "Tests" || tests));
+  const current = $derived<BottomTab>(tabs.includes(tab) ? tab : (tabs[0] ?? tab));
   const last = $derived(tests?.last);
   const ok = $derived(last ? allPassed(last.summary) : false);
   const failedCount = $derived(last ? last.summary.total - last.summary.passed : 0);
-
-  // T34: the first failed io test shows its line diff open; clicks override that per row, a new run resets it.
-  const firstDiff = $derived(last ? firstDiffIndex(last.results) : -1);
-  let diffOpen = $state<Record<number, boolean>>({});
-  $effect(() => {
-    last;
-    diffOpen = {};
-  });
 </script>
 
-<div class="bottom" class:collapsed style:height={collapsed ? undefined : `${height}px`}>
+<div class="bottom" class:collapsed class:fill class:gone={tabs.length === 0} style:height={collapsed || fill ? undefined : `${height}px`}>
   <div class="btabs">
     {#each tabs as t}
-      <button class="btab" class:active={tab === t} onclick={() => { tab = t; onopen(); }} data-testid="btab-{t}">
+      <button class="btab" class:active={current === t} onclick={() => { tab = t; onopen(); }} data-testid="btab-{t}">
         {t}
         {#if t === "Probleme" && errors > 0}<span class="badge" data-testid="problems-badge">{errors}</span>{/if}
         {#if t === "Tests" && last}
@@ -67,14 +66,17 @@
       </button>
     {/each}
     <span class="spacer"></span>
-    {#if tab === "Tests" && last && tests?.stale}
+    {#if current === "Tests" && last && tests?.stale}
       <span class="chip late-hand" data-testid="tests-stale">Code geändert – bitte neu testen</span>
     {/if}
-    {#if tab === "Tests" && last}
+    {#if current === "Tests" && last}
       <span class="small" data-testid="tests-time">zuletzt getestet {formatTime(last.at)}</span>
     {/if}
-    {#if tab === "Konsole" && !collapsed}
+    {#if current === "Konsole" && !collapsed}
       <button class="btn ghost clear" onclick={() => run.clear()} data-testid="clear-console">Leeren</button>
+    {/if}
+    {#if ondetach}
+      <PanelButton icon="external" tip={detachTip(panelOfTab(current))} place="above-right" onclick={() => ondetach(current)} testid="detach-bottom" />
     {/if}
     <PanelButton
       icon={collapsed ? "up" : "down"}
@@ -84,101 +86,23 @@
       testid="bottom-toggle"
     />
   </div>
-  <div class="body" class:hidden={collapsed} class:console={tab === "Konsole"} data-testid="bottom-{tab}">
-    <!-- always mounted so the output survives tab switches -->
-    {#if tab === "Konsole" && problems.systemError}
+  <div class="body" class:hidden={collapsed} class:console={current === "Konsole"} data-testid="bottom-{current}">
+    <!-- always mounted so the output survives tab switches (and a Konsole in its own window) -->
+    {#if current === "Konsole" && problems.systemError}
       <div class="system-error strip" role="alert" data-testid="system-error-console">{problems.systemError}</div>
     {/if}
-    <div class="console-slot" class:hidden={tab !== "Konsole"}>
-      <Console term={run.console} visible={tab === "Konsole" && !collapsed} />
+    <div class="console-slot" class:hidden={current !== "Konsole"}>
+      <Console term={run.console} visible={current === "Konsole" && !collapsed && tabs.length > 0} />
     </div>
-    {#if tab === "Tests" && tests}
-      <div class="tests" data-testid="tests">
-        {#if last}
-          <div class="banner" class:ok class:warn={!ok} data-testid="tests-banner">
-            <span>{ok ? "✓" : "!"}</span>{ok ? MSG_TESTS_OK : MSG_TESTS_FAILED}
-            <span class="spacer"></span>
-            <span class="count">{countLabel(last.summary)}</span>
-          </div>
-          {#each last.results as r, i}
-            {@const line = r.line}
-            {#if hasLineDiff(r)}
-              {@const open = diffOpen[i] ?? i === firstDiff}
-              <div class="trow diffrow" data-testid="test-row" data-status={r.status}>
-                <span class="fail">✗</span>
-                <div class="tbody">
-                  <button
-                    class="thead"
-                    aria-expanded={open}
-                    data-testid="test-head"
-                    onclick={() => (diffOpen = { ...diffOpen, [i]: !open })}
-                  >
-                    <span class="chev">{open ? "⌄" : "›"}</span>
-                    <span class="tname">{r.name}</span>
-                    <span class="tsum">{failSummary(r.input)}</span>
-                  </button>
-                  {#if open}
-                    <TestDiff actual={r.actual ?? ""} expected={r.expected ?? ""} match={r.match} />
-                  {/if}
-                </div>
-              </div>
-            {:else}
-            <!-- svelte-ignore a11y_no_static_element_interactions, a11y_no_noninteractive_tabindex -->
-            <div
-              class="trow"
-              class:link={line !== undefined}
-              data-testid="test-row"
-              data-status={r.status}
-              role={line !== undefined ? "button" : undefined}
-              tabindex={line !== undefined ? 0 : undefined}
-              onclick={() => line !== undefined && session.openAt(tests.mainFile, line)}
-              onkeydown={(e) => e.key === "Enter" && line !== undefined && session.openAt(tests.mainFile, line)}
-            >
-              <span class={r.status === "passed" ? "pass" : "fail"}>{r.status === "passed" ? "✓" : "✗"}</span>
-              <div class="tbody">
-                <div class="tname">
-                  {r.name}
-                </div>
-                {#if r.status === "failed" && (r.expected !== undefined || r.actual !== undefined)}
-                  <div class="tdetail" data-testid="test-detail">
-                    <div><span class="lbl">erwartet:</span> <span class="val">{r.expected ?? ""}</span></div>
-                    <div><span class="lbl">dein Ergebnis:</span> <span class="val">{r.actual ?? ""}</span></div>
-                  </div>
-                  {#if r.match === "contains"}
-                    <div class="tnote" data-testid="test-note">{MSG_NOTE_CONTAINS}</div>
-                  {/if}
-                {/if}
-                {#if r.message}<div class="tdetail msgline" data-testid="test-message">{r.message}</div>{/if}
-                {#if r.hint}<div class="tnote" data-testid="test-hint">{r.hint}</div>{/if}
-              </div>
-            </div>
-            {/if}
-          {/each}
-        {:else}
-          <p class="empty">Noch nicht getestet.</p>
-        {/if}
-      </div>
+    {#if current === "Tests" && tests}
+      <TestsBody {last} onopenat={(line) => session.openAt(tests.mainFile, line)} />
     {/if}
-    {#if tab === "Probleme"}
-      <div class="problems" data-testid="problems">
-        {#if problems.systemError}
-          <div class="system-error" role="alert" data-testid="system-error">{problems.systemError}</div>
-        {/if}
-        {#each problems.diagnostics as d}
-          <button
-            class="prob"
-            data-testid="problem"
-            disabled={d.file === null || d.line === null}
-            onclick={() => d.file !== null && d.line !== null && session.openAt(d.file, d.line, d.column ?? 1)}
-          >
-            <span class="icon {d.severity}">{d.severity === "error" ? "●" : "▲"}</span>
-            <span class="msg">{d.message}</span>
-            <span class="loc">{locationLabel(d)}</span>
-          </button>
-        {:else}
-          {#if !problems.systemError}<p class="empty">Keine Probleme gefunden.</p>{/if}
-        {/each}
-      </div>
+    {#if current === "Probleme"}
+      <ProblemsBody
+        diagnostics={problems.diagnostics as Diagnostic[]}
+        systemError={problems.systemError}
+        onopenat={(file, line, column) => session.openAt(file, line, column)}
+      />
     {/if}
   </div>
 </div>
@@ -190,6 +114,14 @@
     background: var(--bg-panel);
     display: flex;
     flex-direction: column;
+  }
+  /* Code is in its own window: the bottom panel takes the whole middle. */
+  .bottom.fill:not(.collapsed) {
+    flex: 1;
+    min-height: 0;
+  }
+  .bottom.gone {
+    display: none;
   }
   .bottom.collapsed .btabs {
     border-bottom: none;
@@ -243,114 +175,6 @@
     font-size: 12px;
     color: var(--text-faint);
   }
-  .tests {
-    padding: 10px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .banner {
-    flex: none;
-    border-radius: 10px;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .banner.warn {
-    background: var(--bg-warn);
-    color: var(--text-warn);
-    border: 1px solid var(--border-warn);
-  }
-  .banner.ok {
-    background: var(--bg-ok);
-    color: var(--text-ok);
-    border: 1px solid var(--border-ok);
-  }
-  .count {
-    font-weight: 500;
-    font-size: 13px;
-  }
-  .trow {
-    font-size: 13px;
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    padding: 3px 4px;
-  }
-  .pass {
-    color: var(--text-ok);
-    font-weight: 700;
-    width: 16px;
-    flex: none;
-  }
-  .fail {
-    color: var(--text-err);
-    font-weight: 700;
-    width: 16px;
-    flex: none;
-  }
-  .tbody {
-    min-width: 0;
-    flex: 1;
-  }
-  .tdetail {
-    font-family: var(--jide-code-font);
-    font-size: 12px;
-    color: var(--text-muted);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    max-height: 5.5em;
-    overflow-y: auto;
-  }
-  .tdetail .lbl {
-    color: var(--text-faint);
-  }
-  .tnote {
-    font-size: 12px;
-    color: var(--text-faint);
-    margin-top: 2px;
-  }
-  .thead {
-    font: inherit;
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    width: 100%;
-    padding: 0;
-    border: none;
-    background: none;
-    text-align: left;
-    color: inherit;
-    cursor: pointer;
-  }
-  .chev {
-    width: 10px;
-    flex: none;
-    color: var(--text-faint);
-  }
-  .tsum {
-    font-family: var(--jide-code-font);
-    font-size: 12px;
-    color: var(--text-faint);
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .msgline {
-    font-family: inherit;
-    font-size: 12.5px;
-  }
-  .trow.link {
-    cursor: pointer;
-    border-radius: 6px;
-  }
-  .trow.link:hover {
-    background: var(--bg-subtle);
-  }
   .body {
     flex: 1;
     min-height: 0;
@@ -371,50 +195,6 @@
   }
   .body.console {
     background: var(--bg-dark);
-  }
-  .problems {
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .prob {
-    font: inherit;
-    font-size: 13px;
-    text-align: left;
-    border: none;
-    background: none;
-    color: var(--text);
-    padding: 6px 10px;
-    border-radius: 6px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    cursor: pointer;
-  }
-  .prob:hover:not(:disabled) {
-    background: var(--bg-subtle);
-  }
-  .prob:disabled {
-    cursor: default;
-  }
-  .icon.error {
-    color: #e5484d;
-  }
-  .icon.warning {
-    color: var(--text-warn);
-  }
-  .msg {
-    flex: 1;
-  }
-  .loc {
-    color: var(--text-faint);
-    font-size: 12px;
-  }
-  .empty {
-    margin: 4px 10px;
-    font-size: 13px;
-    color: var(--text-faint);
   }
   .system-error {
     background: var(--bg-err);

@@ -1,5 +1,6 @@
 import { mount } from "svelte";
 import App from "./App.svelte";
+import PanelWindow from "./lib/PanelWindow.svelte";
 import "./app.css";
 import { createWheelZoom } from "./lib/wheel-zoom";
 
@@ -22,4 +23,5 @@ window.addEventListener(
   { capture: true, passive: false }
 );
 
-mount(App, { target: document.getElementById("app")! });
+// The window of a detached panel (?panel=...) shows only that panel; every other window is the app.
+mount(window.jide.panels.window ? PanelWindow : App, { target: document.getElementById("app")! });
