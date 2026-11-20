@@ -3,7 +3,6 @@ import { zipSync, type Zippable } from 'fflate';
 import { ExerciseError, MAX_ENTRIES, MAX_PACKAGE_BYTES, MAX_UNCOMPRESSED_BYTES, readExerciseZip, type Difficulty } from '@jide/shared';
 import { AppError } from '../errors.js';
 
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const MAX_UPLOAD_BYTES = MAX_PACKAGE_BYTES;
 export { MAX_ENTRIES, MAX_UNCOMPRESSED_BYTES };
 
