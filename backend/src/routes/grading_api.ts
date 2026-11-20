@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { EXERCISE_PACKAGE_CONTENT_TYPE, type GradeSymbol } from '@jide/shared';
+import { EXERCISE_PACKAGE_CONTENT_TYPE, GRADE_SYMBOLS } from '@jide/shared';
 import { getDb } from '../db/connection.js';
 import { AppError } from '../errors.js';
 import { saveGrade, v1Courses, v1CourseOrThrow, v1Exercises, v1HandIns, v1Package } from '../lib/grading.js';
@@ -49,9 +49,8 @@ gradingApiRoutes.get('/courses/:courseId/exercises/:exerciseId/handins', async (
   return c.json(await v1HandIns(db, courseId, exerciseId, rows[0].deadline));
 });
 
-const SYMBOLS = ['PLUS', 'PLUS_WELLE', 'WELLE', 'MINUS_WELLE', 'MINUS'] as const satisfies readonly GradeSymbol[];
 const gradeSchema = z.object({
-  symbol: z.enum(SYMBOLS, { message: 'symbol muss PLUS, PLUS_WELLE, WELLE, MINUS_WELLE oder MINUS sein.' }),
+  symbol: z.enum(GRADE_SYMBOLS, { message: 'symbol muss PLUS, PLUS_WELLE, WELLE, MINUS_WELLE oder MINUS sein.' }),
   comment: z.string({ message: 'comment muss ein Text sein.' }).max(2000, 'Der Kommentar ist zu lang (höchstens 2000 Zeichen).'),
   lineComments: z
     .array(
