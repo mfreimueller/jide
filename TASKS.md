@@ -186,3 +186,16 @@ Decisions (2026-11-20):
 - [ ] **T50 Release** – backend deploy (new migrations) before the app release; grader release; comment on #5 (needs the user's OK).
 
 Order: SPEC contract first; Figma (T08, 28–30) for approval; then two agents in parallel: jide T45 → T46 → T47 → T48, T49 and grader G1 → G2 → G3 against the contract; end-to-end check against a local backend; T50.
+
+## M9 – Overview: grades for the teacher, hiding exercises (2026-11-20)
+
+Decisions (user, 2026-11-20):
+- Teacher sees grades in the Abgaben matrix (symbol + 🔒 per cell, count per column header), on the hand-in detail page (grade card with symbol, date, overall comment, "gesperrt"; line comments in the code; 🔒 in the history) and on the Aufgaben page ("Abgaben · 🔒" count). View only, no undo of a grade in the web (re-grade in grader).
+- Teacher matrix hiding: switch "Beurteilte ausblenden", **on by default**; a column counts as graded as soon as **any** hand-in of it is graded. Plus manual "ausblenden" per column. Bar above the table lists hidden exercises (reason "beurteilt" / "von Hand") with "Einblenden" each and "Alle einblenden"; "Einblenden" of an auto-hidden one sticks. Stored **on the server** per teacher and course. Applies to the matrix and the ZIP download picker only (Aufgaben page stays complete).
+- Student app hiding: ⋯ → "Ausblenden" by hand, only for handed-in, graded or past-deadline exercises (open ones: item disabled, "Erst nach der Abgabe oder nach der Frist möglich"). Graded exercises move to "Ausgeblendet" automatically 7 days after grading. "Wieder anzeigen" sticks (overrides the automatic rule until hidden again). Collapsed dashed bar "Ausgeblendet · N Aufgaben · Anzeigen ▾" between the course exercises and Scratch; expanded = one flat list (group name in the subtitle), newest first. Stored **only on this laptop** (no backend change). Not in exam mode, not for Scratch items.
+- Figma: Schüler-App 31 (68:56), 32 (70:59); Lehrer-Web T02b (70:296), T02c (73:62), T03b (71:62), T07b (72:62). Dark variants 31d/32d after approval.
+
+- [ ] **T51 Backend: grades for the teacher** – matrix cells carry `grade {symbol, gradedAt} | null`; hand-in detail carries grade + comment + line comments and `graded` per history entry; course exercise list carries `gradedCount`.
+- [ ] **T52 Backend: hidden matrix columns** – migration (teacher, course, exercise, mode `hidden`/`shown`) + setting "Beurteilte ausblenden" per teacher and course (default on); GET/PUT endpoints; matrix + ZIP picker use them.
+- [ ] **T53 Teacher web** – T02b/T02c matrix (chip, header count, switch, bar, ausblenden/einblenden), T03b detail, T07b count.
+- [ ] **T54 Student app: hiding** – local store in userData (per student code/course), ⋯ Ausblenden (disabled with reason when open), 7-day auto rule for graded, "Wieder anzeigen" override, Ausgeblendet section (31/32, light + dark); unit + e2e.
