@@ -5,7 +5,7 @@ import type { ExerciseSource, GradedViewResult, HandInOutcome, SourceEntry, Sour
 /** How a Scratch program appears in a list. */
 export function scratchEntry(e: Exercise, imported?: ImportedInfo): SourceEntry {
   return {
-    ...(imported ? { imported: true, testCount: imported.tests } : {}),
+    ...(imported ? { imported: true, testCount: imported.tests, ...(imported.copy ? { copied: true } : {}) } : {}),
     difficulty: e.difficulty ?? null,
     id: e.id,
     title: e.title,

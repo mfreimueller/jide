@@ -494,7 +494,7 @@ describe("import", () => {
       expect(copy.assignment).toBe("# Summe\n");
       expect(copy.originals["Summe.java"]).toBe("class Summe {}");
       expect(copy.originals["Hilfe.java"]).toBe("class Hilfe {}");
-      expect(await store.importedInfo(r.id)).toEqual({ files: ["Summe.java", "Hilfe.java"], tests: 2 });
+      expect(await store.importedInfo(r.id)).toEqual({ files: ["Summe.java", "Hilfe.java"], tests: 2, copy: true });
       const refused = await store.deleteClass(r.id, "Hilfe.java", ws);
       expect(refused.ok).toBe(false);
     });

@@ -29,5 +29,7 @@ describe("scratch-ui", () => {
     expect(importedLine(3)).toBe("Importiert · 3 Tests");
     expect(importedLine(1)).toBe("Importiert · 1 Test");
     expect(importedLine(0)).toBe("Importiert · keine Tests");
+    expect(importedLine(3, true)).toBe("Kopie · 3 Tests");
+    expect(importedLine(0, true)).toBe("Kopie · keine Tests");
   });
 });

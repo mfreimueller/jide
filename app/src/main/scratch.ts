@@ -26,6 +26,8 @@ export interface ImportedInfo {
   /** Paths (as in exercise.yaml) of the classes that came with the exercise. */
   files: string[];
   tests: number;
+  /** Made by "In Scratch kopieren" (a server exercise), not by an import: the card says "Kopie". */
+  copy?: boolean;
 }
 
 export type ScratchResult<T = unknown> = ({ ok: true } & T) | { ok: false; message: string };
@@ -252,7 +254,11 @@ export class ScratchStore {
     try {
       const j = JSON.parse(await readFile(join(this.dir(id), IMPORTED_FILE), "utf8")) as Partial<ImportedInfo>;
       if (!Array.isArray(j.files)) return undefined;
-      return { files: j.files.filter((f): f is string => typeof f === "string"), tests: typeof j.tests === "number" ? j.tests : 0 };
+      return {
+        files: j.files.filter((f): f is string => typeof f === "string"),
+        tests: typeof j.tests === "number" ? j.tests : 0,
+        ...(j.copy === true ? { copy: true } : {})
+      };
     } catch {
       return undefined;
     }
@@ -300,7 +306,8 @@ export class ScratchStore {
   private async install(
     ex: Exercise,
     testsYaml: string | undefined,
-    overrides: Record<string, string>
+    overrides: Record<string, string>,
+    copy = false
   ): Promise<ScratchResult<{ id: string }>> {
     const id = `${SCRATCH_PREFIX}${randomBytes(6).toString("hex")}`;
     const dir = this.dir(id);
@@ -327,7 +334,7 @@ export class ScratchStore {
       await mkdir(dir, { recursive: true });
       await this.writeConfig(id, config);
       await loadExercise(dir); // what was written must load again
-      const info: ImportedInfo = { files: ex.files.map((f) => f.path), tests: ex.tests?.length ?? 0 };
+      const info: ImportedInfo = { files: ex.files.map((f) => f.path), tests: ex.tests?.length ?? 0, ...(copy ? { copy: true } : {}) };
       await writeFile(join(dir, IMPORTED_FILE), JSON.stringify(info), "utf8");
       return { ok: true, id };
     } catch (e) {
@@ -364,7 +371,7 @@ export class ScratchStore {
             if (mine !== undefined) content[f.path] = mine;
           }
         }
-        return await this.install(ex, testsYaml, content);
+        return await this.install(ex, testsYaml, content, true);
       } catch (e) {
         return this.fail(e);
       }

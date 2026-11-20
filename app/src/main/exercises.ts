@@ -70,7 +70,7 @@ async function summarise(exercises: SourceEntry[]): Promise<ExerciseSummary[]> {
       difficulty: ex.difficulty ?? null,
       ...(ex.grade ? { grade: ex.grade } : {}),
       ...(ex.scratch ? { scratch: true, classCount: ex.classCount ?? 0 } : {}),
-      ...(ex.imported ? { imported: true, testCount: ex.testCount ?? 0 } : {})
+      ...(ex.imported ? { imported: true, testCount: ex.testCount ?? 0, ...(ex.copied ? { copied: true } : {}) } : {})
     });
   }
   return summaries;

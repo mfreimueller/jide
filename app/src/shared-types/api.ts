@@ -22,6 +22,8 @@ export interface ExerciseSummary {
   imported?: boolean;
   /** Imported items: number of tests. */
   testCount?: number;
+  /** Imported items made by "In Scratch kopieren" ("Kopie · N Tests"). Absent = false. */
+  copied?: boolean;
   /** From exercise.yaml; null = none. Shown as a pill on the card (never in exam mode). */
   difficulty: "newbie" | "advanced" | "pro" | null;
   /** Online mode: set once the exercise is graded (then it opens read-only). Absent = not graded. */

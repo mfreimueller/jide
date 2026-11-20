@@ -55,7 +55,7 @@ test("In Scratch kopieren: menu, dialog, Neu beginnen and Mit meinem Code, Teste
   await page.getByTestId("copy-confirm").click();
   await expect(dialog).toHaveCount(0);
   await expect(scratchItems(page)).toHaveCount(1);
-  await expect(scratchItems(page).getByTestId("scratch-line")).toHaveText("Importiert · 3 Tests");
+  await expect(scratchItems(page).getByTestId("scratch-line")).toHaveText("Kopie · 3 Tests");
   await expect(card(page, TITLE)).toHaveCount(1); // the original stays
 
   // Neu beginnen: a second item

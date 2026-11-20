@@ -22,6 +22,8 @@ export interface SourceEntry {
   imported?: boolean;
   /** Imported items: number of tests (0 without tests.yaml). */
   testCount?: number;
+  /** Imported items made by "In Scratch kopieren". */
+  copied?: boolean;
 }
 
 export interface SourceListing {

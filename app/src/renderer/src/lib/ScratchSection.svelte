@@ -131,7 +131,7 @@
         <span class="ex-title">{item.title}</span>
         {#if item.difficulty}<DifficultyPill level={item.difficulty} />{/if}
       </div>
-      <span class="muted" data-testid="scratch-line">{item.imported ? importedLine(item.testCount ?? 0) : scratchLine(item.classCount ?? 1)}</span>
+      <span class="muted" data-testid="scratch-line">{item.imported ? importedLine(item.testCount ?? 0, item.copied === true) : scratchLine(item.classCount ?? 1)}</span>
     </div>
     <div class="menu-wrap">
       <button

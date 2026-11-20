@@ -8,9 +8,9 @@ export function scratchLine(classCount: number): string {
   return `Eigenes Programm · ${classCountLabel(classCount)}`;
 }
 
-/** "Importiert · 3 Tests" (second line of an imported card). */
-export function importedLine(testCount: number): string {
-  return `Importiert · ${testCount === 0 ? "keine Tests" : testCount === 1 ? "1 Test" : `${testCount} Tests`}`;
+/** "Importiert · 3 Tests" (second line of an imported card), "Kopie · 3 Tests" for a copy of a server exercise. */
+export function importedLine(testCount: number, copied = false): string {
+  return `${copied ? "Kopie" : "Importiert"} · ${testCount === 0 ? "keine Tests" : testCount === 1 ? "1 Test" : `${testCount} Tests`}`;
 }
 
 /**
