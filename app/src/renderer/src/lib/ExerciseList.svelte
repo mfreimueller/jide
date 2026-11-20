@@ -3,6 +3,7 @@
   import iconUrl from "../assets/icon.svg";
   import { formatDate, formatDateTime, isPast } from "../../../shared-types/datetime";
   import { sectionExercises } from "../../../shared-types/grouping";
+  import CopyToScratchDialog from "./CopyToScratchDialog.svelte";
   import DifficultyPill from "./DifficultyPill.svelte";
   import ScratchSection from "./ScratchSection.svelte";
   import type { ExerciseList, ExerciseSummary, StudentInfo } from "../../../shared-types/api";
@@ -25,6 +26,9 @@
   // Scratch items are reloaded on their own after create / rename / delete (no backend call).
   let scratchItems = $state<ExerciseSummary[]>([]);
   let failure = $state("");
+  // "In Scratch kopieren": open ⋯ menu (exercise id) and the dialog for one exercise.
+  let menuFor = $state<string | undefined>();
+  let copying = $state.raw<ExerciseSummary | undefined>();
 
   const initials = $derived(
     (student?.name ?? "")
@@ -86,6 +90,33 @@
         <span class="chip wip">In Arbeit</span>
       {/if}
     </div>
+    <div class="menu-wrap">
+      <button
+        class="btn icon-btn"
+        aria-label="Mehr"
+        aria-haspopup="menu"
+        aria-expanded={menuFor === ex.id}
+        onclick={(e) => {
+          e.stopPropagation();
+          menuFor = menuFor === ex.id ? undefined : ex.id;
+        }}
+        data-testid="exercise-menu"
+      >⋯</button>
+      {#if menuFor === ex.id}
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_interactive_supports_focus -->
+        <div class="menu" role="menu" onclick={(e) => e.stopPropagation()}>
+          <button
+            class="menu-item"
+            role="menuitem"
+            onclick={() => {
+              menuFor = undefined;
+              copying = ex;
+            }}
+            data-testid="exercise-copy"
+          >In Scratch kopieren …</button>
+        </div>
+      {/if}
+    </div>
     {#if ex.status === "neu"}
       <button class="btn primary" onclick={() => onOpen(ex.id)}>Öffnen</button>
     {:else if ex.status === "abgegeben"}
@@ -95,6 +126,13 @@
     {/if}
   </div>
 {/snippet}
+
+<svelte:window
+  onclick={() => (menuFor = undefined)}
+  onkeydown={(e) => {
+    if (e.key === "Escape") menuFor = undefined;
+  }}
+/>
 
 <div class="screen">
   <div class="topbar">
@@ -156,6 +194,19 @@
     {/if}
   </div>
 </div>
+
+{#if copying}
+  {@const ex = copying}
+  <CopyToScratchDialog
+    exerciseId={ex.id}
+    title={ex.title}
+    onCancel={() => (copying = undefined)}
+    onCopied={async () => {
+      copying = undefined;
+      await reloadScratch();
+    }}
+  />
+{/if}
 
 <style>
   .screen {
@@ -268,6 +319,46 @@
     justify-content: center;
     font-size: 12px;
     font-weight: 600;
+  }
+  .menu-wrap {
+    position: relative;
+  }
+  .icon-btn {
+    width: 34px;
+    padding: 0;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--text-muted);
+  }
+  .menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 20;
+    min-width: 160px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+  }
+  .menu-item {
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    white-space: nowrap;
+    border: none;
+    background: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .menu-item:hover {
+    background: var(--bg-subtle);
   }
   .notice {
     padding: 10px 14px;
