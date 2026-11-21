@@ -45,7 +45,7 @@ test("list shows both examples as Neu", async () => {
 test("a card shows its difficulty, a card without difficulty shows none", async () => {
   const { page } = await launch();
   const pill = card(page, "Summe zweier Zahlen").getByTestId("difficulty");
-  await expect(pill).toHaveText("Newbie");
+  await expect(pill).toHaveText("Pflicht");
   await expect(pill).toHaveAttribute("data-level", "newbie");
   await expect(card(page, "Größere Zahl").getByTestId("difficulty")).toHaveCount(0);
 });

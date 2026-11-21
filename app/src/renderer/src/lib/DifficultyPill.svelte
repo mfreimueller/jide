@@ -3,7 +3,7 @@
   let { level }: { level: "newbie" | "advanced" | "pro" } = $props();
 
   const LEVELS = {
-    newbie: { label: "Newbie", bars: 1 },
+    newbie: { label: "Pflicht", bars: 1 },
     advanced: { label: "Advanced", bars: 2 },
     pro: { label: "Pro", bars: 3 }
   } as const;

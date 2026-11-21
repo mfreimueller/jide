@@ -192,7 +192,7 @@ test("the card shows the difficulty from the backend; one without difficulty sho
   const backend = await startBackend();
   const { page } = await loggedIn(backend);
   const card = (title: string) => page.getByTestId("exercise").filter({ hasText: title });
-  await expect(card(SUMME).getByTestId("difficulty")).toHaveText("Newbie");
+  await expect(card(SUMME).getByTestId("difficulty")).toHaveText("Pflicht");
   await expect(card("Größere Zahl").getByTestId("difficulty")).toHaveCount(0);
 });
 

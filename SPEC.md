@@ -167,7 +167,7 @@ images:                # optional, read-only SVG diagrams in files/, viewed in t
 difficulty: newbie     # optional: newbie | advanced | pro
 ```
 
-`difficulty` is shown on the student's exercise card as a small pill (three signal bars + "Newbie", "Advanced" or "Pro"; green, orange, violet). No pill without it, and nothing in exam mode. Any other value is rejected with a German error (`difficulty muss newbie, advanced oder pro sein`). The backend stores it at upload (`exercises.difficulty`, NULL until a package is uploaded again) and returns it as `difficulty` in `GET /api/exercises` (`null` when none).
+`difficulty` is shown on the student's exercise card as a small pill (three signal bars + "Pflicht", "Advanced" or "Pro"; green, orange, violet; the yaml value stays `newbie`). No pill without it, and nothing in exam mode. Any other value is rejected with a German error (`difficulty muss newbie, advanced oder pro sein`). The backend stores it at upload (`exercises.difficulty`, NULL until a package is uploaded again) and returns it as `difficulty` in `GET /api/exercises` (`null` when none).
 
 Working directory for running and testing: a temp copy of the exercise with `resources/` in it.
 
