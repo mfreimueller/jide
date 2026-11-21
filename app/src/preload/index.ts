@@ -84,6 +84,7 @@ const api: JideApi = {
     return () => ipcRenderer.removeListener("jide:logged-out", listener);
   },
   onNotice: (handler) => subscribe("jide:notice", handler),
+  onOpenExercise: (handler) => subscribe("jide:open-exercise", handler),
   notifyAppReady: () => ipcRenderer.send("jide:app-ready"),
   handIn: (id, testSummary) => ipcRenderer.invoke("jide:hand-in", id, testSummary),
   compile: (id, files) => ipcRenderer.invoke("jide:compile", id, files),

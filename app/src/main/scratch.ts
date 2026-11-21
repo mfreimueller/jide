@@ -28,7 +28,11 @@ export interface ImportedInfo {
   tests: number;
   /** Made by "In Scratch kopieren" (a server exercise), not by an import: the card says "Kopie". */
   copy?: boolean;
+  /** The URL a practice exercise was downloaded from (`jide://practice` link); a second click opens this copy. */
+  source?: string;
 }
+
+const TOO_BIG_MESSAGE = `Die Datei ist zu groß (höchstens ${MAX_PACKAGE_BYTES / 1024 / 1024} MB).`;
 
 export type ScratchResult<T = unknown> = ({ ok: true } & T) | { ok: false; message: string };
 
@@ -257,11 +261,35 @@ export class ScratchStore {
       return {
         files: j.files.filter((f): f is string => typeof f === "string"),
         tests: typeof j.tests === "number" ? j.tests : 0,
-        ...(j.copy === true ? { copy: true } : {})
+        ...(j.copy === true ? { copy: true } : {}),
+        ...(typeof j.source === "string" && j.source !== "" ? { source: j.source } : {})
       };
     } catch {
       return undefined;
     }
+  }
+
+  /** The Scratch item that was imported from this exact source URL, if any. */
+  async findBySource(source: string): Promise<string | undefined> {
+    const { imported } = await this.list();
+    for (const [id, info] of imported) if (info.source === source) return id;
+    return undefined;
+  }
+
+  /** Imports a zip held in memory (a download) as a new Scratch item; `source` is remembered in the import info. */
+  importZipBuffer(bytes: Uint8Array, source?: string): Promise<ScratchResult<{ id: string }>> {
+    return this.serial(async () => {
+      if (bytes.byteLength > MAX_PACKAGE_BYTES) return { ok: false, message: TOO_BIG_MESSAGE };
+      let pkg: Awaited<ReturnType<typeof readExerciseZip>>;
+      try {
+        pkg = await readExerciseZip(bytes);
+      } catch (e) {
+        if (e instanceof ExerciseError) return { ok: false, message: e.message };
+        return { ok: false, message: "Die Datei konnte nicht gelesen werden." };
+      }
+      const raw = pkg.files.get("tests.yaml");
+      return this.install(pkg.exercise, raw === undefined ? undefined : Buffer.from(raw).toString("utf8"), {}, false, source);
+    });
   }
 
   /**
@@ -285,7 +313,7 @@ export class ScratchStore {
           const st = await stat(source);
           if (!st.isFile()) return { ok: false, message: "Die Datei wurde nicht gefunden." };
           if (st.size > MAX_PACKAGE_BYTES) {
-            return { ok: false, message: `Die Datei ist zu groß (höchstens ${MAX_PACKAGE_BYTES / 1024 / 1024} MB).` };
+            return { ok: false, message: TOO_BIG_MESSAGE };
           }
           const pkg = await readExerciseZip(new Uint8Array(await readFile(source)));
           ex = pkg.exercise;
@@ -307,7 +335,8 @@ export class ScratchStore {
     ex: Exercise,
     testsYaml: string | undefined,
     overrides: Record<string, string>,
-    copy = false
+    copy = false,
+    source?: string
   ): Promise<ScratchResult<{ id: string }>> {
     const id = `${SCRATCH_PREFIX}${randomBytes(6).toString("hex")}`;
     const dir = this.dir(id);
@@ -334,7 +363,7 @@ export class ScratchStore {
       await mkdir(dir, { recursive: true });
       await this.writeConfig(id, config);
       await loadExercise(dir); // what was written must load again
-      const info: ImportedInfo = { files: ex.files.map((f) => f.path), tests: ex.tests?.length ?? 0, ...(copy ? { copy: true } : {}) };
+      const info: ImportedInfo = { files: ex.files.map((f) => f.path), tests: ex.tests?.length ?? 0, ...(copy ? { copy: true } : {}), ...(source ? { source } : {}) };
       await writeFile(join(dir, IMPORTED_FILE), JSON.stringify(info), "utf8");
       return { ok: true, id };
     } catch (e) {

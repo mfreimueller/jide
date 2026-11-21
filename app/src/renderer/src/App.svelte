@@ -78,6 +78,8 @@
       clearTimeout(noticeTimer);
       noticeTimer = setTimeout(() => (notice = undefined), 8000);
     });
+    // A practice link was imported: open it like a click in the list.
+    const stopOpen = window.jide.onOpenExercise((id) => void openFromLink(id));
     window.jide.notifyAppReady(); // after subscribing: main sends queued links only now
     void window.jide.getSession().then((s) => {
       session = s;
@@ -88,6 +90,7 @@
       stop();
       stopLoggedOut();
       stopNotice();
+      stopOpen();
       clearTimeout(noticeTimer);
       stopStatus();
       stopClose();
@@ -102,6 +105,32 @@
     } else {
       error = result.message;
     }
+  }
+
+  // Link-opened exercises are handled one after another (the open exercise is saved first).
+  let linkQueue: Promise<void> = Promise.resolve();
+  function openFromLink(id: string): Promise<void> {
+    linkQueue = linkQueue.then(() => openFromLinkNow(id)).catch(() => undefined);
+    return linkQueue;
+  }
+
+  async function openFromLinkNow(id: string): Promise<void> {
+    notice = undefined; // the "Übung wird geladen …" toast
+    const s = session ?? (await window.jide.getSession());
+    if (s.mode === "exam") return;
+    if (exercise?.id === id) return; // already open
+    if (exercise) {
+      // Leave it as "← Aufgaben" does: save pending edits, stay if that fails.
+      await sessions.get("current")?.flush();
+      if (sessions.get("current") && !sessions.get("current")!.clean) {
+        notice = { kind: "error", text: "Deine Änderungen konnten nicht gespeichert werden. Versuch es gleich nochmal." };
+        return;
+      }
+      exercise = undefined;
+    }
+    // Login screen: Scratch works without an account.
+    if (s.mode === "online" && !(student ?? s.student)) scratchOnly = true;
+    await open(id);
   }
 </script>
 

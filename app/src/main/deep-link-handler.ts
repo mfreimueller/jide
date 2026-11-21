@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import type { AppNotice } from "../shared-types/api";
 import { isAllowedPracticeSrc, MSG_BAD_ORIGIN, MSG_EXAM_MODE, parseDeepLink } from "./deep-link";
+import { context } from "./context";
 import { examMode } from "./exam-state";
+import { importPractice, MSG_LOADING, MSG_OFFLINE } from "./practice-import";
 
 let mainWindow: BrowserWindow | undefined;
 // Creates the main window when a link arrives while none is open (macOS keeps running without windows).
@@ -15,12 +17,25 @@ export function pushNotice(win: BrowserWindow, notice: AppNotice): void {
   if (!win.isDestroyed()) win.webContents.send("jide:notice", notice);
 }
 
+// Links are handled one after another, never in parallel.
+let chain: Promise<void> = Promise.resolve();
+
+async function runPracticeLink(src: string, win: BrowserWindow): Promise<void> {
+  const out = await importPractice(src, context().scratch, () => pushNotice(win, { kind: "info", text: MSG_LOADING }));
+  if (win.isDestroyed()) return;
+  if (out.kind === "error") pushNotice(win, { kind: "error", text: out.message });
+  else win.webContents.send("jide:open-exercise", out.id);
+}
+
 /**
- * Practice link with a checked origin: download and import into Scratch.
- * T57 fills this in; until then a valid link does nothing.
+ * Practice link with a checked origin: opens the existing Scratch copy of this source, else downloads and
+ * imports it; the renderer then opens the exercise ("jide:open-exercise").
  */
-export function handlePracticeLink(_src: string, _win: BrowserWindow): void {
-  // T57
+export function handlePracticeLink(src: string, win: BrowserWindow): Promise<void> {
+  chain = chain.then(() => runPracticeLink(src, win)).catch(() => {
+    if (!win.isDestroyed()) pushNotice(win, { kind: "error", text: MSG_OFFLINE });
+  });
+  return chain;
 }
 
 /** Parses and checks one link, then dispatches it. Exam mode ignores every link. */

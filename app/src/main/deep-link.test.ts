@@ -5,7 +5,8 @@ import {
   MSG_NO_SRC,
   MSG_UNKNOWN_LINK,
   parseDeepLink,
-  PRACTICE_ORIGIN
+  PRACTICE_ORIGIN,
+  practiceOrigin
 } from "./deep-link";
 
 const ZIP = `${PRACTICE_ORIGIN}practice/schleifen.zip`;
@@ -109,5 +110,21 @@ describe("isAllowedPracticeSrc", () => {
   it("rejects garbage", () => {
     expect(isAllowedPracticeSrc("")).toBe(false);
     expect(isAllowedPracticeSrc("not a url")).toBe(false);
+  });
+});
+
+describe("practiceOrigin (test override)", () => {
+  it("is the constant unless tests run (user data folder set) and the override is given", () => {
+    expect(practiceOrigin({})).toBe(PRACTICE_ORIGIN);
+    expect(practiceOrigin({ JIDE_TEST_PRACTICE_ORIGIN: "http://127.0.0.1:5000/" })).toBe(PRACTICE_ORIGIN);
+    expect(practiceOrigin({ JIDE_USER_DATA_DIR: "/tmp/x" })).toBe(PRACTICE_ORIGIN);
+    expect(practiceOrigin({ JIDE_USER_DATA_DIR: "/tmp/x", JIDE_TEST_PRACTICE_ORIGIN: "http://127.0.0.1:5000/" })).toBe("http://127.0.0.1:5000/");
+  });
+  it("an explicit origin also fixes scheme, port and path prefix", () => {
+    const o = "http://127.0.0.1:5000/p/";
+    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/p/a.zip", o)).toBe(true);
+    expect(isAllowedPracticeSrc("https://127.0.0.1:5000/p/a.zip", o)).toBe(false);
+    expect(isAllowedPracticeSrc("http://127.0.0.1:5001/p/a.zip", o)).toBe(false);
+    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/q/a.zip", o)).toBe(false);
   });
 });

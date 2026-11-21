@@ -6,6 +6,15 @@
 /** The only place practice zips may be downloaded from: origin + path prefix (change here only). */
 export const PRACTICE_ORIGIN = "https://sj2627-pos-lernwerkstatt.github.io/";
 
+/**
+ * The allowed origin. Tests (and only tests: the user data folder override is set) may point it to a local
+ * HTTP fixture server with `JIDE_TEST_PRACTICE_ORIGIN`, e.g. `http://127.0.0.1:5000/`.
+ */
+export function practiceOrigin(env: NodeJS.ProcessEnv = process.env): string {
+  const test = env["JIDE_TEST_PRACTICE_ORIGIN"];
+  return env["JIDE_USER_DATA_DIR"] && test ? test : PRACTICE_ORIGIN;
+}
+
 export const MSG_UNKNOWN_LINK = "Unbekannter J;DE-Link.";
 export const MSG_NO_SRC = "Der Link enthält keine Übungsadresse.";
 export const MSG_BAD_ORIGIN = "Übungen können nur von der Kursseite geladen werden.";
@@ -37,19 +46,19 @@ export function parseDeepLink(raw: string): DeepLink {
 }
 
 /** https, exactly the allowed host, under the allowed path prefix, no credentials, default port, a `.zip`. */
-export function isAllowedPracticeSrc(src: string): boolean {
+export function isAllowedPracticeSrc(src: string, origin: string = practiceOrigin()): boolean {
   let url: URL;
   let allowed: URL;
   try {
     url = new URL(src);
-    allowed = new URL(PRACTICE_ORIGIN);
+    allowed = new URL(origin);
   } catch {
     return false;
   }
   return (
-    url.protocol === "https:" &&
+    url.protocol === allowed.protocol &&
     url.hostname === allowed.hostname &&
-    url.port === "" &&
+    url.port === allowed.port &&
     url.username === "" &&
     url.password === "" &&
     url.pathname.startsWith(allowed.pathname) &&

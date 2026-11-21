@@ -320,6 +320,8 @@ export interface JideApi {
   onNotice: (handler: (notice: AppNotice) => void) => () => void;
   /** The main window's App is mounted and subscribed to `onNotice`; main then sends queued messages. */
   notifyAppReady: () => void;
+  /** A `jide://practice` link was imported (or its copy found): open this Scratch exercise. */
+  onOpenExercise: (handler: (id: string) => void) => () => void;
   /**
    * Uploads the saved editable files. The caller flushes pending edits first.
    * `testSummary`: result of the last test run if it is still current, otherwise null.
