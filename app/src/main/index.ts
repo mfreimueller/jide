@@ -5,7 +5,7 @@ import { registerCompileIpc } from "./compile";
 import { askToClose, examCloseNeedsConfirm, registerExamSaveIpc } from "./exam-session";
 import { examMode, initExam, redirectPathsForExamMode, registerExamIpc } from "./exam-state";
 import { findDeepLinkInArgv } from "./deep-link";
-import { attachMainWindow, focusMainWindow, listenForOpenUrl, receiveDeepLink } from "./deep-link-handler";
+import { attachMainWindow, focusMainWindow, listenForOpenUrl, receiveDeepLink, setMainWindowOpener } from "./deep-link-handler";
 import { registerExerciseIpc } from "./exercises";
 import { registerScratchIpc } from "./scratch-ipc";
 import { installAppMenu } from "./menu";
@@ -156,6 +156,7 @@ app.whenReady().then(async () => {
   registerZoomIpc();
   registerPanelWindowIpc();
   createWindow();
+  setMainWindowOpener(() => createWindow());
   if (!smoke && !examMode()) startAutoUpdate();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

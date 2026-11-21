@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { SvelteMap } from "svelte/reactivity";
-  import type { AppNotice, AppSession,ExerciseList as ExerciseListData, OpenedExercise, SaveStatus, StudentInfo } from "../../shared-types/api";
+  import type { AppNotice, AppSession, ExerciseList as ExerciseListData, OpenedExercise, SaveStatus, StudentInfo } from "../../shared-types/api";
   import CloseDialog from "./lib/CloseDialog.svelte";
   import ExamBar from "./lib/ExamBar.svelte";
   import ExamProblem from "./lib/ExamProblem.svelte";

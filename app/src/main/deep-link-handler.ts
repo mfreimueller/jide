@@ -4,6 +4,8 @@ import { isAllowedPracticeSrc, MSG_BAD_ORIGIN, MSG_EXAM_MODE, parseDeepLink } fr
 import { examMode } from "./exam-state";
 
 let mainWindow: BrowserWindow | undefined;
+// Creates the main window when a link arrives while none is open (macOS keeps running without windows).
+let openMainWindow: (() => void) | undefined;
 // The renderer subscribes to notices once its App is mounted ("jide:app-ready"); links wait until then.
 let rendererReady = false;
 const pending: string[] = [];
@@ -50,9 +52,15 @@ export function focusMainWindow(): void {
 
 /** A link arrived (start argv, `second-instance`, `open-url`): handled now, or queued until the page is ready. */
 export function receiveDeepLink(raw: string): void {
+  if ((!mainWindow || mainWindow.isDestroyed()) && openMainWindow && app.isReady()) openMainWindow();
   focusMainWindow();
   if (mainWindow && !mainWindow.isDestroyed() && rendererReady) dispatchDeepLink(raw, mainWindow);
   else pending.push(raw);
+}
+
+/** How to open a new main window; set once the app is ready. */
+export function setMainWindowOpener(open: () => void): void {
+  openMainWindow = open;
 }
 
 /** The main window was created; its page signals readiness with "jide:app-ready". */
