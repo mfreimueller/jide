@@ -19,12 +19,28 @@ export function useTempApp(): void {
   test.afterEach(async () => {
     // exit first: an exam-mode app with changes that were not handed in asks before it closes
     for (const app of running.splice(0)) {
-      await app.evaluate(({ app: a }) => a.exit(0)).catch(() => undefined);
+      await exitApp(app);
       await app.close().catch(() => undefined);
     }
     rmSync(userData, { recursive: true, force: true });
     for (const d of extraDirs.splice(0)) rmSync(d, { recursive: true, force: true });
   });
+}
+
+/**
+ * Ends the app right away (no close handshake, so exam mode does not ask). Windows that are still
+ * opening finish first: exiting while a window's ready-to-show → show() is pending crashes Electron
+ * on macOS (EXC_BAD_ACCESS in makeKeyAndOrderFront), and the next launch then never gets ready.
+ */
+export async function exitApp(app: ElectronApplication): Promise<void> {
+  await app
+    .evaluate(async ({ BrowserWindow }) => {
+      const until = Date.now() + 3000;
+      const opening = (): boolean => BrowserWindow.getAllWindows().some((w) => !w.isDestroyed() && !w.isVisible());
+      while (opening() && Date.now() < until) await new Promise((r) => setTimeout(r, 25));
+    })
+    .catch(() => undefined);
+  await app.evaluate(({ app: a }) => a.exit(0)).catch(() => undefined);
 }
 
 /** Another empty user data folder (a second laptop), removed after the test. */

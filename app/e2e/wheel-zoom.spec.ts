@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ZOOM_LEVEL_MAX, ZOOM_LEVEL_MIN } from "../src/main/zoom-level";
-import { examplesDir, launch, openExercise, useTempApp, userDataDir } from "./helpers";
+import { examplesDir, exitApp, launch, openExercise, userDataDir, useTempApp } from "./helpers";
 
 useTempApp();
 
@@ -177,7 +177,7 @@ test("the zoom is not remembered: 100 % after a restart", async () => {
   await openExercise(first.page, "Summe zweier Zahlen");
   const editor = first.page.locator(".monaco-editor .view-lines:visible");
   await zoomed(first.app, first.page, editor, -100);
-  await first.app.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
+  await exitApp(first.app);
   await first.app.close().catch(() => undefined);
 
   const second = await launch({}, userDataDir());

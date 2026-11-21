@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { examplesDir, launch, openExercise, useTempApp } from "./helpers";
+import { examplesDir, exitApp, launch, openExercise, useTempApp } from "./helpers";
 
 useTempApp();
 
@@ -193,7 +193,7 @@ test("a fresh start has the default layout", async () => {
   const first = await launch();
   await openExercise(first.page, "Summe zweier Zahlen");
   await first.page.getByTestId("files-collapse").click();
-  await first.app.evaluate(({ app }) => app.exit(0)).catch(() => undefined);
+  await exitApp(first.app);
   const second = await launch();
   await openExercise(second.page, "Summe zweier Zahlen");
   await expectCollapsed(second.page, "files", false);

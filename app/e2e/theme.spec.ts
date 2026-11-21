@@ -2,7 +2,7 @@ import { expect, test, type ElectronApplication, type Page } from "@playwright/t
 import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { examplesDir, launch, newUserData, openExercise, useTempApp, userDataDir } from "./helpers";
+import { examplesDir, exitApp, launch, newUserData, openExercise, userDataDir, useTempApp } from "./helpers";
 
 useTempApp();
 
@@ -66,7 +66,7 @@ test("the choice survives a restart (same user data folder), also System", async
   const ud = newUserData();
   const first = await launch({}, ud);
   await choose(first.app, "dark");
-  await first.app.evaluate(({ app }) => app.exit(0));
+  await exitApp(first.app);
 
   const second = await launch({}, ud);
   await followApp(second.page);
@@ -77,7 +77,7 @@ test("the choice survives a restart (same user data folder), also System", async
   expect(JSON.parse(readFileSync(join(ud, "settings.json"), "utf8"))).toEqual({ theme: "dark" });
 
   await choose(second.app, "light");
-  await second.app.evaluate(({ app }) => app.exit(0));
+  await exitApp(second.app);
   const third = await launch({}, ud);
   await followApp(third.page);
   expect(await third.app.evaluate(({ nativeTheme }) => nativeTheme.themeSource)).toBe("light");
@@ -136,5 +136,5 @@ test("exam mode has Darstellung too; the choice is stored outside the exam folde
   expect(userData.startsWith(examDir)).toBe(false);
   expect(existsSync(join(examDir, "settings.json"))).toBe(false);
   expect(JSON.parse(readFileSync(join(userData, "settings.json"), "utf8"))).toEqual({ theme: "dark" });
-  await app.evaluate(({ app: a }) => a.exit(0));
+  await exitApp(app);
 });

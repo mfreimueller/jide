@@ -2,7 +2,7 @@ import { expect, test, type ElectronApplication, type Page } from "@playwright/t
 import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { examplesDir, launch, newUserData, openExercise, setEditorText, useTempApp } from "./helpers";
+import { examplesDir, exitApp, launch, newUserData, openExercise, setEditorText, useTempApp } from "./helpers";
 
 useTempApp();
 
@@ -110,7 +110,7 @@ test("exam start and workspace", async () => {
   await page.locator('[data-testid="run"]:visible').click();
   await expect(page.locator('[data-testid="console"]:visible .xterm-rows')).toContainText("Hallo Welt42");
   await shoot(app, page, "exam-workspace");
-  await app.evaluate(({ app: a }) => a.exit(0));
+  await exitApp(app);
 });
 
 test("monaco suggest widget", async () => {

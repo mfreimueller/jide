@@ -3,7 +3,7 @@ import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rea
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
-import { examplesDir, launch, newUserData, setEditorText, useTempApp } from "./helpers";
+import { examplesDir, exitApp, launch, newUserData, setEditorText, useTempApp } from "./helpers";
 
 useTempApp();
 
@@ -376,7 +376,7 @@ test("restore after a restart with an EMPTY user-data dir: the newest of autosav
     }
   };
   await expect.poll(() => time("_autosave/autosave.json", "savedAt") > time("abgabe.json", "submittedAt")).toBe(true);
-  await first.app.evaluate(({ app: a }) => a.exit(0)).catch(() => undefined); // crash: no close handling
+  await exitApp(first.app); // crash: no close handling
 
   // autosave is newer than the hand-in
   const second = await launch({ JIDE_EXAM_DIR: examDir }, newUserData());
@@ -388,7 +388,7 @@ test("restore after a restart with an EMPTY user-data dir: the newest of autosav
   await second.page.getByRole("button", { name: "Erneut abgeben" }).click();
   await second.page.getByTestId("hand-in-confirm").click();
   await expect(second.page.getByTestId("toast")).toContainText("Abgabe gespeichert");
-  await second.app.evaluate(({ app: a }) => a.exit(0)).catch(() => undefined);
+  await exitApp(second.app);
 
   const third = await launch({ JIDE_EXAM_DIR: examDir }, newUserData());
   await startExam(third.page, "Max Muster");
@@ -492,7 +492,7 @@ test("workspaces of two students (or two exams) on the same Windows account do n
   await gotoTab(a.page, 1);
   await setEditorText(a.app, a.page, "// Annas Arbeit\n");
   await gotoTab(a.page, 0); // saved
-  await a.app.evaluate(({ app: x }) => x.exit(0)).catch(() => undefined);
+  await exitApp(a.app);
 
   // same user-data dir, other student, other drive folder
   const drive2 = useDrive();
