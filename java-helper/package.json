@@ -6,5 +6,5 @@
     "build": "mvn -q -B package -DskipTests",
     "test": "mvn -q -B verify && vitest run"
   },
-  "devDependencies": { "vitest": "^5.0.5" }
+  "devDependencies": { "vitest": "^5.1.1" }
 }
