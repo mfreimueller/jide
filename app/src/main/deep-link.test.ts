@@ -71,14 +71,15 @@ describe("parseDeepLink", () => {
 describe("isAllowedPracticeSrc", () => {
   it("allows zips on the course origin", () => {
     expect(isAllowedPracticeSrc(ZIP)).toBe(true);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/a/b/c.zip")).toBe(true);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io:443/a.zip")).toBe(true); // default port
-    expect(isAllowedPracticeSrc("https://SJ2627-POS-Lernwerkstatt.github.io/a.ZIP")).toBe(true);
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/sj2627-pos-1bhif-kurs/practice/x.zip")).toBe(true);
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/practice/x.zip")).toBe(true);
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io:443/practice/a.zip")).toBe(true); // default port
+    expect(isAllowedPracticeSrc("https://SJ2627-POS-Lernwerkstatt.github.io/practice/a.ZIP")).toBe(true);
   });
   it("rejects lookalike hosts", () => {
     for (const bad of [
       "https://sj2627-pos-lernwerkstatt.github.io.evil.com/a.zip",
-      "https://evil.com/?x=https://sj2627-pos-lernwerkstatt.github.io/a.zip",
+      "https://evil.com/?x=https://sj2627-pos-lernwerkstatt.github.io/practice/a.zip",
       "https://evil.com/sj2627-pos-lernwerkstatt.github.io/a.zip",
       "https://xsj2627-pos-lernwerkstatt.github.io/a.zip",
       "https://sj2627-pos-lernwerkstatt.github.io./a.zip",
@@ -104,8 +105,20 @@ describe("isAllowedPracticeSrc", () => {
   });
   it("requires a .zip path", () => {
     expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/")).toBe(false);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/a.zip.html")).toBe(false);
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/practice/a.zip.html")).toBe(false);
     expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/a?f=b.zip")).toBe(false);
+  });
+  it("only accepts <repo>/practice/<file>.zip or practice/<file>.zip", () => {
+    for (const p of ["/x.zip", "/a/b/practice/x.zip", "/repo/x.zip", "/repo/practice/sub/x.zip", "/repo/practice/.zip", "/practice/.zip", "/practice/", "//practice/x.zip", "/practice/x.zip/", "/repo/practices/x.zip", "/practice/x.zip.html"]) {
+      expect(isAllowedPracticeSrc(`https://sj2627-pos-lernwerkstatt.github.io${p}`), p).toBe(false);
+    }
+  });
+  it("dot segments are normalized by the URL parser and cannot escape the rule", () => {
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/practice/../../x.zip")).toBe(false);
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/practice/%2e%2e/%2e%2e/x.zip")).toBe(false);
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/practice/../x.zip")).toBe(false);
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/other/../practice/x.zip")).toBe(true); // normalizes to /repo/practice/x.zip
+    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/practice/%2e%2e%2fx.zip")).toBe(false);
   });
   it("rejects garbage", () => {
     expect(isAllowedPracticeSrc("")).toBe(false);
@@ -122,9 +135,11 @@ describe("practiceOrigin (test override)", () => {
   });
   it("an explicit origin also fixes scheme, port and path prefix", () => {
     const o = "http://127.0.0.1:5000/p/";
-    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/p/a.zip", o)).toBe(true);
-    expect(isAllowedPracticeSrc("https://127.0.0.1:5000/p/a.zip", o)).toBe(false);
-    expect(isAllowedPracticeSrc("http://127.0.0.1:5001/p/a.zip", o)).toBe(false);
-    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/q/a.zip", o)).toBe(false);
+    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/p/practice/a.zip", o)).toBe(true);
+    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/p/repo/practice/a.zip", o)).toBe(true);
+    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/p/a.zip", o)).toBe(false);
+    expect(isAllowedPracticeSrc("https://127.0.0.1:5000/p/practice/a.zip", o)).toBe(false);
+    expect(isAllowedPracticeSrc("http://127.0.0.1:5001/p/practice/a.zip", o)).toBe(false);
+    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/q/practice/a.zip", o)).toBe(false);
   });
 });

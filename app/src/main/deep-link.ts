@@ -45,7 +45,12 @@ export function parseDeepLink(raw: string): DeepLink {
   return { kind: "practice", src: srcs[0].trim() };
 }
 
-/** https, exactly the allowed host, under the allowed path prefix, no credentials, default port, a `.zip`. */
+/**
+ * https (scheme, host, port equal to the origin), no credentials, and a path of exactly
+ * `<origin path>practice/<file>.zip` or `<origin path><repo>/practice/<file>.zip`: any course site of the org,
+ * `<repo>` and `<file>` single non-empty segments. `.zip` is matched case-insensitively. The URL parser has
+ * already resolved `..` / `%2e%2e`, so the checked path is the one that is requested.
+ */
 export function isAllowedPracticeSrc(src: string, origin: string = practiceOrigin()): boolean {
   let url: URL;
   let allowed: URL;
@@ -55,13 +60,20 @@ export function isAllowedPracticeSrc(src: string, origin: string = practiceOrigi
   } catch {
     return false;
   }
+  const prefix = allowed.pathname.endsWith("/") ? allowed.pathname : `${allowed.pathname}/`;
+  if (!url.pathname.startsWith(prefix) || /%2f|%5c|\\/i.test(url.pathname)) return false; // no encoded separators
+  const seg = url.pathname.slice(prefix.length).split("/");
+  const file = seg[seg.length - 1];
+  const shapeOk =
+    (seg.length === 2 && seg[0] === "practice") || (seg.length === 3 && seg[0] !== "" && seg[1] === "practice");
   return (
+    shapeOk &&
+    file.length > 4 &&
     url.protocol === allowed.protocol &&
     url.hostname === allowed.hostname &&
     url.port === allowed.port &&
     url.username === "" &&
     url.password === "" &&
-    url.pathname.startsWith(allowed.pathname) &&
     url.pathname.toLowerCase().endsWith(".zip")
   );
 }

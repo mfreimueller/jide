@@ -26,7 +26,7 @@ async function fixtureServer(): Promise<{ server: Server; origin: string; hits: 
   const hits: string[] = [];
   const server = createServer((req, res) => {
     hits.push(req.url ?? "");
-    if (req.url === "/p/summe.zip") {
+    if (req.url === "/kurs/practice/summe.zip") {
       res.writeHead(200, { "content-type": "application/zip", "content-length": zip.length });
       res.end(zip);
     } else {
@@ -35,7 +35,7 @@ async function fixtureServer(): Promise<{ server: Server; origin: string; hits: 
     }
   });
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
-  return { server, origin: `http://127.0.0.1:${(server.address() as AddressInfo).port}/p/`, hits };
+  return { server, origin: `http://127.0.0.1:${(server.address() as AddressInfo).port}/`, hits };
 }
 
 const link = (src: string): string => `jide://practice?src=${encodeURIComponent(src)}`;
@@ -62,15 +62,15 @@ const env = (): Record<string, string> => ({ JIDE_TEST_PRACTICE_ORIGIN: fixture.
 test("a link imports the exercise into Scratch and opens it; the same link again opens the same copy", async () => {
   const { app, page } = await launch(env());
   await expect(page.getByTestId("exercise").first()).toBeVisible();
-  await sendLink(app, `${fixture.origin}summe.zip`);
+  await sendLink(app, `${fixture.origin}kurs/practice/summe.zip`);
   await expectOpenedCopy(page);
   await expect(page.getByTestId("app-notice")).toHaveCount(0);
-  expect(fixture.hits).toEqual(["/p/summe.zip"]);
+  expect(fixture.hits).toEqual(["/kurs/practice/summe.zip"]);
 
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE })).toHaveCount(1);
 
-  await sendLink(app, `${fixture.origin}summe.zip`);
+  await sendLink(app, `${fixture.origin}kurs/practice/summe.zip`);
   await expectOpenedCopy(page);
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE })).toHaveCount(1);
@@ -80,7 +80,7 @@ test("a link imports the exercise into Scratch and opens it; the same link again
 test("a link from another origin is refused and nothing is imported", async () => {
   const { app, page } = await launch(env());
   await expect(page.getByTestId("exercise").first()).toBeVisible();
-  await sendLink(app, "https://example.com/p/summe.zip");
+  await sendLink(app, "https://example.com/kurs/practice/summe.zip");
   await expect(page.getByTestId("app-notice")).toHaveText("Übungen können nur von der Kursseite geladen werden.");
   await expect(page.getByTestId("scratch-item")).toHaveCount(0);
   expect(fixture.hits).toHaveLength(0);
@@ -91,7 +91,7 @@ test("an unreachable server shows the offline error", async () => {
   await new Promise<void>((r) => dead.server.close(() => r()));
   const { app, page } = await launch({ JIDE_TEST_PRACTICE_ORIGIN: dead.origin });
   await expect(page.getByTestId("exercise").first()).toBeVisible();
-  await sendLink(app, `${dead.origin}summe.zip`);
+  await sendLink(app, `${dead.origin}kurs/practice/summe.zip`);
   await expect(page.getByTestId("app-notice")).toHaveText("Die Übung konnte nicht geladen werden. Bist du mit dem Internet verbunden?");
   await expect(page.getByTestId("scratch-item")).toHaveCount(0);
 });
@@ -99,7 +99,7 @@ test("an unreachable server shows the offline error", async () => {
 test("a missing zip shows the 404 error", async () => {
   const { app, page } = await launch(env());
   await expect(page.getByTestId("exercise").first()).toBeVisible();
-  await sendLink(app, `${fixture.origin}gibt-es-nicht.zip`);
+  await sendLink(app, `${fixture.origin}kurs/practice/gibt-es-nicht.zip`);
   await expect(page.getByTestId("app-notice")).toHaveText("Diese Übung gibt es auf der Kursseite nicht (mehr).");
   await expect(page.getByTestId("scratch-item")).toHaveCount(0);
 });
@@ -109,7 +109,7 @@ test("exam mode ignores the link: notice, no download, nothing imported", async 
   try {
     writeFileSync(join(examDir, "exam.json"), JSON.stringify({ mode: "exam", title: "Probe", handInPath: "P:\\", jdkPath: null, allowTests: true }));
     cpSync(join(examplesDir, "summe"), join(examDir, "exercises", "summe"), { recursive: true });
-    const { page } = await launch({ ...env(), JIDE_EXAM_DIR: examDir }, undefined, [link(`${fixture.origin}summe.zip`)]);
+    const { page } = await launch({ ...env(), JIDE_EXAM_DIR: examDir }, undefined, [link(`${fixture.origin}kurs/practice/summe.zip`)]);
     await expect(page.getByTestId("app-notice")).toHaveText("Im Prüfungsmodus können keine Übungen geöffnet werden.");
     await expect(page.getByTestId("exam-start")).toBeVisible();
     expect(fixture.hits).toHaveLength(0);
@@ -123,7 +123,7 @@ test("a link while an exercise with unsaved edits is open saves the edits, then 
   await openExercise(page, "Größere Zahl");
   const MARK = "// unsaved-before-link";
   await setEditorText(app, page, `${MARK}\nvoid main() {}\n`);
-  await sendLink(app, `${fixture.origin}summe.zip`);
+  await sendLink(app, `${fixture.origin}kurs/practice/summe.zip`);
   await expectOpenedCopy(page);
 
   await page.getByRole("button", { name: "← Aufgaben" }).click();
@@ -134,7 +134,7 @@ test("a link while an exercise with unsaved edits is open saves the edits, then 
 test("a link on the online login screen switches to Scratch and opens the exercise", async () => {
   const { app, page } = await launch({ ...env(), JIDE_EXERCISES_DIR: "", JIDE_API_URL: "http://127.0.0.1:9" });
   await expect(page.getByTestId("open-scratch")).toBeVisible();
-  await sendLink(app, `${fixture.origin}summe.zip`);
+  await sendLink(app, `${fixture.origin}kurs/practice/summe.zip`);
   await expectOpenedCopy(page);
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE })).toHaveCount(1);

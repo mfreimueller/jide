@@ -224,6 +224,7 @@ Decisions (user, 2026-11-20):
 - The teacher does not need to know who practised: nothing is tracked or sent.
 - Practice exercises live in the course repo (built into its static site), not in the J;DE backend.
 - Only zips from `https://sj2627-pos-lernwerkstatt.github.io/` are accepted (one constant, easy to change); anything else → German error, nothing downloaded.
+- Allowed: any course site of the org: `/<repo>/practice/<file>.zip` or `/practice/<file>.zip` (user, 2026-11-21).
 - Same link again → open the existing Scratch copy (the copy remembers its source URL); no duplicate.
 - Updates: an existing copy stays as it is; to get the new version the student deletes the copy and clicks again.
 - Exam mode ignores links (short German notice).
