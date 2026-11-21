@@ -237,6 +237,7 @@ Decisions (user, 2026-11-20):
 - [ ] **T58 Release** – version bump, user releases; check the link on macOS + Windows with the installed app.
 
 Course repo (`/Users/mf/git/SPG/_teaching/_2627/_course/1bhif`):
-- [ ] **C1 Practice packages** – practice exercise folders in the repo (e.g. `practice/<slug>/` with `exercise.yaml`, `tests.yaml`, files); build step zips them into `static/practice/<slug>.zip` (prebuild script, deterministic, fails the build on an invalid exercise.yaml if the shared validator is usable, else on missing files).
-- [ ] **C2 `UebenButton` component** – `<UebenButton slug="…" title="…">` usable in module content (mdsvex); renders the `jide://practice?src=<absolute zip URL>` link in the existing button style with a small J;DE icon plus the hint "J;DE noch nicht installiert? → Download"; unit/e2e (link href correct, zip reachable in the build).
-- [ ] **C3 First practice exercise** – one real exercise on one module page as an end-to-end check with T56/T57.
+- [x] **C1 Practice packages** – practice exercise folders in the repo (e.g. `practice/<slug>/` with `exercise.yaml`, `tests.yaml`, files); build step zips them into `static/practice/<slug>.zip` (prebuild script, deterministic, fails the build on an invalid exercise.yaml if the shared validator is usable, else on missing files).
+- [x] **C2 `UebenButton` component** – `<UebenButton slug="…" title="…">` usable in module content (mdsvex); renders the `jide://practice?src=<absolute zip URL>` link in the existing button style with a small J;DE icon plus the hint "J;DE noch nicht installiert? → Download"; unit/e2e (link href correct, zip reachable in the build).
+- [x] **C3 First practice exercise** – one real exercise on one module page as an end-to-end check with T56/T57.
+- [x] **C4 All practice exercises** – 21 exercises (datentypen → do-while) on branch `practice-buttons` of the course repo, one `:::ueben` button each; reference solutions pass, starters fail (2026-11-21).
