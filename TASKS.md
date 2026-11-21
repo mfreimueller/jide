@@ -215,3 +215,27 @@ Decisions (user, 2026-11-20):
 - Follow-up decisions (user, 2026-11-20): shortcuts F5 = Ausführen, Shift+F5 = Testen in every J;DE window (same enabled state as the buttons); graded view: only Angabe can be detached (no Code window); everything detached → the middle of the main window stays empty (no placeholder); a detached Konsole comes to the front when a program starts; cursor position / undo history of the Code window are not carried back on dock (code is).
 
 - [x] **T55 Detachable panels** – main process: one BrowserWindow per detached panel (same preload, same security settings), lifecycle bound to the open exercise; shared exercise state across windows (editor contents/save status, run state + console stream + stdin, problems, test results) via the main process; renderer: panel-only view per window, ⧉ buttons, header chips, dock-back; shortcuts in every window; hidden in exam mode; unit + e2e (detach/dock each panel, close = dock, leaving the exercise closes all, run from the Code window shows output in a detached Konsole, exam mode has no buttons); screenshots light/dark.
+
+## M11 – Practice exercises from the course page (2026-11-20)
+
+Decisions (user, 2026-11-20):
+- Course page modules get "Übe in J;DE" buttons for self-study exercises: tests yes, no hand-in, no deadline, no grading.
+- Link `jide://practice?src=<zip URL>`; J;DE (started if not running, single instance) downloads the zip and imports it into Scratch with the existing import (T42 format: `exercise.yaml`, `tests.yaml`, files). No backend change, no login, works without a J;DE account.
+- The teacher does not need to know who practised: nothing is tracked or sent.
+- Practice exercises live in the course repo (built into its static site), not in the J;DE backend.
+- Only zips from `https://sj2627-pos-lernwerkstatt.github.io/` are accepted (one constant, easy to change); anything else → German error, nothing downloaded.
+- Same link again → open the existing Scratch copy (the copy remembers its source URL); no duplicate.
+- Updates: an existing copy stays as it is; to get the new version the student deletes the copy and clicks again.
+- Exam mode ignores links (short German notice).
+- No code-paste fallback in J;DE; the course page button shows a hint "J;DE noch nicht installiert? → Download" (GitHub Releases).
+- Button: existing course-page button style + small J;DE icon. No Figma.
+- Students use their own PCs (macOS/Windows); no school-PC registration issues.
+
+- [ ] **T56 `jide://` protocol + single instance** – electron-builder `protocols` (scheme `jide`) for macOS + Windows; `app.setAsDefaultProtocolClient` (dev: with `process.execPath` + script path); `requestSingleInstanceLock`, a second start quits and forwards its argv; receive links via `open-url` (macOS, also before `ready`) and `second-instance` / start argv (Windows); bring the main window to the front. Parse `jide://practice?src=…` strictly; unknown actions → German error. Unit tests for parsing and origin check; e2e: launching with a link argv triggers the handler.
+- [ ] **T57 Practice import** – handler: exam mode → notice, nothing else; origin check (https, host + path prefix of the allowed origin, no redirects to other hosts); download with size limit + timeout, German errors (offline, 404, not a zip, invalid exercise.yaml); existing Scratch copy with the same source URL → open it; else import via `ScratchStore.importExercise` (zip from a buffer), store `source` in the import info, open the new exercise. If an exercise is open with unsaved changes, it is saved first as when switching exercises. Unit + e2e against a local HTTP fixture (import, second click opens the same copy, wrong origin, offline, exam mode). Update SPEC.
+- [ ] **T58 Release** – version bump, user releases; check the link on macOS + Windows with the installed app.
+
+Course repo (`/Users/mf/git/SPG/_teaching/_2627/_course/1bhif`):
+- [ ] **C1 Practice packages** – practice exercise folders in the repo (e.g. `practice/<slug>/` with `exercise.yaml`, `tests.yaml`, files); build step zips them into `static/practice/<slug>.zip` (prebuild script, deterministic, fails the build on an invalid exercise.yaml if the shared validator is usable, else on missing files).
+- [ ] **C2 `UebenButton` component** – `<UebenButton slug="…" title="…">` usable in module content (mdsvex); renders the `jide://practice?src=<absolute zip URL>` link in the existing button style with a small J;DE icon plus the hint "J;DE noch nicht installiert? → Download"; unit/e2e (link href correct, zip reachable in the build).
+- [ ] **C3 First practice exercise** – one real exercise on one module page as an end-to-end check with T56/T57.
