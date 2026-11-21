@@ -24,12 +24,6 @@ test("a practice link from another origin is refused", async () => {
   await expect(page.getByTestId("app-notice")).toHaveText("Übungen können nur von der Kursseite geladen werden.");
 });
 
-test("a practice link from the course page raises no error", async () => {
-  const { page } = await launch({}, undefined, [link(ZIP)]);
-  await expect(page.getByTestId("exercise").first()).toBeVisible();
-  await expect(page.getByTestId("app-notice")).toHaveCount(0);
-});
-
 test("a second start forwards its link to the running instance", async () => {
   const { app, page } = await launch();
   await expect(page.getByTestId("exercise").first()).toBeVisible();

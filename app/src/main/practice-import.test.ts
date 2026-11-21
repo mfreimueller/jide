@@ -17,7 +17,7 @@ import { ScratchStore } from "./scratch";
 const SRC = "https://example.test/p/a.zip";
 const allow = (u: string): boolean => u.startsWith("https://example.test/p/");
 
-const reply = (body: Uint8Array | string, init: ResponseInit = {}): Response => new Response(body as BodyInit, init);
+const reply = (body: BodyInit | Uint8Array, init: ResponseInit = {}): Response => new Response(body as BodyInit, init);
 const stub = (...answers: Array<Response | Error>): typeof fetch => {
   const queue = [...answers];
   return vi.fn(async () => {
@@ -53,7 +53,7 @@ describe("downloadPractice", () => {
         c.enqueue(new Uint8Array(6));
       }
     });
-    expect(await downloadPractice(SRC, { fetch: stub(reply(big as unknown as BodyInit)), maxBytes: 10, isAllowed: allow })).toEqual({
+    expect(await downloadPractice(SRC, { fetch: stub(reply(big)), maxBytes: 10, isAllowed: allow })).toEqual({
       ok: false,
       message: MSG_TOO_BIG
     });
@@ -84,12 +84,12 @@ describe("importPractice", () => {
   });
   afterEach(() => rm(tmp, { recursive: true, force: true }));
 
-  const goodZip = (): Uint8Array =>
+  const goodZip = (): Buffer => Buffer.from(
     zipSync({
       "exercise.yaml": strToU8("id: summe\ntitle: Summe\nfiles:\n  - path: Summe.java\nmainFile: Summe.java\n"),
       "aufgabe.md": strToU8("# Summe\n"),
       "files/Summe.java": strToU8("class Summe {}")
-    });
+    }));
 
   it("imports, remembers the source, and the same source opens the same copy without a download", async () => {
     const first = await importPractice(SRC, store, undefined, { fetch: stub(reply(goodZip())), isAllowed: allow });
@@ -117,7 +117,7 @@ describe("importPractice", () => {
   it("a download that is not a zip / has a bad exercise.yaml reports the import error, nothing imported", async () => {
     const notZip = await importPractice(SRC, store, undefined, { fetch: stub(reply("hello")), isAllowed: allow });
     expect(notZip.kind).toBe("error");
-    const bad = await importPractice(SRC, store, undefined, { fetch: stub(reply(zipSync({ "exercise.yaml": strToU8("title: x\n") }))), isAllowed: allow });
+    const bad = await importPractice(SRC, store, undefined, { fetch: stub(reply(Buffer.from(zipSync({ "exercise.yaml": strToU8("title: x\n") })))), isAllowed: allow });
     expect(bad.kind).toBe("error");
     expect((await store.list()).exercises).toHaveLength(0);
   });
