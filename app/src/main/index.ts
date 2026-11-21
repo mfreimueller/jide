@@ -1,9 +1,11 @@
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { registerBugReportIpc } from "./bug-report";
 import { registerCompileIpc } from "./compile";
 import { askToClose, examCloseNeedsConfirm, registerExamSaveIpc } from "./exam-session";
 import { examMode, initExam, redirectPathsForExamMode, registerExamIpc } from "./exam-state";
+import { findDeepLinkInArgv } from "./deep-link";
+import { attachMainWindow, focusMainWindow, listenForOpenUrl, receiveDeepLink } from "./deep-link-handler";
 import { registerExerciseIpc } from "./exercises";
 import { registerScratchIpc } from "./scratch-ipc";
 import { installAppMenu } from "./menu";
@@ -24,6 +26,33 @@ if (process.env["JIDE_USER_DATA_DIR"]) {
 }
 // Exam mode runs from a read-only share: nothing may be written next to the exe. Before app ready.
 redirectPathsForExamMode();
+
+// One J;DE per user data folder (so parallel test instances with their own folders keep working). Must
+// come after the userData redirects above: the lock lives in that folder.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  // A second start (e.g. a jide:// link clicked while J;DE runs) forwards its argv here.
+  app.on("second-instance", (_e, argv) => {
+    const link = findDeepLinkInArgv(argv);
+    if (link) receiveDeepLink(link);
+    else focusMainWindow();
+  });
+  listenForOpenUrl(); // macOS; before ready
+  const startLink = findDeepLinkInArgv(process.argv); // Windows / Linux; also in dev
+  if (startLink) receiveDeepLink(startLink);
+}
+
+/** Make J;DE the handler of jide:// links; never in tests, smoke runs or exam mode (no system changes there). */
+function registerProtocolClient(): void {
+  if (process.env["JIDE_USER_DATA_DIR"] || smoke || examMode()) return;
+  if (process.defaultApp && process.argv[1]) {
+    app.setAsDefaultProtocolClient("jide", process.execPath, [resolve(process.argv[1])]);
+  } else {
+    app.setAsDefaultProtocolClient("jide");
+  }
+}
 
 const FLUSH_TIMEOUT_MS = 5000;
 
@@ -90,16 +119,19 @@ function createWindow(): BrowserWindow {
     ipcMain.on("jide:flush-done", onDone);
     win.webContents.send("jide:flush-request");
   });
+  attachMainWindow(win);
   loadRenderer(win);
   return win;
 }
 
 app.whenReady().then(async () => {
+  if (!gotLock) return; // quitting: another instance owns this user data folder
   // Before any window: the remembered Hell / Dunkel / System choice (default System).
   applyTheme(storedTheme());
   watchWindowBackground();
   // Exam mode: exam.json is checked and the JDK is looked up before the helper can start.
   await initExam();
+  registerProtocolClient();
   installAppMenu();
   if (smoke) {
     const timer = setTimeout(() => {

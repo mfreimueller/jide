@@ -18,6 +18,11 @@ extraResources:
     to: jdk
   - from: ../java-helper/target/java-helper.jar
     to: java-helper.jar
+# jide://practice?src=... links from the course page
+protocols:
+  name: "J;DE"
+  schemes:
+    - jide
 mac:
   target:
     - target: dir

@@ -122,6 +122,14 @@ tests:
 - "Code zurücksetzen" replaces the code with a new one. The old code stops working immediately; the student needs the new slip. Hand-ins stay.
 - Codes: 8 characters from an unambiguous alphabet (no 0/O, 1/I/L), shown as `XXXX-XXXX`, case-insensitive. They are stored readable (needed for the code sheet). Login and all student routes are rate-limited per IP, which makes guessing impractical.
 
+### 3.6a `jide://practice` link (practice exercises from the course page, M11)
+- Format: `jide://practice?src=<https URL of a practice zip>` (exactly one non-empty `src`; `jide://practice/?src=…` also works). Any other action or a missing `src` shows a German error in the app ("Unbekannter J;DE-Link." / "Der Link enthält keine Übungsadresse.").
+- Origin rule: `src` must be `https` on host `sj2627-pos-lernwerkstatt.github.io` (exactly; no credentials, no port, path ending in `.zip`, under the path prefix). The allowed origin is one constant, `PRACTICE_ORIGIN` in `app/src/main/deep-link.ts`. Anything else: "Übungen können nur von der Kursseite geladen werden." and nothing is downloaded.
+- Registration: the installer / app bundle declares the scheme (`protocols` in electron-builder); at runtime `setAsDefaultProtocolClient("jide")` runs only in normal mode (not in tests, smoke runs or exam mode, so those never change the system handler).
+- Single instance: only one J;DE runs per user data folder. A second start (link click) quits and forwards its link; the running window is restored and brought to the front. Links arriving before the window is ready are queued (macOS `open-url`, Windows/Linux start / `second-instance` argv).
+- Exam mode ignores every link and shows "Im Prüfungsmodus können keine Übungen geöffnet werden.". Messages are shown as an in-app toast, never as a native dialog.
+- Download and import into Scratch: T57.
+
 ### 3.7 Teacher view (web, minimal)
 - Teacher login as in parsonxam: passwordless sign-in link by email (single use, valid 15 min) → 30-day session token, stored hashed, sent as `Bearer`. Rate-limited. One teacher account in v1; more can be added in the database.
 - Courses: create, archive.

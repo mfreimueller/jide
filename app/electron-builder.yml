@@ -17,6 +17,11 @@ extraResources:
     to: jdk
   - from: ../java-helper/target/java-helper.jar
     to: java-helper.jar
+# jide://practice?src=... links from the course page (registered by the installer / app bundle)
+protocols:
+  name: "J;DE"
+  schemes:
+    - jide
 win:
   target:
     - target: nsis

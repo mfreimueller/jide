@@ -38,10 +38,11 @@ const extraDirs: string[] = [];
 /** `userDataDir` defaults to the test's own folder. An empty JIDE_EXERCISES_DIR switches to online mode. */
 export async function launch(
   extraEnv: Record<string, string> = {},
-  userDataDir?: string
+  userDataDir?: string,
+  extraArgs: string[] = []
 ): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
-    args: [appDir],
+    args: [appDir, ...extraArgs],
     env: { ...process.env, JIDE_USER_DATA_DIR: userDataDir ?? userData, JIDE_EXERCISES_DIR: examplesDir, ...extraEnv }
   });
   running.push(app);

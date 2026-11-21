@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { SvelteMap } from "svelte/reactivity";
-  import type { AppSession, ExerciseList as ExerciseListData, OpenedExercise, SaveStatus, StudentInfo } from "../../shared-types/api";
+  import type { AppNotice, AppSession,ExerciseList as ExerciseListData, OpenedExercise, SaveStatus, StudentInfo } from "../../shared-types/api";
   import CloseDialog from "./lib/CloseDialog.svelte";
   import ExamBar from "./lib/ExamBar.svelte";
   import ExamProblem from "./lib/ExamProblem.svelte";
@@ -15,6 +15,9 @@
 
   let exercise = $state<OpenedExercise | undefined>();
   let error = $state("");
+  // Pushed by main, shown as a toast in every view; goes away by itself.
+  let notice = $state<AppNotice | undefined>();
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined;
   // Editor sessions that may hold unsaved edits: one in online mode, one per opened exercise in exam mode.
   const sessions = new SvelteMap<string, EditorSession>();
   let session = $state<AppSession | undefined>();
@@ -69,6 +72,13 @@
     };
     const stop = window.jide.onSessionExpired(leaveToLogin);
     const stopLoggedOut = window.jide.onLoggedOut(() => leaveToLogin(""));
+    // Messages from main (e.g. a bad jide:// link), shown in every view including exam mode.
+    const stopNotice = window.jide.onNotice((n) => {
+      notice = n;
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => (notice = undefined), 8000);
+    });
+    window.jide.notifyAppReady(); // after subscribing: main sends queued links only now
     void window.jide.getSession().then((s) => {
       session = s;
       if (s.mode === "online") student = s.student;
@@ -77,6 +87,8 @@
     return () => {
       stop();
       stopLoggedOut();
+      stopNotice();
+      clearTimeout(noticeTimer);
       stopStatus();
       stopClose();
     };
@@ -123,6 +135,9 @@
   {/if}
 {/snippet}
 
+{#if notice}
+  <div class="toast notice" class:error={notice.kind === "error"} role="alert" data-testid="app-notice">{notice.text}</div>
+{/if}
 {#if confirmClose}
   <CloseDialog
     onStay={() => {
@@ -206,5 +221,8 @@
     border-radius: 10px;
     padding: 12px 16px;
     font-size: 14px;
+  }
+  .toast.notice {
+    z-index: 100;
   }
 </style>

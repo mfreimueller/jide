@@ -62,6 +62,12 @@ export type ExamSession =
   | { status: "no-jdk"; title: string; handInPath: string; searched: string[] };
 
 /** Last write to the hand-in drive that was tried (autosave or hand-in); `at` is ISO 8601 UTC. */
+/** A short German message from main for the page (error or plain information). */
+export interface AppNotice {
+  kind: "error" | "info";
+  text: string;
+}
+
 export interface SaveStatus {
   ok: boolean;
   at: string;
@@ -310,6 +316,10 @@ export interface JideApi {
   onSessionExpired: (handler: (message: string) => void) => () => void;
   /** Called after the student chose "Abmelden" in the menu (main has deleted the code). */
   onLoggedOut: (handler: () => void) => () => void;
+  /** Short messages pushed by main (e.g. a bad `jide://` link); shown as a toast. */
+  onNotice: (handler: (notice: AppNotice) => void) => () => void;
+  /** The main window's App is mounted and subscribed to `onNotice`; main then sends queued messages. */
+  notifyAppReady: () => void;
   /**
    * Uploads the saved editable files. The caller flushes pending edits first.
    * `testSummary`: result of the last test run if it is still current, otherwise null.
