@@ -16,7 +16,7 @@
     "teacher:add": "tsx --env-file-if-exists=.env src/scripts/add_teacher.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.19",
+    "@hono/node-server": "^2.1.11",
     "@jide/shared": "^0.1.0",
     "fflate": "^0.8.3",
     "hono": "^4.13.19",
