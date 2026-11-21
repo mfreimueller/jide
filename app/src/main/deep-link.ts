@@ -4,7 +4,7 @@
  */
 
 /** The only place practice zips may be downloaded from: origin + path prefix (change here only). */
-export const PRACTICE_ORIGIN = "https://sj2627-pos-lernwerkstatt.github.io/";
+export const PRACTICE_ORIGIN = "https://die-spengergasse.github.io/";
 
 /**
  * The allowed origin. Tests (and only tests: the user data folder override is set) may point it to a local

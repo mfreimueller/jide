@@ -6,7 +6,7 @@ import { examplesDir, launch, useTempApp } from "./helpers";
 
 useTempApp();
 
-const ZIP = "https://sj2627-pos-lernwerkstatt.github.io/practice/schleifen.zip";
+const ZIP = "https://die-spengergasse.github.io/practice/schleifen.zip";
 const link = (src: string): string => `jide://practice?src=${encodeURIComponent(src)}`;
 
 test("an unknown jide:// link shows the German error", async () => {

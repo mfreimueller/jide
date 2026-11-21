@@ -223,7 +223,7 @@ Decisions (user, 2026-11-20):
 - Link `jide://practice?src=<zip URL>`; J;DE (started if not running, single instance) downloads the zip and imports it into Scratch with the existing import (T42 format: `exercise.yaml`, `tests.yaml`, files). No backend change, no login, works without a J;DE account.
 - The teacher does not need to know who practised: nothing is tracked or sent.
 - Practice exercises live in the course repo (built into its static site), not in the J;DE backend.
-- Only zips from `https://sj2627-pos-lernwerkstatt.github.io/` are accepted (one constant, easy to change); anything else → German error, nothing downloaded.
+- Only zips from `https://die-spengergasse.github.io/` are accepted (one constant, easy to change); anything else → German error, nothing downloaded.
 - Allowed: any course site of the org: `/<repo>/practice/<file>.zip` or `/practice/<file>.zip` (user, 2026-11-21).
 - Same link again → open the existing Scratch copy (the copy remembers its source URL); no duplicate.
 - Updates: an existing copy stays as it is; to get the new version the student deletes the copy and clicks again.

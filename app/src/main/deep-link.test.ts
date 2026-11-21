@@ -71,18 +71,18 @@ describe("parseDeepLink", () => {
 describe("isAllowedPracticeSrc", () => {
   it("allows zips on the course origin", () => {
     expect(isAllowedPracticeSrc(ZIP)).toBe(true);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/sj2627-pos-1bhif-kurs/practice/x.zip")).toBe(true);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/practice/x.zip")).toBe(true);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io:443/practice/a.zip")).toBe(true); // default port
-    expect(isAllowedPracticeSrc("https://SJ2627-POS-Lernwerkstatt.github.io/practice/a.ZIP")).toBe(true);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/sj2627-pos-1bhif-kurs/practice/x.zip")).toBe(true);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/practice/x.zip")).toBe(true);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io:443/practice/a.zip")).toBe(true); // default port
+    expect(isAllowedPracticeSrc("https://Die-Spengergasse.github.io/practice/a.ZIP")).toBe(true);
   });
   it("rejects lookalike hosts", () => {
     for (const bad of [
-      "https://sj2627-pos-lernwerkstatt.github.io.evil.com/a.zip",
-      "https://evil.com/?x=https://sj2627-pos-lernwerkstatt.github.io/practice/a.zip",
-      "https://evil.com/sj2627-pos-lernwerkstatt.github.io/a.zip",
-      "https://xsj2627-pos-lernwerkstatt.github.io/a.zip",
-      "https://sj2627-pos-lernwerkstatt.github.io./a.zip",
+      "https://die-spengergasse.github.io.evil.com/a.zip",
+      "https://evil.com/?x=https://die-spengergasse.github.io/practice/a.zip",
+      "https://evil.com/die-spengergasse.github.io/a.zip",
+      "https://xdie-spengergasse.github.io/a.zip",
+      "https://die-spengergasse.github.io./a.zip",
       "https://github.io/a.zip",
       "https://example.com/x.zip"
     ]) {
@@ -91,34 +91,34 @@ describe("isAllowedPracticeSrc", () => {
   });
   it("rejects other schemes, credentials and ports", () => {
     for (const bad of [
-      "http://sj2627-pos-lernwerkstatt.github.io/a.zip",
-      "ftp://sj2627-pos-lernwerkstatt.github.io/a.zip",
-      "file:///sj2627-pos-lernwerkstatt.github.io/a.zip",
-      "https://user@sj2627-pos-lernwerkstatt.github.io/a.zip",
-      "https://user:pw@sj2627-pos-lernwerkstatt.github.io/a.zip",
-      "https://sj2627-pos-lernwerkstatt.github.io@evil.com/a.zip",
-      "https://sj2627-pos-lernwerkstatt.github.io:8443/a.zip",
-      "//sj2627-pos-lernwerkstatt.github.io/a.zip"
+      "http://die-spengergasse.github.io/a.zip",
+      "ftp://die-spengergasse.github.io/a.zip",
+      "file:///die-spengergasse.github.io/a.zip",
+      "https://user@die-spengergasse.github.io/a.zip",
+      "https://user:pw@die-spengergasse.github.io/a.zip",
+      "https://die-spengergasse.github.io@evil.com/a.zip",
+      "https://die-spengergasse.github.io:8443/a.zip",
+      "//die-spengergasse.github.io/a.zip"
     ]) {
       expect(isAllowedPracticeSrc(bad), bad).toBe(false);
     }
   });
   it("requires a .zip path", () => {
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/")).toBe(false);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/practice/a.zip.html")).toBe(false);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/a?f=b.zip")).toBe(false);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/")).toBe(false);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/practice/a.zip.html")).toBe(false);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/a?f=b.zip")).toBe(false);
   });
   it("only accepts <repo>/practice/<file>.zip or practice/<file>.zip", () => {
     for (const p of ["/x.zip", "/a/b/practice/x.zip", "/repo/x.zip", "/repo/practice/sub/x.zip", "/repo/practice/.zip", "/practice/.zip", "/practice/", "//practice/x.zip", "/practice/x.zip/", "/repo/practices/x.zip", "/practice/x.zip.html"]) {
-      expect(isAllowedPracticeSrc(`https://sj2627-pos-lernwerkstatt.github.io${p}`), p).toBe(false);
+      expect(isAllowedPracticeSrc(`https://die-spengergasse.github.io${p}`), p).toBe(false);
     }
   });
   it("dot segments are normalized by the URL parser and cannot escape the rule", () => {
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/practice/../../x.zip")).toBe(false);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/practice/%2e%2e/%2e%2e/x.zip")).toBe(false);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/practice/../x.zip")).toBe(false);
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/other/../practice/x.zip")).toBe(true); // normalizes to /repo/practice/x.zip
-    expect(isAllowedPracticeSrc("https://sj2627-pos-lernwerkstatt.github.io/repo/practice/%2e%2e%2fx.zip")).toBe(false);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/practice/../../x.zip")).toBe(false);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/practice/%2e%2e/%2e%2e/x.zip")).toBe(false);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/practice/../x.zip")).toBe(false);
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/other/../practice/x.zip")).toBe(true); // normalizes to /repo/practice/x.zip
+    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/practice/%2e%2e%2fx.zip")).toBe(false);
   });
   it("rejects garbage", () => {
     expect(isAllowedPracticeSrc("")).toBe(false);
