@@ -5,6 +5,16 @@ import { join } from "node:path";
 import type { Page } from "@playwright/test";
 import { examplesDir, exitApp, launch, newUserData, setEditorText, useTempApp } from "./helpers";
 
+// expect.poll calls its callback outside its retry try/catch: a throwing callback fails at once, so a file that is not written yet must yield undefined
+function readIfExists(path: string): string | undefined {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw e;
+  }
+}
+
 useTempApp();
 
 let examDir: string;
@@ -342,7 +352,7 @@ test("autosave: after a run and on a tab switch, with name; skipped while unchan
   // switching tabs saves the exercise that was left (and autosaves the first one for the first time)
   await setEditorText(app, page, "// beim Wechseln\nvoid main() {}\n");
   await gotoTab(page, 0);
-  await expect.poll(() => readFileSync(join(auto, "Summe.java"), "utf8")).toBe("// beim Wechseln\nvoid main() {}\n");
+  await expect.poll(() => readIfExists(join(auto, "Summe.java"))).toBe("// beim Wechseln\nvoid main() {}\n");
 });
 
 test("autosave runs by itself on the interval (JIDE_AUTOSAVE_MS)", async () => {
@@ -366,7 +376,7 @@ test("restore after a restart with an EMPTY user-data dir: the newest of autosav
   await expect(first.page.getByTestId("toast")).toContainText("Abgabe gespeichert");
   await setEditorText(first.app, first.page, "// Autosave 2\n");
   await gotoTab(first.page, 0); // autosave of the exercise that was left
-  await expect.poll(() => readFileSync(join(drive, "summe", "_autosave", "Summe.java"), "utf8")).toBe("// Autosave 2\n");
+  await expect.poll(() => readIfExists(join(drive, "summe", "_autosave", "Summe.java"))).toBe("// Autosave 2\n");
   // autosave.json is written right after the files: wait until its time is past the hand-in before the crash
   const time = (file: string, key: string): number => {
     try {
