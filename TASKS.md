@@ -257,3 +257,22 @@ Decisions (user, 2026-11-22):
 - [x] **T61 App: course hosts** – remove `PRACTICE_ORIGIN`; check `https`, host in the course list (case-insensitive, exact), default port, no credentials, path ends in `.zip`. Order: exam mode → notice; parse; not signed in → notice; existing Scratch copy with this source → open (no network); fetch the course hosts (offline / session expired → the usual messages); check `src` and every redirect target. Test-only override keeps http + port possible for the e2e fixture server. Unit + e2e. Update SPEC §3.6a.
 - [x] **T62 Manual (VitePress, GitHub Pages)** – `manual/` workspace, German, chapters: Überblick, Kurs anlegen, Schüler:innen + Codezettel, Aufgaben (Format, Upload, Freischalten, Gruppen, Abgabefrist), Abgaben + Bewertung, Übungs-Links (course page buttons, hosts), Prüfungsmodus, Die App für Schüler:innen, Selbst hosten (links to `docs/deployment.md`). Screenshots of the teacher web. GitHub Actions workflow deploys on push to main. Link from README.
 - [ ] **T63 Release** – backend deploy + host entered for 1BHIF, then version bump, user releases.
+
+## M13 – Linux (AppImage) (planned 2026-11-22)
+
+Decisions (user, 2026-11-22):
+- Linux build as AppImage (auto-update via electron-updater keeps working). No .deb.
+- macOS stays out of the release and the manual.
+
+Open (ask before starting):
+- Architectures: x64 only, or also arm64?
+- Ubuntu 24.04+ blocks Electron's sandbox in AppImages (AppArmor, unprivileged user namespaces): start with `--no-sandbox` (works everywhere, weaker isolation) or document an AppArmor profile / sysctl step for students?
+- Which distros we name as supported in the manual (e.g. Ubuntu 22.04/24.04, Fedora)? AppImage needs `libfuse2` on Ubuntu 22.04+ (manual hint).
+
+Facts (checked 2026-11-22): app code is already platform-neutral (java/javac names, menu, `index.ts` quits on non-darwin); `build-runtime.mjs` jlinks the JDK for the platform it runs on; `ci.yml` e2e matrix is macOS + Windows; `release.yml` builds Windows only; `describeOs` (bug report) knows Windows/macOS.
+
+- [ ] **T64 Linux build** – `linux` section in `app/electron-builder.yml`: AppImage, `artifactName: JDE-${version}.AppImage`, icon, category Education; publish stays GitHub (electron-builder writes `latest-linux.yml`). `describeOs` for Linux (distro from `/etc/os-release` if readable). Local check: `electron-builder --linux` in a Linux container or CI.
+- [ ] **T65 `jide://` on Linux** – AppImage does not install a desktop entry. On every start in normal mode (not tests, smoke, exam): if `process.env.APPIMAGE` is set, write `~/.local/share/applications/jde-jide.desktop` (`Exec="<APPIMAGE path>" %u`, `MimeType=x-scheme-handler/jide;`, icon copied to `~/.local/share/icons/…`) when missing or the path changed (an auto-update replaces the file), then `xdg-mime default jde-jide.desktop x-scheme-handler/jide` (errors only logged). Unit tests for the desktop file text and the "needs update" check; no system changes in tests.
+- [ ] **T66 CI + release** – `ci.yml`: add `ubuntu-latest` to the e2e matrix (xvfb-run, jlink runtime check). `release.yml`: Linux job on `ubuntu-latest` (JDK 25, java-helper, jlink runtime, `electron-builder --linux --publish never`), upload `JDE-*.AppImage` + `latest-linux.yml` to the release next to the Windows files. Smoke start of the AppImage in CI (`--appimage-extract-and-run` + xvfb) like the Windows installer smoke test.
+- [ ] **T67 Manual + docs** – manual `app.md`: Linux section (download, `chmod +x`, libfuse2 hint, sandbox note per decision, first start registers `jide://`); README + docs/release.md mention the Linux artifact.
+- [ ] **T68 Manual test + release** – user (or a teacher with Linux) on a real desktop: install, start, sign in, run + test an exercise, click a practice link in the browser, receive an auto-update (needs two releases).
