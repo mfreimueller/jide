@@ -289,5 +289,5 @@ Decisions (user, 2026-11-22):
 - Wording: J;DE is an IDE for Java beginners, preferably 1st-year Informatik classes at HTLs — not "one class, one school year".
 - README: German, all important information for interested teachers, link to the manual (https://mfreimueller.github.io/jide/), no links to SPEC/TASKS.
 
-- [ ] **T69 Categories** – shared validator (`kind`, strict vs. lenient for `difficulty`), backend migration (`exercises.difficulty` → `kind`; stored newbie → pflicht, advanced/pro → bonus, NULL → pflicht) + API field `kind`, app (pill, practice links → uebung, types), teacher web if it shows difficulty, examples/, tests, SPEC §4, manual (aufgaben.md, app.md).
+- [ ] **T69 Categories** – shared validator (`kind`, strict vs. lenient for `difficulty`), backend migration (drop `exercises.difficulty`, add `exercises.kind` NULL; NULL = Pflicht, so already-uploaded packages show Pflicht until uploaded again) + API field `kind`, app (pill, practice links → uebung, types), teacher web if it shows difficulty, examples/, tests, SPEC §4, manual (aufgaben.md, app.md).
 - [ ] **T70 Wording + README** – remove "one class / one school year" framing in README, SPEC §1, manual, package descriptions; new German README.
