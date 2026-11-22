@@ -19,9 +19,11 @@ test("a practice link without src shows the German error", async () => {
   await expect(page.getByTestId("app-notice")).toHaveText("Der Link enthält keine Übungsadresse.");
 });
 
-test("a practice link from another origin is refused", async () => {
-  const { page } = await launch({}, undefined, [link("https://example.com/x.zip")]);
-  await expect(page.getByTestId("app-notice")).toHaveText("Übungen können nur von der Kursseite geladen werden.");
+test("a practice link without a sign-in (local mode: no account) shows the login notice", async () => {
+  const { page } = await launch({}, undefined, [link(ZIP)]);
+  await expect(page.getByTestId("app-notice")).toHaveText(
+    "Melde dich zuerst mit deinem persönlichen Code an und klick dann den Link noch einmal."
+  );
 });
 
 test("a second start forwards its link to the running instance", async () => {

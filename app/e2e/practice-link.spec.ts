@@ -5,11 +5,20 @@ import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
 import { zipSync, type Zippable } from "fflate";
 import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
-import { examplesDir, launch, openExercise, setEditorText, useTempApp } from "./helpers";
+import { card, examplesDir, launch, openExercise, setEditorText, useTempApp } from "./helpers";
+import { dbReachable, login, startBackend, stopAllBackends } from "./online-helpers";
 
 useTempApp();
 
+test.beforeAll(async () => {
+  test.skip(!(await dbReachable()), "MariaDB (docker compose up -d) is not running");
+});
+test.afterEach(stopAllBackends);
+
 const TITLE = "Summe zweier Zahlen";
+const MSG_BAD_HOST = "Übungen können nur von Seiten geladen werden, die deine Lehrkraft für deinen Kurs freigegeben hat.";
+const MSG_LOGIN = "Melde dich zuerst mit deinem persönlichen Code an und klick dann den Link noch einmal.";
+const MSG_OFFLINE = "Die Übung konnte nicht geladen werden. Bist du mit dem Internet verbunden?";
 
 function readDir(dir: string, base = dir, out: Zippable = {}): Zippable {
   for (const name of readdirSync(dir)) {
@@ -57,12 +66,25 @@ test.beforeEach(async () => {
 });
 test.afterEach(() => new Promise<void>((r) => fixture.server.close(() => r())));
 
-const env = (): Record<string, string> => ({ JIDE_TEST_PRACTICE_ORIGIN: fixture.origin });
+const zipUrl = (name = "summe.zip"): string => `${fixture.origin}kurs/practice/${name}`;
 
-test("a link imports the exercise into Scratch and opens it; the same link again opens the same copy", async () => {
-  const { app, page } = await launch(env());
-  await expect(page.getByTestId("exercise").first()).toBeVisible();
-  await sendLink(app, `${fixture.origin}kurs/practice/summe.zip`);
+/**
+ * Online mode against the fixture backend, signed in. The course's practice hosts are inserted directly (the
+ * backend refuses IP literals): the local zip server is `127.0.0.1`. JIDE_TEST_PRACTICE_INSECURE allows its
+ * http + port, nothing else.
+ */
+async function signedIn(hosts: string[] = ["127.0.0.1"], insecure = "1") {
+  const backend = await startBackend();
+  await backend.setPracticeHosts(hosts);
+  const l = await launch({ JIDE_EXERCISES_DIR: "", JIDE_API_URL: backend.url, JIDE_TEST_PRACTICE_INSECURE: insecure });
+  await login(l.page, backend.code);
+  await expect(card(l.page, "Summe zweier Zahlen")).toBeVisible();
+  return { ...l, backend };
+}
+
+test("signed in, allowed host: a link imports the exercise into Scratch and opens it; the same link again opens the same copy", async () => {
+  const { app, page, backend } = await signedIn();
+  await sendLink(app, zipUrl());
   await expectOpenedCopy(page);
   await expect(page.getByTestId("app-notice")).toHaveCount(0);
   expect(fixture.hits).toEqual(["/kurs/practice/summe.zip"]);
@@ -70,36 +92,63 @@ test("a link imports the exercise into Scratch and opens it; the same link again
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE })).toHaveCount(1);
 
-  await sendLink(app, `${fixture.origin}kurs/practice/summe.zip`);
+  // an existing copy opens without any host check or network: also with an empty host list
+  await backend.setPracticeHosts([]);
+  await sendLink(app, zipUrl());
   await expectOpenedCopy(page);
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE })).toHaveCount(1);
   expect(fixture.hits).toHaveLength(1); // no second download
 });
 
-test("a link from another origin is refused and nothing is imported", async () => {
-  const { app, page } = await launch(env());
-  await expect(page.getByTestId("exercise").first()).toBeVisible();
+test("a host that is not in the course list is refused and nothing is imported", async () => {
+  const { app, page } = await signedIn();
   await sendLink(app, "https://example.com/kurs/practice/summe.zip");
-  await expect(page.getByTestId("app-notice")).toHaveText("Übungen können nur von der Kursseite geladen werden.");
+  await expect(page.getByTestId("app-notice")).toHaveText(MSG_BAD_HOST);
+  await sendLink(app, zipUrl().replace("127.0.0.1", "localhost"));
+  await expect(page.getByTestId("app-notice")).toHaveText(MSG_BAD_HOST);
   await expect(page.getByTestId("scratch-item")).toHaveCount(0);
   expect(fixture.hits).toHaveLength(0);
 });
 
-test("an unreachable server shows the offline error", async () => {
+test("without the test override a plain http link with a port is refused even for a listed host", async () => {
+  const { app, page } = await signedIn(["127.0.0.1"], "");
+  await sendLink(app, zipUrl());
+  await expect(page.getByTestId("app-notice")).toHaveText(MSG_BAD_HOST);
+  expect(fixture.hits).toHaveLength(0);
+});
+
+test("not signed in (login screen): the login notice, nothing downloaded, no switch to Scratch", async () => {
+  const backend = await startBackend();
+  await backend.setPracticeHosts(["127.0.0.1"]);
+  const { app, page } = await launch({ JIDE_EXERCISES_DIR: "", JIDE_API_URL: backend.url, JIDE_TEST_PRACTICE_INSECURE: "1" });
+  await expect(page.getByTestId("open-scratch")).toBeVisible();
+  await sendLink(app, zipUrl());
+  await expect(page.getByTestId("app-notice")).toHaveText(MSG_LOGIN);
+  await expect(page.getByTestId("open-scratch")).toBeVisible();
+  expect(fixture.hits).toHaveLength(0);
+});
+
+test("an unreachable zip server shows the offline error", async () => {
   const dead = await fixtureServer();
   await new Promise<void>((r) => dead.server.close(() => r()));
-  const { app, page } = await launch({ JIDE_TEST_PRACTICE_ORIGIN: dead.origin });
-  await expect(page.getByTestId("exercise").first()).toBeVisible();
+  const { app, page } = await signedIn();
   await sendLink(app, `${dead.origin}kurs/practice/summe.zip`);
-  await expect(page.getByTestId("app-notice")).toHaveText("Die Übung konnte nicht geladen werden. Bist du mit dem Internet verbunden?");
+  await expect(page.getByTestId("app-notice")).toHaveText(MSG_OFFLINE);
   await expect(page.getByTestId("scratch-item")).toHaveCount(0);
 });
 
+test("a stopped backend (hosts cannot be fetched) shows the offline error, nothing downloaded", async () => {
+  const { app, page, backend } = await signedIn();
+  await backend.stop();
+  await sendLink(app, zipUrl());
+  await expect(page.getByTestId("app-notice")).toHaveText(MSG_OFFLINE);
+  expect(fixture.hits).toHaveLength(0);
+});
+
 test("a missing zip shows the 404 error", async () => {
-  const { app, page } = await launch(env());
-  await expect(page.getByTestId("exercise").first()).toBeVisible();
-  await sendLink(app, `${fixture.origin}kurs/practice/gibt-es-nicht.zip`);
+  const { app, page } = await signedIn();
+  await sendLink(app, zipUrl("gibt-es-nicht.zip"));
   await expect(page.getByTestId("app-notice")).toHaveText("Diese Übung gibt es auf der Kursseite nicht (mehr).");
   await expect(page.getByTestId("scratch-item")).toHaveCount(0);
 });
@@ -109,7 +158,7 @@ test("exam mode ignores the link: notice, no download, nothing imported", async 
   try {
     writeFileSync(join(examDir, "exam.json"), JSON.stringify({ mode: "exam", title: "Probe", handInPath: "P:\\", jdkPath: null, allowTests: true }));
     cpSync(join(examplesDir, "summe"), join(examDir, "exercises", "summe"), { recursive: true });
-    const { page } = await launch({ ...env(), JIDE_EXAM_DIR: examDir }, undefined, [link(`${fixture.origin}kurs/practice/summe.zip`)]);
+    const { page } = await launch({ JIDE_TEST_PRACTICE_INSECURE: "1", JIDE_EXAM_DIR: examDir }, undefined, [link(zipUrl())]);
     await expect(page.getByTestId("app-notice")).toHaveText("Im Prüfungsmodus können keine Übungen geöffnet werden.");
     await expect(page.getByTestId("exam-start")).toBeVisible();
     expect(fixture.hits).toHaveLength(0);
@@ -119,23 +168,14 @@ test("exam mode ignores the link: notice, no download, nothing imported", async 
 });
 
 test("a link while an exercise with unsaved edits is open saves the edits, then opens the practice exercise", async () => {
-  const { app, page } = await launch(env());
+  const { app, page } = await signedIn();
   await openExercise(page, "Größere Zahl");
   const MARK = "// unsaved-before-link";
   await setEditorText(app, page, `${MARK}\nvoid main() {}\n`);
-  await sendLink(app, `${fixture.origin}kurs/practice/summe.zip`);
+  await sendLink(app, zipUrl());
   await expectOpenedCopy(page);
 
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await openExercise(page, "Größere Zahl");
   await expect(page.locator(".monaco-editor .view-lines").first()).toContainText(MARK);
-});
-
-test("a link on the online login screen switches to Scratch and opens the exercise", async () => {
-  const { app, page } = await launch({ ...env(), JIDE_EXERCISES_DIR: "", JIDE_API_URL: "http://127.0.0.1:9" });
-  await expect(page.getByTestId("open-scratch")).toBeVisible();
-  await sendLink(app, `${fixture.origin}kurs/practice/summe.zip`);
-  await expectOpenedCopy(page);
-  await page.getByRole("button", { name: "← Aufgaben" }).click();
-  await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE })).toHaveCount(1);
 });

@@ -128,8 +128,6 @@
       }
       exercise = undefined;
     }
-    // Login screen: Scratch works without an account.
-    if (s.mode === "online" && !(student ?? s.student)) scratchOnly = true;
     await open(id);
   }
 </script>

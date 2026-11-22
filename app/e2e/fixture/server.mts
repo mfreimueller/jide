@@ -100,6 +100,14 @@ const server = serve(
         }
         return new Response(null, { status: 204 });
       }
+      if (req.method === "POST" && url.pathname === "/__test/practice-hosts") {
+        // replaces the course's practice hosts by direct inserts: the backend validation (no IP literals,
+        // no localhost) stays untouched, and e2e needs the host 127.0.0.1 of the local zip server
+        const spec = (await req.json()) as { hosts: string[] };
+        await db`DELETE FROM course_practice_hosts WHERE course_id = ${course.id}`;
+        for (const host of spec.hosts) await db`INSERT INTO course_practice_hosts (course_id, host) VALUES (${course.id}, ${host})`;
+        return new Response(null, { status: 204 });
+      }
       if (req.method === "GET" && url.pathname === "/__test/matrix") {
         // what the teacher matrix shows: last hand-in (with test summary) per exercise
         return Response.json(await handInMatrix(db, course.id, false));

@@ -2,6 +2,7 @@ import type {
   HandInRequest,
   HandInResponse,
   LatestHandInResponse,
+  PracticeHostsResponse,
   StudentExerciseGroup,
   StudentExerciseListResponse,
   StudentExerciseSummary,
@@ -92,6 +93,13 @@ export class ApiClient {
     const r = await this.json<StudentExerciseListResponse>("GET", "/api/exercises");
     if (!Array.isArray(r?.exercises)) throw new ApiError("offline", OFFLINE_MESSAGE);
     return { exercises: r.exercises, groups: Array.isArray(r.groups) ? r.groups : [] };
+  }
+
+  /** The hosts practice zips may be downloaded from for the student's course (lower-case DNS names). */
+  async practiceHosts(): Promise<string[]> {
+    const r = await this.json<PracticeHostsResponse>("GET", "/api/student/practice-hosts");
+    if (!Array.isArray(r?.hosts) || r.hosts.some((h) => typeof h !== "string")) throw new ApiError("offline", OFFLINE_MESSAGE);
+    return r.hosts;
   }
 
   /** `cachedVersion` is sent as `If-None-Match`; 304 yields `{ notModified: true }`. */

@@ -1,9 +1,10 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import type { AppNotice } from "../shared-types/api";
-import { isAllowedPracticeSrc, MSG_BAD_ORIGIN, MSG_EXAM_MODE, parseDeepLink } from "./deep-link";
+import { practiceInsecure } from "./deep-link";
 import { context } from "./context";
 import { examMode } from "./exam-state";
-import { importPractice, MSG_LOADING, MSG_OFFLINE } from "./practice-import";
+import { runPracticeFlow } from "./practice-flow";
+import { MSG_OFFLINE } from "./practice-import";
 
 let mainWindow: BrowserWindow | undefined;
 // Creates the main window when a link arrives while none is open (macOS keeps running without windows).
@@ -20,40 +21,31 @@ export function pushNotice(win: BrowserWindow, notice: AppNotice): void {
 // Links are handled one after another, never in parallel.
 let chain: Promise<void> = Promise.resolve();
 
-async function runPracticeLink(src: string, win: BrowserWindow): Promise<void> {
-  const out = await importPractice(src, context().scratch, () => pushNotice(win, { kind: "info", text: MSG_LOADING }));
+async function runLink(raw: string, win: BrowserWindow): Promise<void> {
+  const ctx = context();
+  const api = ctx.session?.api;
+  const out = await runPracticeFlow(raw, {
+    examMode: Boolean(examMode()),
+    signedIn: Boolean(ctx.session?.store.get()),
+    scratch: ctx.scratch,
+    fetchHosts: () => (api ? api.practiceHosts() : Promise.resolve([])),
+    onLoading: (notice) => pushNotice(win, notice),
+    insecure: practiceInsecure()
+  });
   if (win.isDestroyed()) return;
-  if (out.kind === "error") pushNotice(win, { kind: "error", text: out.message });
+  if (out.kind === "notice") pushNotice(win, out.notice);
   else win.webContents.send("jide:open-exercise", out.id);
 }
 
 /**
- * Practice link with a checked origin: opens the existing Scratch copy of this source, else downloads and
- * imports it; the renderer then opens the exercise ("jide:open-exercise").
+ * Handles one link (links run one after another, never in parallel): see `runPracticeFlow` for the order.
+ * The renderer then opens the exercise ("jide:open-exercise").
  */
-export function handlePracticeLink(src: string, win: BrowserWindow): Promise<void> {
-  chain = chain.then(() => runPracticeLink(src, win)).catch(() => {
+export function dispatchDeepLink(raw: string, win: BrowserWindow): Promise<void> {
+  chain = chain.then(() => runLink(raw, win)).catch(() => {
     if (!win.isDestroyed()) pushNotice(win, { kind: "error", text: MSG_OFFLINE });
   });
   return chain;
-}
-
-/** Parses and checks one link, then dispatches it. Exam mode ignores every link. */
-export function dispatchDeepLink(raw: string, win: BrowserWindow): void {
-  if (examMode()) {
-    pushNotice(win, { kind: "info", text: MSG_EXAM_MODE });
-    return;
-  }
-  const link = parseDeepLink(raw);
-  if (link.kind === "error") {
-    pushNotice(win, { kind: "error", text: link.message });
-    return;
-  }
-  if (!isAllowedPracticeSrc(link.src)) {
-    pushNotice(win, { kind: "error", text: MSG_BAD_ORIGIN });
-    return;
-  }
-  handlePracticeLink(link.src, win);
 }
 
 /** Brings the main window to the front (restores it when minimized). */

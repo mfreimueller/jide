@@ -130,7 +130,7 @@ describe("importPractice", () => {
   });
   it("without a Scratch store (exam mode) nothing is downloaded", async () => {
     const f = stub();
-    expect((await importPractice(SRC, undefined, undefined, { fetch: f })).kind).toBe("error");
+    expect((await importPractice(SRC, undefined, undefined, { fetch: f, isAllowed: allow })).kind).toBe("error");
     expect(f).not.toHaveBeenCalled();
   });
 });

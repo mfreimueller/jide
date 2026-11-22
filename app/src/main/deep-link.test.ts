@@ -5,11 +5,12 @@ import {
   MSG_NO_SRC,
   MSG_UNKNOWN_LINK,
   parseDeepLink,
-  PRACTICE_ORIGIN,
-  practiceOrigin
+  practiceInsecure
 } from "./deep-link";
 
-const ZIP = `${PRACTICE_ORIGIN}practice/schleifen.zip`;
+const HOST = "die-spengergasse.github.io";
+const HOSTS = [HOST, "kurs.example.org"];
+const ZIP = `https://${HOST}/practice/schleifen.zip`;
 const enc = encodeURIComponent;
 const unknown = { kind: "error", message: MSG_UNKNOWN_LINK };
 const noSrc = { kind: "error", message: MSG_NO_SRC };
@@ -69,77 +70,85 @@ describe("parseDeepLink", () => {
 });
 
 describe("isAllowedPracticeSrc", () => {
-  it("allows zips on the course origin", () => {
-    expect(isAllowedPracticeSrc(ZIP)).toBe(true);
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/sj2627-pos-1bhif-kurs/practice/x.zip")).toBe(true);
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/practice/x.zip")).toBe(true);
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io:443/practice/a.zip")).toBe(true); // default port
-    expect(isAllowedPracticeSrc("https://Die-Spengergasse.github.io/practice/a.ZIP")).toBe(true);
+  const ok = (src: string, hosts: readonly string[] = HOSTS, insecure = false): boolean => isAllowedPracticeSrc(src, hosts, insecure);
+  it("allows https zips on a listed host, any path", () => {
+    expect(ok(ZIP)).toBe(true);
+    expect(ok(`https://${HOST}/x.zip`)).toBe(true);
+    expect(ok(`https://${HOST}/a/b/c/x.zip`)).toBe(true);
+    expect(ok("https://kurs.example.org/y.zip")).toBe(true);
+    expect(ok(`https://${HOST}:443/a.zip`)).toBe(true); // default port
+    expect(ok(`https://${HOST}/a.zip?v=2#x`)).toBe(true);
   });
-  it("rejects lookalike hosts", () => {
+  it("matches the host case-insensitively", () => {
+    expect(ok("https://Die-Spengergasse.GitHub.io/a.ZIP")).toBe(true);
+    expect(ok(ZIP, ["DIE-SPENGERGASSE.github.io"])).toBe(true);
+  });
+  it("needs the exact host: no subdomains, parents or lookalikes", () => {
     for (const bad of [
-      "https://die-spengergasse.github.io.evil.com/a.zip",
-      "https://evil.com/?x=https://die-spengergasse.github.io/practice/a.zip",
-      "https://evil.com/die-spengergasse.github.io/a.zip",
-      "https://xdie-spengergasse.github.io/a.zip",
-      "https://die-spengergasse.github.io./a.zip",
+      `https://sub.${HOST}/a.zip`,
+      `https://${HOST}.evil.com/a.zip`,
       "https://github.io/a.zip",
+      `https://x${HOST}/a.zip`,
+      `https://${HOST}./a.zip`,
+      `https://evil.com/?x=https://${HOST}/a.zip`,
+      `https://evil.com/${HOST}/a.zip`,
+      `https://${HOST}@evil.com/a.zip`,
       "https://example.com/x.zip"
     ]) {
-      expect(isAllowedPracticeSrc(bad), bad).toBe(false);
+      expect(ok(bad), bad).toBe(false);
     }
   });
-  it("rejects other schemes, credentials and ports", () => {
-    for (const bad of [
-      "http://die-spengergasse.github.io/a.zip",
-      "ftp://die-spengergasse.github.io/a.zip",
-      "file:///die-spengergasse.github.io/a.zip",
-      "https://user@die-spengergasse.github.io/a.zip",
-      "https://user:pw@die-spengergasse.github.io/a.zip",
-      "https://die-spengergasse.github.io@evil.com/a.zip",
-      "https://die-spengergasse.github.io:8443/a.zip",
-      "//die-spengergasse.github.io/a.zip"
-    ]) {
-      expect(isAllowedPracticeSrc(bad), bad).toBe(false);
+  it("rejects everything with an empty host list", () => {
+    expect(ok(ZIP, [])).toBe(false);
+  });
+  it("rejects other schemes", () => {
+    for (const bad of [`http://${HOST}/a.zip`, `ftp://${HOST}/a.zip`, `file:///${HOST}/a.zip`, `//${HOST}/a.zip`]) {
+      expect(ok(bad), bad).toBe(false);
     }
   });
-  it("requires a .zip path", () => {
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/")).toBe(false);
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/practice/a.zip.html")).toBe(false);
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/a?f=b.zip")).toBe(false);
-  });
-  it("only accepts <repo>/practice/<file>.zip or practice/<file>.zip", () => {
-    for (const p of ["/x.zip", "/a/b/practice/x.zip", "/repo/x.zip", "/repo/practice/sub/x.zip", "/repo/practice/.zip", "/practice/.zip", "/practice/", "//practice/x.zip", "/practice/x.zip/", "/repo/practices/x.zip", "/practice/x.zip.html"]) {
-      expect(isAllowedPracticeSrc(`https://die-spengergasse.github.io${p}`), p).toBe(false);
+  it("rejects an explicit port and credentials", () => {
+    for (const bad of [`https://${HOST}:8443/a.zip`, `https://user@${HOST}/a.zip`, `https://user:pw@${HOST}/a.zip`]) {
+      expect(ok(bad), bad).toBe(false);
     }
   });
-  it("dot segments are normalized by the URL parser and cannot escape the rule", () => {
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/practice/../../x.zip")).toBe(false);
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/practice/%2e%2e/%2e%2e/x.zip")).toBe(false);
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/practice/../x.zip")).toBe(false);
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/other/../practice/x.zip")).toBe(true); // normalizes to /repo/practice/x.zip
-    expect(isAllowedPracticeSrc("https://die-spengergasse.github.io/repo/practice/%2e%2e%2fx.zip")).toBe(false);
+  it("requires a .zip path with a file name", () => {
+    for (const p of ["/", "", "/a.zip.html", "/a?f=b.zip", "/.zip", "/dir/.zip", "/a.zip/", "/zip", "/a.txt"]) {
+      expect(ok(`https://${HOST}${p}`), p).toBe(false);
+    }
+  });
+  it("rejects encoded separators and backslashes in the path", () => {
+    for (const p of ["/a%2fb.zip", "/a%2Fb.zip", "/a%5cb.zip", "/a%5Cb.zip", "/%2e%2e%2fx.zip"]) {
+      expect(ok(`https://${HOST}${p}`), p).toBe(false);
+    }
+    // a literal backslash is turned into a separator by the URL parser: the checked path is the requested one
+    expect(new URL(`https://${HOST}/a\\b.zip`).pathname).toBe("/a/b.zip");
+  });
+  it("dot segments are normalized by the URL parser", () => {
+    expect(ok(`https://${HOST}/a/../x.zip`)).toBe(true);
+    expect(ok(`https://${HOST}/a/%2e%2e/x.zip`)).toBe(true);
+    expect(ok(`https://${HOST}/a/..`)).toBe(false);
   });
   it("rejects garbage", () => {
-    expect(isAllowedPracticeSrc("")).toBe(false);
-    expect(isAllowedPracticeSrc("not a url")).toBe(false);
+    expect(ok("")).toBe(false);
+    expect(ok("not a url")).toBe(false);
+  });
+  it("insecure (tests only) also allows http and an explicit port, but not other hosts", () => {
+    const hosts = ["127.0.0.1"];
+    expect(ok("http://127.0.0.1:5000/kurs/a.zip", hosts, true)).toBe(true);
+    expect(ok("http://127.0.0.1:5000/kurs/a.zip", hosts, false)).toBe(false);
+    expect(ok("http://127.0.0.1:5000/a.txt", hosts, true)).toBe(false);
+    expect(ok("http://localhost:5000/a.zip", hosts, true)).toBe(false);
+    expect(ok("http://u@127.0.0.1:5000/a.zip", hosts, true)).toBe(false);
+    expect(ok("ftp://127.0.0.1/a.zip", hosts, true)).toBe(false);
   });
 });
 
-describe("practiceOrigin (test override)", () => {
-  it("is the constant unless tests run (user data folder set) and the override is given", () => {
-    expect(practiceOrigin({})).toBe(PRACTICE_ORIGIN);
-    expect(practiceOrigin({ JIDE_TEST_PRACTICE_ORIGIN: "http://127.0.0.1:5000/" })).toBe(PRACTICE_ORIGIN);
-    expect(practiceOrigin({ JIDE_USER_DATA_DIR: "/tmp/x" })).toBe(PRACTICE_ORIGIN);
-    expect(practiceOrigin({ JIDE_USER_DATA_DIR: "/tmp/x", JIDE_TEST_PRACTICE_ORIGIN: "http://127.0.0.1:5000/" })).toBe("http://127.0.0.1:5000/");
-  });
-  it("an explicit origin also fixes scheme, port and path prefix", () => {
-    const o = "http://127.0.0.1:5000/p/";
-    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/p/practice/a.zip", o)).toBe(true);
-    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/p/repo/practice/a.zip", o)).toBe(true);
-    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/p/a.zip", o)).toBe(false);
-    expect(isAllowedPracticeSrc("https://127.0.0.1:5000/p/practice/a.zip", o)).toBe(false);
-    expect(isAllowedPracticeSrc("http://127.0.0.1:5001/p/practice/a.zip", o)).toBe(false);
-    expect(isAllowedPracticeSrc("http://127.0.0.1:5000/q/practice/a.zip", o)).toBe(false);
+describe("practiceInsecure (test override)", () => {
+  it("is on only with the user data folder override and JIDE_TEST_PRACTICE_INSECURE=1", () => {
+    expect(practiceInsecure({})).toBe(false);
+    expect(practiceInsecure({ JIDE_TEST_PRACTICE_INSECURE: "1" })).toBe(false);
+    expect(practiceInsecure({ JIDE_USER_DATA_DIR: "/tmp/x" })).toBe(false);
+    expect(practiceInsecure({ JIDE_USER_DATA_DIR: "/tmp/x", JIDE_TEST_PRACTICE_INSECURE: "0" })).toBe(false);
+    expect(practiceInsecure({ JIDE_USER_DATA_DIR: "/tmp/x", JIDE_TEST_PRACTICE_INSECURE: "1" })).toBe(true);
   });
 });

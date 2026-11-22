@@ -1,5 +1,5 @@
 import { MAX_PACKAGE_BYTES } from "@jide/shared";
-import { isAllowedPracticeSrc, MSG_BAD_ORIGIN } from "./deep-link";
+import { MSG_BAD_ORIGIN } from "./deep-link";
 import type { ScratchStore } from "./scratch";
 
 /** Electron-free download + import of a practice exercise (unit-tested with a stubbed fetch). */
@@ -18,14 +18,15 @@ export interface DownloadOptions {
   fetch?: typeof fetch;
   timeoutMs?: number;
   maxBytes?: number;
-  isAllowed?: (url: string) => boolean;
+  /** Every redirect target must pass this (the course host list). */
+  isAllowed: (url: string) => boolean;
 }
 
-/** Downloads `src` (timeout, size limit, at most 3 redirects, each target origin-checked). Never throws. */
-export async function downloadPractice(src: string, opts: DownloadOptions = {}): Promise<DownloadResult> {
+/** Downloads `src` (timeout, size limit, at most 3 redirects, each target host-checked). Never throws. */
+export async function downloadPractice(src: string, opts: DownloadOptions): Promise<DownloadResult> {
   const doFetch = opts.fetch ?? fetch;
   const maxBytes = opts.maxBytes ?? MAX_PACKAGE_BYTES;
-  const isAllowed = opts.isAllowed ?? ((u: string) => isAllowedPracticeSrc(u));
+  const isAllowed = opts.isAllowed;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? DOWNLOAD_TIMEOUT_MS);
   try {
@@ -93,7 +94,7 @@ export async function importPractice(
   src: string,
   scratch: ScratchStore | undefined,
   onDownload: () => void = () => undefined,
-  opts: DownloadOptions = {}
+  opts: DownloadOptions
 ): Promise<PracticeOutcome> {
   if (!scratch) return { kind: "error", message: "Scratch gibt es in der Prüfung nicht." };
   const existing = await scratch.findBySource(src);

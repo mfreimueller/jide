@@ -3,21 +3,20 @@
  * Format: `jide://practice?src=<https URL of a practice zip>`.
  */
 
-/** The only place practice zips may be downloaded from: origin + path prefix (change here only). */
-export const PRACTICE_ORIGIN = "https://die-spengergasse.github.io/";
-
 /**
- * The allowed origin. Tests (and only tests: the user data folder override is set) may point it to a local
- * HTTP fixture server with `JIDE_TEST_PRACTICE_ORIGIN`, e.g. `http://127.0.0.1:5000/`.
+ * Test-only relaxation: `JIDE_TEST_PRACTICE_INSECURE=1` allows `http:` and an explicit port (the e2e fixture
+ * server), and only while the user data folder override is set. The host must still be in the course list.
  */
-export function practiceOrigin(env: NodeJS.ProcessEnv = process.env): string {
-  const test = env["JIDE_TEST_PRACTICE_ORIGIN"];
-  return env["JIDE_USER_DATA_DIR"] && test ? test : PRACTICE_ORIGIN;
+export function practiceInsecure(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(env["JIDE_USER_DATA_DIR"]) && env["JIDE_TEST_PRACTICE_INSECURE"] === "1";
 }
 
 export const MSG_UNKNOWN_LINK = "Unbekannter J;DE-Link.";
 export const MSG_NO_SRC = "Der Link enthält keine Übungsadresse.";
-export const MSG_BAD_ORIGIN = "Übungen können nur von der Kursseite geladen werden.";
+export const MSG_BAD_ORIGIN =
+  "Übungen können nur von Seiten geladen werden, die deine Lehrkraft für deinen Kurs freigegeben hat.";
+export const MSG_LOGIN_REQUIRED =
+  "Melde dich zuerst mit deinem persönlichen Code an und klick dann den Link noch einmal.";
 export const MSG_EXAM_MODE = "Im Prüfungsmodus können keine Übungen geöffnet werden.";
 
 export type DeepLink = { kind: "practice"; src: string } | { kind: "error"; message: string };
@@ -46,34 +45,28 @@ export function parseDeepLink(raw: string): DeepLink {
 }
 
 /**
- * https (scheme, host, port equal to the origin), no credentials, and a path of exactly
- * `<origin path>practice/<file>.zip` or `<origin path><repo>/practice/<file>.zip`: any course site of the org,
- * `<repo>` and `<file>` single non-empty segments. `.zip` is matched case-insensitively. The URL parser has
- * already resolved `..` / `%2e%2e`, so the checked path is the one that is requested.
+ * `https`, host (lower-cased) exactly one of `hosts` (no subdomain matching), default port only, no credentials,
+ * a path ending in `.zip` (case-insensitive) with a non-empty file name, no encoded separators. The URL parser
+ * has already resolved `..` / `%2e%2e`, so the checked path is the one that is requested. `insecure` (tests
+ * only, see `practiceInsecure`) also allows `http:` and an explicit port.
  */
-export function isAllowedPracticeSrc(src: string, origin: string = practiceOrigin()): boolean {
+export function isAllowedPracticeSrc(src: string, hosts: readonly string[], insecure: boolean = practiceInsecure()): boolean {
   let url: URL;
-  let allowed: URL;
   try {
     url = new URL(src);
-    allowed = new URL(origin);
   } catch {
     return false;
   }
-  const prefix = allowed.pathname.endsWith("/") ? allowed.pathname : `${allowed.pathname}/`;
-  if (!url.pathname.startsWith(prefix) || /%2f|%5c|\\/i.test(url.pathname)) return false; // no encoded separators
-  const seg = url.pathname.slice(prefix.length).split("/");
-  const file = seg[seg.length - 1];
-  const shapeOk =
-    (seg.length === 2 && seg[0] === "practice") || (seg.length === 3 && seg[0] !== "" && seg[1] === "practice");
+  const schemeOk = url.protocol === "https:" || (insecure && url.protocol === "http:");
+  const file = url.pathname.slice(url.pathname.lastIndexOf("/") + 1);
   return (
-    shapeOk &&
-    file.length > 4 &&
-    url.protocol === allowed.protocol &&
-    url.hostname === allowed.hostname &&
-    url.port === allowed.port &&
+    schemeOk &&
+    hosts.some((h) => h.toLowerCase() === url.hostname) &&
+    (insecure || url.port === "") &&
     url.username === "" &&
     url.password === "" &&
-    url.pathname.toLowerCase().endsWith(".zip")
+    !/%2f|%5c|\\/i.test(url.pathname) &&
+    file.length > 4 &&
+    file.toLowerCase().endsWith(".zip")
   );
 }
