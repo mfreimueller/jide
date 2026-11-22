@@ -1,8 +1,8 @@
 # Releasing J;DE
 
-Releases are built by `.github/workflows/release.yml` on `windows-latest` and published to GitHub Releases. Installed apps pick them up through electron-updater: they check at start, download in the background and install when the student quits the app. Nothing is shown to the student.
+Releases are built by `.github/workflows/release.yml` (Windows installer on `windows-latest`, Linux AppImage on `ubuntu-latest`) and published to GitHub Releases. Installed apps pick them up through electron-updater: they check at start, download in the background and install when the student quits the app. Nothing is shown to the student.
 
-**Linux (planned, M13 T64/T66):** a Linux job on `ubuntu-latest` will build `JDE-X.Y.Z.AppImage` (x64) and `latest-linux.yml` and attach both to the same release next to the Windows files; electron-updater then updates the AppImage in place. Until T66 is merged the release workflow builds Windows only. Students on Linux save the file as `~/Applications/JDE.AppImage` (fixed name) as described in the manual chapter "Die App für Schüler:innen".
+**Linux:** the job `build-linux` of `release.yml` runs on `ubuntu-latest` (JDK 25, java-helper, jlink runtime, `electron-builder --linux AppImage --x64 --publish never`), starts the AppImage under Xvfb with `JIDE_SMOKE=1` (`--appimage-extract-and-run`, so the runner needs no FUSE 2; must print `JIDE_SMOKE_READY`), checks the bundled JDK inside it and uploads `JDE-X.Y.Z.AppImage` (x64) and `latest-linux.yml`. The publish job attaches both to the same release next to the Windows files; electron-updater then updates the AppImage in place. On the Ubuntu 24.04 runner the job (and the Linux e2e job in `ci.yml`) sets `kernel.apparmor_restrict_unprivileged_userns=0` so that Chromium's sandbox works; this is CI only, the app is never started with `--no-sandbox`. Students on Linux save the file as `~/Applications/JDE.AppImage` (fixed name) as described in the manual chapter "Die App für Schüler:innen".
 
 ## One-time setup: backend URL
 
@@ -17,7 +17,7 @@ The app talks to the backend at a URL that is fixed at build time. Set the repos
    git push origin vX.Y.Z
    ```
 3. The workflow fails right away if the tag does not match `app/package.json`. Otherwise it builds the java-helper jar, jlinks the bundled JDK (`java.base`, `jdk.compiler`, `jdk.localedata`), builds `JDE-Setup-X.Y.Z.exe`, installs it silently, starts the installed app with `JIDE_SMOKE=1` (must print `JIDE_SMOKE_READY`) and only then publishes the release (not a draft, so electron-updater sees it).
-4. Check the release page: `JDE-Setup-X.Y.Z.exe`, its `.blockmap`, `latest.yml` and the exam folder `JDE-Exam-X.Y.Z.zip` (built by `exam-build.yml`, see [exam-mode.md](exam-mode.md)) must be attached. Once the Linux job exists (planned, T66), `JDE-X.Y.Z.AppImage` and `latest-linux.yml` must be attached as well.
+4. Check the release page: `JDE-Setup-X.Y.Z.exe`, its `.blockmap`, `latest.yml` and the exam folder `JDE-Exam-X.Y.Z.zip` (built by `exam-build.yml`, see [exam-mode.md](exam-mode.md)) must be attached. `JDE-X.Y.Z.AppImage` and `latest-linux.yml` must be attached as well.
 
 ## Dry run (no publishing)
 

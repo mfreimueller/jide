@@ -96,6 +96,83 @@ jobs:
             app/dist/latest.yml
           if-no-files-found: error
 
+  # Linux AppImage (x64), built and smoke-tested on ubuntu-latest (Ubuntu 24.04); never publishes.
+  build-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Tag must match app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v=$(node -p "require('./app/package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${v}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match app/package.json version ${v}"; exit 1
+          fi
+      - name: API URL is set
+        env:
+          JIDE_API_URL: ${{ vars.JIDE_API_URL }}
+        run: |
+          if [ -z "$JIDE_API_URL" ]; then
+            echo "Repository variable JIDE_API_URL is empty. Set it under Settings > Secrets and variables > Actions > Variables."; exit 1
+          fi
+      - run: npm ci
+      - run: npm run build -w java-helper
+      - run: npm run runtime -w app
+      - run: npm run verify-runtime -w app
+      - name: Build AppImage (not published)
+        working-directory: app
+        env:
+          JIDE_API_URL: ${{ vars.JIDE_API_URL }}
+        run: npx electron-vite build && npx electron-builder --linux AppImage --x64 --publish never
+      - name: Allow Chromium's sandbox (Ubuntu 24.04 runner)
+        # AppArmor blocks unprivileged user namespaces on Ubuntu 24.04 (CI only, same remedy as
+        # Playwright's Electron CI). Without it AppRun would start the app with --no-sandbox.
+        run: |
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+      - name: Smoke test the AppImage
+        # --appimage-extract-and-run: no FUSE 2 needed on the runner (libfuse2 is not preinstalled)
+        run: |
+          files=("$GITHUB_WORKSPACE"/app/dist/JDE-*.AppImage)
+          appimage="${files[0]}"
+          echo "AppImage: $appimage ($(du -m "$appimage" | cut -f1) MB)"
+          chmod +x "$appimage"
+          export JIDE_SMOKE=1 JIDE_USER_DATA_DIR="$RUNNER_TEMP/jde-smoke"
+          set +e
+          timeout 60 xvfb-run -a "$appimage" --appimage-extract-and-run > "$RUNNER_TEMP/smoke.out" 2>&1
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/smoke.out"
+          if [ "$code" = 124 ]; then echo "smoke: timeout"; exit 1; fi
+          grep -q JIDE_SMOKE_READY "$RUNNER_TEMP/smoke.out" || { echo "smoke: JIDE_SMOKE_READY not printed"; exit 1; }
+      - name: Bundled JDK works in the AppImage
+        run: |
+          files=("$GITHUB_WORKSPACE"/app/dist/JDE-*.AppImage)
+          appimage="${files[0]}"
+          mkdir "$RUNNER_TEMP/extract" && cd "$RUNNER_TEMP/extract"
+          "$appimage" --appimage-extract > /dev/null
+          squashfs-root/resources/jdk/bin/java -version
+          test -f squashfs-root/resources/java-helper.jar || { echo "helper jar missing"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: |
+            app/dist/JDE-*.AppImage
+            app/dist/latest-linux.yml
+          if-no-files-found: error
+
   # Exam folder (unpacked app for the Angabelaufwerk), smoke-tested from a read-only folder.
   exam:
     uses: ./.github/workflows/exam-build.yml
@@ -104,7 +181,7 @@ jobs:
 
   # Publishes exactly the files that were installed and smoke-tested above.
   publish:
-    needs: [build, exam]
+    needs: [build, build-linux, exam]
     if: startsWith(github.ref, 'refs/tags/v') && inputs.dry_run != true
     runs-on: ubuntu-latest
     permissions:
@@ -116,6 +193,10 @@ jobs:
           path: installer
       - uses: actions/download-artifact@v4
         with:
+          name: appimage
+          path: installer
+      - uses: actions/download-artifact@v4
+        with:
           name: JDE-Exam
           path: installer
       - name: Create release
@@ -124,5 +205,6 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           ls -l installer
-          gh release create "$GITHUB_REF_NAME" installer/JDE-Setup-*.exe installer/JDE-Setup-*.exe.blockmap installer/latest.yml installer/JDE-Exam-*.zip \
+          gh release create "$GITHUB_REF_NAME" installer/JDE-Setup-*.exe installer/JDE-Setup-*.exe.blockmap installer/latest.yml \
+            installer/JDE-*.AppImage installer/latest-linux.yml installer/JDE-Exam-*.zip \
             --title "J;DE ${GITHUB_REF_NAME#v}" --generate-notes
