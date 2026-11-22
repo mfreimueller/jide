@@ -18,7 +18,7 @@ Das Projekt ist für einen Uberspace-Account beschrieben. Domain, Absenderadress
 
 1. **Server und Lehrer-Web einrichten.** Datenbank anlegen, Server und Lehrer-Web auf den Server bringen und die E-Mail-Einstellungen eintragen. Ohne SMTP-Einstellungen schreibt der Server die Anmelde-Links nur in sein Protokoll. Das ist nur zum Entwickeln gedacht. Die Schritte stehen in [docs/deployment.md](https://github.com/mfreimueller/jide/blob/main/docs/deployment.md).
 2. **Lehrkräfte-Konto anlegen.** Ein Konto legen Sie auf dem Server mit einem Befehl an. Er steht in der [Dokumentation des Servers](https://github.com/mfreimueller/jide/blob/main/backend/README.md).
-3. **App für Ihren Server bauen.** Die Adresse des Servers wird beim Bauen fest in die App eingebaut. Sie setzen dazu die Repository-Variable `JIDE_API_URL`. Die Schritte zum Bauen und Veröffentlichen der Windows-App stehen in [docs/release.md](https://github.com/mfreimueller/jide/blob/main/docs/release.md).
+3. **App für Ihren Server bauen.** Die Adresse des Servers wird beim Bauen fest in die App eingebaut. Sie setzen dazu die Repository-Variable `JIDE_API_URL`. Die Schritte zum Bauen und Veröffentlichen der Windows- und Linux-App stehen in [docs/release.md](https://github.com/mfreimueller/jide/blob/main/docs/release.md).
 4. **Prüfungsordner bereitstellen.** Der Prüfungsordner entsteht in einem eigenen Arbeitsablauf. Siehe [docs/exam-mode.md](https://github.com/mfreimueller/jide/blob/main/docs/exam-mode.md).
 
 ## Lokal ausprobieren

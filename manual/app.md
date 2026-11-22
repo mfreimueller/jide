@@ -6,12 +6,74 @@ Dieses Kapitel zeigt, was Ihre Schüler:innen in der App erleben. Sie können es
 
 ## Installieren
 
+Die App läuft unter **Windows und Linux**. Die Anleitung für Linux steht weiter unten.
+
+### Windows
+
 1. Öffnen Sie die [Seite der Programmversionen](https://github.com/mfreimueller/jide/releases) und laden Sie die neueste Datei `JDE-Setup-<Version>.exe` herunter.
 2. Starten Sie die Datei. Die Installation gilt nur für die eigene Person. Es sind **keine Administratorrechte** nötig.
 3. Windows warnt eventuell, weil die App nicht signiert ist (SmartScreen: „More info“ → „Run anyway“, in der deutschen Oberfläche die entsprechenden Einträge).
 4. Danach gibt es Verknüpfungen mit dem Namen „J;DE“.
 
 Java muss nicht installiert werden. Die App bringt es mit.
+
+### Linux
+
+Unterstützt sind Debian 12 und 13 sowie Ubuntu 22.04 und 24.04, jeweils mit einem 64-Bit-Prozessor (x64). Die App kommt als AppImage. Es gibt keine Installation mit Administratorrechten. Nur zwei Schritte brauchen einmalig `sudo` (siehe unten).
+
+1. Öffnen Sie die [Seite der Programmversionen](https://github.com/mfreimueller/jide/releases) und laden Sie die neueste Datei `JDE-<Version>.AppImage` herunter. Das ist dieselbe Seite wie beim Windows-Installer.
+2. Legen Sie den Ordner `~/Applications` an und speichern Sie die Datei dort unter dem festen Namen `JDE.AppImage`:
+
+   ```bash
+   mkdir -p ~/Applications
+   mv ~/Downloads/JDE-<Version>.AppImage ~/Applications/JDE.AppImage
+   ```
+
+   Der Name ist fest und enthält keine Versionsnummer. So ersetzt ein Update die Datei an Ort und Stelle. Der Ordner bleibt derselbe, und die Registrierung für Übungs-Links (siehe unten) funktioniert weiter.
+3. Machen Sie die Datei ausführbar:
+
+   ```bash
+   chmod +x ~/Applications/JDE.AppImage
+   ```
+
+4. Installieren Sie das Paket FUSE 2. Ein AppImage braucht es zum Starten. Der Paketname hängt von der Version ab:
+
+   | System | Befehl |
+   |---|---|
+   | Ubuntu 22.04 | `sudo apt install libfuse2` |
+   | Ubuntu 24.04 | `sudo apt install libfuse2t64` |
+   | Debian 12 | `sudo apt install libfuse2` |
+   | Debian 13 | `sudo apt install libfuse2t64` |
+
+5. **Nur Ubuntu 24.04:** Richten Sie einmalig ein AppArmor-Profil ein. Ubuntu 24.04 schränkt sogenannte unprivilegierte User Namespaces ein. Die Schutzfunktion (Sandbox) der App braucht sie. Das Profil erlaubt sie für J;DE. Es muss unter dem festen Pfad liegen, den Schritt 2 festlegt. Die Datei `/etc/apparmor.d/jde` bekommt diesen Inhalt:
+
+   <!-- verify on a real Ubuntu 24.04 (T68) -->
+   ```
+   abi <abi/4.0>,
+   include <tunables/global>
+
+   profile jde /home/*/Applications/JDE.AppImage flags=(unconfined) {
+     userns,
+   }
+   ```
+
+   Dazu öffnen Sie im Terminal einen Editor mit Administratorrechten, zum Beispiel `sudo nano /etc/apparmor.d/jde`, fügen den Text ein und speichern. Danach laden Sie das Profil:
+
+   ```bash
+   sudo apparmor_parser -r /etc/apparmor.d/jde
+   ```
+
+   Das ist nur einmal nötig. Auf Debian und auf Ubuntu 22.04 entfällt dieser Schritt.
+
+6. Starten Sie die App im Terminal mit `~/Applications/JDE.AppImage` oder aus dem Dateimanager.
+
+Beim ersten Start melden sich die Schüler:innen mit dem persönlichen Code an, genau wie unter Windows (siehe nächster Abschnitt). Die App trägt sich dabei selbst als Programm für `jide://`-Links ein. Ein Klick auf einen [Übungs-Link](/uebungs-links) im Browser öffnet dann J;DE. Updates installieren sich von selbst, wie unter Windows (siehe [Updates](#updates)).
+
+**Wenn die App nicht startet:**
+
+- Ist das FUSE-Paket aus Schritt 4 installiert?
+- Auf Ubuntu 24.04: Wurde das AppArmor-Profil aus Schritt 5 geladen, und liegt die Datei genau unter `~/Applications/JDE.AppImage`?
+- Starten Sie die App in einem Terminal mit `~/Applications/JDE.AppImage`. Dort erscheint die Fehlermeldung. Diese Meldung hilft bei der Suche nach der Ursache.
 
 ## Erster Start mit dem persönlichen Code
 
@@ -64,4 +126,4 @@ Der Bereich „Scratch“ am Ende der Liste enthält eigene Programme („+ Neue
 
 ## Updates
 
-Die installierte App aktualisiert sich **von selbst**. Sie prüft beim Start, ob es eine neue Version gibt, lädt sie im Hintergrund und installiert sie, wenn die Person die App beendet. Die Schüler:innen müssen nichts tun und sehen nichts davon. Im Prüfungsmodus gibt es keine Updates.
+Die installierte App aktualisiert sich **von selbst**, unter Windows und unter Linux. Sie prüft beim Start, ob es eine neue Version gibt, lädt sie im Hintergrund und installiert sie, wenn die Person die App beendet. Die Schüler:innen müssen nichts tun und sehen nichts davon. Im Prüfungsmodus gibt es keine Updates.
