@@ -40,7 +40,7 @@ describe("desktopEntryText", () => {
         'Exec="/home/s/Applications/JDE.AppImage" %u',
         "Icon=/home/s/.local/share/icons/hicolor/512x512/apps/jde.png",
         "Terminal=false",
-        "Categories=Education;Development;",
+        "Categories=Education;",
         "MimeType=x-scheme-handler/jide;",
         ""
       ].join("\n")

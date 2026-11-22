@@ -33,6 +33,8 @@ linux:
       arch: x64
   icon: resources/icon.png
   category: Education
+  # Keep the Chromium sandbox: no --no-sandbox in the embedded desktop entry (electron-builder adds it by default).
+  executableArgs: []
   artifactName: JDE-${version}.AppImage
   # The app copies this icon to ~/.local/share/icons for the jide:// desktop entry (linux-deep-link.ts).
   extraResources:

@@ -31,7 +31,7 @@ export function desktopEntryText(appImagePath: string, iconPath: string): string
     `Exec=${arg} %u`,
     `Icon=${iconPath}`,
     "Terminal=false",
-    "Categories=Education;Development;",
+    "Categories=Education;",
     "MimeType=x-scheme-handler/jide;",
     ""
   ].join("\n");
