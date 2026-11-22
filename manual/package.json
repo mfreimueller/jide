@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "J;DE Handbuch für Lehrkräfte (VitePress)",
+  "license": "EUPL-1.2",
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",

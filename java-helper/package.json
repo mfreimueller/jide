@@ -1,6 +1,7 @@
 {
   "name": "@jide/java-helper",
   "version": "0.1.0",
+  "license": "EUPL-1.2",
   "private": true,
   "scripts": {
     "build": "mvn -q -B package -DskipTests",

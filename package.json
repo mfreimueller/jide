@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.7.2",
   "description": "Minimal Java IDE for beginners",
+  "license": "EUPL-1.2",
   "workspaces": [
     "shared",
     "java-helper",

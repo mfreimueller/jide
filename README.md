@@ -105,3 +105,7 @@ npm run typecheck
 npm test                 # Server-Tests brauchen die MariaDB aus docker compose
 npm run test:e2e         # Playwright-Tests der Electron-App (die Online-Tests brauchen auch die MariaDB)
 ```
+
+## Lizenz
+
+J;DE steht unter der [Europäischen Union Public Licence (EUPL) 1.2](LICENSE). Die EUPL gibt es in allen Amtssprachen der EU, auch auf Deutsch: [EUPL 1.2 bei der EU-Kommission](https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12).

@@ -4,6 +4,7 @@
   "private": true,
   "productName": "JDE",
   "description": "J;DE Electron app",
+  "license": "EUPL-1.2",
   "main": "./out/main/index.js",
   "scripts": {
     "postinstall": "install-electron",
