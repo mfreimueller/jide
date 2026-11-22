@@ -241,3 +241,19 @@ Course repo (`/Users/mf/git/SPG/_teaching/_2627/_course/1bhif`):
 - [x] **C2 `UebenButton` component** – `<UebenButton slug="…" title="…">` usable in module content (mdsvex); renders the `jide://practice?src=<absolute zip URL>` link in the existing button style with a small J;DE icon plus the hint "J;DE noch nicht installiert? → Download"; unit/e2e (link href correct, zip reachable in the build).
 - [x] **C3 First practice exercise** – one real exercise on one module page as an end-to-end check with T56/T57.
 - [x] **C4 All practice exercises** – 21 exercises (datentypen → do-while) on branch `practice-buttons` of the course repo, one `:::ueben` button each; reference solutions pass, starters fail (2026-11-21).
+
+## M12 – Practice hosts per course + teacher manual (2026-11-22)
+
+Decisions (user, 2026-11-22):
+- The teacher sets the allowed practice-zip hosts per course in the teacher web. The built-in `PRACTICE_ORIGIN` constant goes away; there is no default host.
+- Practice links need a signed-in student (online mode). Not signed in → German notice, nothing downloaded (replaces the M11 "login screen → Scratch-only view").
+- The teacher enters host names only (e.g. `die-spengergasse.github.io`); any `https` `.zip` on such a host is allowed (exact host match, no subdomains, no `/practice/` path rule). Several hosts per course.
+- Teacher web: a fourth course tab "Einstellungen" with the section "Übungs-Links" (list, add, remove). Existing styles, no Figma.
+- Manual: German, for teachers (using J;DE + one chapter on hosting it yourself), published with VitePress on GitHub Pages.
+- Rollout: deploy the backend and enter the host of the 1BHIF course before releasing the new app, otherwise live practice links stop working.
+
+- [ ] **T59 Backend: practice hosts** – migration `course_practice_hosts` (course_id FK cascade, host; primary key both); teacher `GET`/`PUT /api/courses/:id/practice-hosts` (`{ hosts: string[] }`, PUT replaces the list); student `GET /api/student/practice-hosts` (hosts of the student's course). Validation: trimmed, lower-cased DNS host name with at least one dot, labels `[a-z0-9-]` 1–63 chars not starting/ending with `-`, ≤ 253 chars, no IP literals, ≤ 20 hosts, duplicates removed; German errors. Shared API types. Tests.
+- [ ] **T60 Teacher web: tab "Einstellungen"** – route `kurse/[id]/einstellungen`, section "Übungs-Links": short explanation, host list with "Entfernen", input + "Hinzufügen" (a pasted URL is reduced to its host name), saved right away via PUT; errors shown inline. Tests.
+- [ ] **T61 App: course hosts** – remove `PRACTICE_ORIGIN`; check `https`, host in the course list (case-insensitive, exact), default port, no credentials, path ends in `.zip`. Order: exam mode → notice; parse; not signed in → notice; existing Scratch copy with this source → open (no network); fetch the course hosts (offline / session expired → the usual messages); check `src` and every redirect target. Test-only override keeps http + port possible for the e2e fixture server. Unit + e2e. Update SPEC §3.6a.
+- [ ] **T62 Manual (VitePress, GitHub Pages)** – `manual/` workspace, German, chapters: Überblick, Kurs anlegen, Schüler:innen + Codezettel, Aufgaben (Format, Upload, Freischalten, Gruppen, Abgabefrist), Abgaben + Bewertung, Übungs-Links (course page buttons, hosts), Prüfungsmodus, Die App für Schüler:innen, Selbst hosten (links to `docs/deployment.md`). Screenshots of the teacher web. GitHub Actions workflow deploys on push to main. Link from README.
+- [ ] **T63 Release** – backend deploy + host entered for 1BHIF, then version bump, user releases.
