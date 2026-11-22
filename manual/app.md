@@ -19,7 +19,7 @@ Java muss nicht installiert werden. Die App bringt es mit.
 
 ### Linux
 
-Unterstützt sind Debian 12 und 13 sowie Ubuntu 22.04 und 24.04, jeweils mit einem 64-Bit-Prozessor (x64). Die App kommt als AppImage. Es gibt keine Installation mit Administratorrechten. Nur das FUSE-Paket (Schritt 4) und, auf Ubuntu 24.04, das AppArmor-Profil (Schritt 5) brauchen einmalig `sudo`.
+Unterstützt sind Debian 12 und 13 sowie Ubuntu 22.04 und 24.04, jeweils mit einem 64-Bit-Prozessor (x64). Die App kommt als AppImage. Es gibt keine Installation mit Administratorrechten. Nur das FUSE-Paket (Schritt 4) und, auf Ubuntu 24.04, das empfohlene AppArmor-Profil (Schritt 5) brauchen einmalig `sudo`.
 
 1. Öffnen Sie die [Seite der Programmversionen](https://github.com/mfreimueller/jide/releases) und laden Sie die neueste Datei `JDE-<Version>.AppImage` herunter. Das ist dieselbe Seite wie beim Windows-Installer.
 2. Legen Sie den Ordner `~/Applications` an und speichern Sie die Datei dort unter dem festen Namen `JDE.AppImage`:
@@ -45,7 +45,7 @@ Unterstützt sind Debian 12 und 13 sowie Ubuntu 22.04 und 24.04, jeweils mit ein
    | Debian 12 | `sudo apt install libfuse2` |
    | Debian 13 | `sudo apt install libfuse2t64` |
 
-5. **Nur Ubuntu 24.04:** Richten Sie einmalig ein AppArmor-Profil ein. Ubuntu 24.04 schränkt sogenannte unprivilegierte User Namespaces ein. Die Schutzfunktion (Sandbox) der App braucht sie. Das Profil erlaubt sie für J;DE. Es muss unter dem festen Pfad liegen, den Schritt 2 festlegt. Die Datei `/etc/apparmor.d/jde` bekommt diesen Inhalt:
+5. **Nur Ubuntu 24.04, empfohlen:** Richten Sie einmalig ein AppArmor-Profil ein. Ubuntu 24.04 schränkt sogenannte unprivilegierte User Namespaces ein. Die Schutzfunktion (Sandbox) der App braucht sie. Ohne das Profil startet J;DE trotzdem, aber ohne Sandbox, und zeigt beim Start den Hinweis „J;DE läuft ohne Sandbox.“ Das Profil erlaubt die Namespaces für J;DE. Es muss unter dem festen Pfad liegen, den Schritt 2 festlegt. Die Datei `/etc/apparmor.d/jde` bekommt diesen Inhalt:
 
    <!-- verify on a real Ubuntu 24.04 (T68) -->
    ```
@@ -72,7 +72,7 @@ Beim ersten Start melden sich die Schüler:innen mit dem persönlichen Code an, 
 **Wenn die App nicht startet:**
 
 - Ist das FUSE-Paket aus Schritt 4 installiert?
-- Auf Ubuntu 24.04: Wurde das AppArmor-Profil aus Schritt 5 geladen, und liegt die Datei genau unter `~/Applications/JDE.AppImage`?
+- Erscheint der Hinweis „J;DE läuft ohne Sandbox.“: Wurde das AppArmor-Profil aus Schritt 5 geladen, und liegt die Datei genau unter `~/Applications/JDE.AppImage`?
 - Starten Sie die App in einem Terminal mit `~/Applications/JDE.AppImage`. Dort erscheint die Fehlermeldung. Diese Meldung hilft bei der Suche nach der Ursache.
 
 ## Erster Start mit dem persönlichen Code
