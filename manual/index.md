@@ -17,7 +17,7 @@ hero:
       link: /anmelden
 features:
   - title: Für den Unterricht
-    details: J;DE ist eine kleine Java-Entwicklungsumgebung für eine Schulklasse. Schüler:innen schreiben, starten und testen ihre Programme in einer App.
+    details: J;DE ist eine Java-Entwicklungsumgebung für Einsteiger:innen, vor allem für den 1. Jahrgang Informatik an HTLs. Schüler:innen schreiben, starten und testen ihre Programme in einer App.
   - title: Für Lehrkräfte
     details: Im Lehrer-Web legen Sie Kurse an, schalten Aufgaben frei und sehen alle Abgaben auf einen Blick. Dazu kommen Fristen und Beurteilungen.
   - title: Auch für Schularbeiten

@@ -1,6 +1,6 @@
 # J;DE – Spec (Draft v0.1, 2026-10-30)
 
-A minimal Java IDE for first-year HTL students (POS 1xHIF), with exercises distributed by a thin backend and an offline exam mode.
+A minimal Java IDE for Java beginners, preferably first-year (1. Jahrgang) Informatik classes at HTLs (POS 1xHIF), with exercises distributed by a thin backend and an offline exam mode.
 
 J;DE (for "Java IDE"); the technical name is "JDE" where a semicolon cannot be used (installer file, app data folder). Internal identifiers (npm packages @jide/*, IPC channels, JIDE_* env vars, Java package at.jide.helper, repo name "jide") stay "jide".
 
@@ -10,10 +10,10 @@ Students should be able to start working on an exercise without downloading, ext
 They enter a personal code once. From then on they see the exercises the teacher has unlocked, write code, test it against teacher-provided tests and hand it in with one click.
 
 **Users**
-- *Students*: 16 students in one 1st-grade class, beginner programmers, own Windows laptops, no admin rights assumed.
+- *Students*: beginner programmers, preferably in 1st-year (1. Jahrgang) Informatik classes at HTLs; own Windows or Linux laptops, no admin rights assumed.
 - *Teacher*: manages courses, students and exercises, collects hand-ins.
 
-**Scope note**: The app is used by one class for one school year (2026/27). Prefer the simplest thing that works and low maintenance over generality or scalability.
+**Scope note**: Prefer the simplest thing that works and low maintenance over generality or scalability.
 
 **Success criteria**
 - A student goes from "app installed" to "running their first exercise" in under 2 minutes, with no file handling.
@@ -136,7 +136,7 @@ tests:
 - Tests only: with the user data folder override (`JIDE_USER_DATA_DIR`) set, `JIDE_TEST_PRACTICE_INSECURE=1` additionally allows `http:` and an explicit port so e2e can use a local HTTP server; the host must still be in the list returned by the backend (the e2e fixture inserts `127.0.0.1` into the test database directly; the backend's host validation is unchanged). Without the user data folder override the variable has no effect.
 
 ### 3.7 Teacher view (web, minimal)
-- Teacher login as in parsonxam: passwordless sign-in link by email (single use, valid 15 min) → 30-day session token, stored hashed, sent as `Bearer`. Rate-limited. One teacher account in v1; more can be added in the database.
+- Teacher login as in parsonxam: passwordless sign-in link by email (single use, valid 15 min) → 30-day session token, stored hashed, sent as `Bearer`. Rate-limited. Teacher accounts are created on the server with a command (`npm run teacher:add -w @jide/backend`); there is no account management UI.
 - Courses: create, archive.
 - Students: paste a list of names → personal codes generated → printable code sheet. Reset code.
 - Exercises: upload as zip (exercise folder, see §4). Unlock or hide per course. Optional soft deadline per course.
@@ -281,7 +281,7 @@ First exam: **2026-11-19**. The switch to the app follows right after. That leav
 **Non-goals (v1)**: debugger, real code analysis for completion, macOS/Linux builds, code signing, teacher account management UI, server-side grading, plagiarism detection.
 
 ## 10. Risks
-1. **Running from a network share** (exam mode): Electron's unpacked folder is ~200 MB of files, and 16 students start it at once from SMB. Startup may be slow. Windows may warn about executables from network locations. → Test early on the real Angabelaufwerk.
+1. **Running from a network share** (exam mode): Electron's unpacked folder is ~200 MB of files, and a whole class starts it at once from SMB. Startup may be slow. Windows may warn about executables from network locations. → Test early on the real Angabelaufwerk.
 2. **Read-only Angabelaufwerk**: the app must never write next to the exe. Electron's user-data and cache directories go to `%TEMP%`; everything the student produces goes to the hand-in drive.
 3. **Unsigned app**: SmartScreen warning on first install. → One-time walkthrough in class.
 4. **Antivirus** scanning every compiled `.class` file may slow down auto-compile. → In-memory compilation, write class files only for run/test.

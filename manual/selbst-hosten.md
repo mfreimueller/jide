@@ -23,7 +23,7 @@ Das Projekt ist für einen Uberspace-Account beschrieben. Domain, Absenderadress
 
 ## Lokal ausprobieren
 
-Zum Ausprobieren auf dem eigenen Rechner gibt es einen Entwicklungsmodus mit Docker. Siehe den Abschnitt „Local development“ in der [README](https://github.com/mfreimueller/jide#local-development).
+Zum Ausprobieren auf dem eigenen Rechner gibt es einen Entwicklungsmodus mit Docker. Siehe den Abschnitt „Entwicklung“ in der [README](https://github.com/mfreimueller/jide#entwicklung).
 
 ## Dieses Handbuch veröffentlichen
 

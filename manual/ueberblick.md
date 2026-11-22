@@ -43,4 +43,4 @@ Mehr dazu im Kapitel [Prüfungsmodus](/pruefungsmodus).
 
 - Die Tests sind **keine Beurteilung**. Schüler:innen führen sie selbst aus und könnten sie auch lesen. Sie sind Rückmeldung für die Schüler:innen.
 - Auf dem Server wird nie Schülercode ausgeführt.
-- J;DE ist für eine Klasse und ein Schuljahr gedacht. Es ist bewusst klein gehalten.
+- J;DE ist eine Entwicklungsumgebung für Java-Einsteiger:innen, vor allem für den 1. Jahrgang Informatik an HTLs. Es ist bewusst klein gehalten.
