@@ -13,6 +13,14 @@ let openMainWindow: (() => void) | undefined;
 let rendererReady = false;
 const pending: string[] = [];
 
+// Notices for the first page that becomes ready after the start (shown once per start).
+const startupNotices: AppNotice[] = [];
+
+/** Queues a notice for the first main window page that signals "jide:app-ready". */
+export function queueStartupNotice(notice: AppNotice): void {
+  startupNotices.push(notice);
+}
+
 /** Shows a short message in the page (the App toast), never a native dialog. */
 export function pushNotice(win: BrowserWindow, notice: AppNotice): void {
   if (!win.isDestroyed()) win.webContents.send("jide:notice", notice);
@@ -78,6 +86,7 @@ export function attachMainWindow(win: BrowserWindow): void {
   const onReady = (e: Electron.IpcMainEvent): void => {
     if (e.sender !== contents || win.isDestroyed()) return;
     rendererReady = true;
+    for (const notice of startupNotices.splice(0)) pushNotice(win, notice);
     for (const raw of pending.splice(0)) dispatchDeepLink(raw, win);
   };
   ipcMain.on("jide:app-ready", onReady);

@@ -6,10 +6,11 @@ import { registerCompileIpc } from "./compile";
 import { askToClose, examCloseNeedsConfirm, registerExamSaveIpc } from "./exam-session";
 import { examMode, initExam, redirectPathsForExamMode, registerExamIpc } from "./exam-state";
 import { findDeepLinkInArgv } from "./deep-link";
-import { attachMainWindow, focusMainWindow, listenForOpenUrl, receiveDeepLink, setMainWindowOpener } from "./deep-link-handler";
+import { attachMainWindow, focusMainWindow, listenForOpenUrl, queueStartupNotice, receiveDeepLink, setMainWindowOpener } from "./deep-link-handler";
 import { registerExerciseIpc } from "./exercises";
 import { registerScratchIpc } from "./scratch-ipc";
 import { registerLinuxDeepLink, runCommand } from "./linux-deep-link";
+import { NO_SANDBOX_NOTICE, shouldWarnNoSandbox } from "./sandbox-notice";
 import { installAppMenu } from "./menu";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
@@ -66,6 +67,19 @@ function registerProtocolClient(): void {
   } else {
     app.setAsDefaultProtocolClient("jide");
   }
+}
+
+/** AppImage without the Chromium sandbox (AppRun adds --no-sandbox when user namespaces are blocked): tell the user once. */
+function warnIfNoSandbox(): void {
+  const warn = shouldWarnNoSandbox({
+    platform: process.platform,
+    appImage: process.env["APPIMAGE"],
+    noSandboxSwitch: app.commandLine.hasSwitch("no-sandbox"),
+    suppressed: Boolean(process.env["JIDE_USER_DATA_DIR"]) || smoke || Boolean(examMode())
+  });
+  if (!warn) return;
+  console.log("[sandbox] running without the Chromium sandbox (--no-sandbox)");
+  queueStartupNotice(NO_SANDBOX_NOTICE);
 }
 
 const FLUSH_TIMEOUT_MS = 5000;
@@ -146,6 +160,7 @@ app.whenReady().then(async () => {
   // Exam mode: exam.json is checked and the JDK is looked up before the helper can start.
   await initExam();
   registerProtocolClient();
+  warnIfNoSandbox();
   installAppMenu();
   if (smoke) {
     const timer = setTimeout(() => {
