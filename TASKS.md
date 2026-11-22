@@ -266,6 +266,8 @@ Decisions (user, 2026-11-22):
 
 - x64 only.
 - Sandbox on Ubuntu 24.04+ (AppArmor blocks unprivileged user namespaces): keep the sandbox, document a one-time setup step (AppArmor profile, needs admin rights). No `--no-sandbox`.
+- Update 2026-11-22 (user): electron-builder's AppRun (both AppImage variants) silently adds `--no-sandbox` when `unshare -Ur true` fails. Keep that fallback (the app always starts); J;DE shows an in-app notice when it runs without sandbox, pointing to the manual's AppArmor step; the manual calls the step recommended. Embedded .desktop without `--no-sandbox` (`linux.executableArgs: []`).
+- FUSE: keep the legacy FUSE2 AppImage (stable); the static runtime (`toolsets.appimage` 1.0.x) is beta in electron-builder 26.18 — revisit later.
 - Supported in the manual: Debian 12 and 13, Ubuntu 22.04 and 24.04. FUSE 2 package hint (`libfuse2` on Ubuntu 22.04, `libfuse2t64` on Ubuntu 24.04; Debian 12 `libfuse2`, Debian 13 `libfuse2t64`).
 - Consequence of the AppArmor profile: it matches a fixed path. The manual tells students to save the file as `~/Applications/JDE.AppImage` (fixed name without version); electron-updater then replaces the file in place on update, so the profile and the `jide://` desktop entry keep working.
 
