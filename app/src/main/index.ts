@@ -1,3 +1,4 @@
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { registerBugReportIpc } from "./bug-report";
@@ -8,6 +9,7 @@ import { findDeepLinkInArgv } from "./deep-link";
 import { attachMainWindow, focusMainWindow, listenForOpenUrl, receiveDeepLink, setMainWindowOpener } from "./deep-link-handler";
 import { registerExerciseIpc } from "./exercises";
 import { registerScratchIpc } from "./scratch-ipc";
+import { registerLinuxDeepLink, runCommand } from "./linux-deep-link";
 import { installAppMenu } from "./menu";
 import { registerOnlineIpc } from "./online";
 import { registerRunIpc } from "./run";
@@ -47,6 +49,18 @@ if (!gotLock) {
 /** Make J;DE the handler of jide:// links; never in tests, smoke runs or exam mode (no system changes there). */
 function registerProtocolClient(): void {
   if (process.env["JIDE_USER_DATA_DIR"] || smoke || examMode()) return;
+  if (process.platform === "linux" && process.env["APPIMAGE"]) {
+    // AppImage: no installer writes a desktop entry, so we keep our own (see linux-deep-link.ts). Electron's
+    // setAsDefaultProtocolClient is not called here: its documentation only describes Windows and macOS.
+    void registerLinuxDeepLink({
+      appImage: process.env["APPIMAGE"],
+      home: homedir(),
+      iconSource: join(process.resourcesPath, "icon.png"),
+      run: runCommand,
+      log: (line) => console.log(`[deep-link] ${line}`)
+    });
+    return;
+  }
   if (process.defaultApp && process.argv[1]) {
     app.setAsDefaultProtocolClient("jide", process.execPath, [resolve(process.argv[1])]);
   } else {
