@@ -45,18 +45,18 @@ Ist die Datei kein gültiges Aufgabenpaket, zeigt die App eine deutsche Fehlerme
 
 J;DE lädt nur ZIP-Dateien von Servern, die Sie für den Kurs erlaubt haben. Das stellen Sie **pro Kurs** im Lehrer-Web ein.
 
-1. Öffnen Sie den Kurs und wählen Sie „Einstellungen“.
+1. Wählen Sie den Kurs und öffnen Sie links in der Navigation „Einstellungen“ (unter „Aufgaben“).
 2. Im Abschnitt „Übungs-Links“ steht die Liste der erlaubten Hosts.
-3. Geben Sie den Host-Namen ein, zum Beispiel `die-spengergasse.github.io`, und klicken Sie auf „Hinzufügen“.
+3. Geben Sie im Feld „Host hinzufügen“ den Host-Namen ein, zum Beispiel `die-spengergasse.github.io`, und klicken Sie auf „Hinzufügen“ (oder drücken Sie die Eingabetaste).
 4. Mit „Entfernen“ nehmen Sie einen Host wieder aus der Liste.
 
 Die Änderung wird sofort gespeichert.
 
-<!-- TODO screenshot einstellungen -->
+![Einstellungen mit Host-Liste. Unten zeigt das Feld die Fehlermeldung für eine ungültige Eingabe.](/images/einstellungen.png)
 
 Die Regeln:
 
-- Tragen Sie nur den **Host-Namen** ein. Fügen Sie eine ganze Adresse ein, wird sie auf den Host-Namen gekürzt.
+- Tragen Sie nur den **Host-Namen** ein. Fügen Sie eine ganze https-Adresse ein, wird sie auf den Host-Namen gekürzt.
 - Erlaubt ist **jede `https`-Adresse, die auf `.zip` endet**, auf einem eingetragenen Host. Ein bestimmter Pfad ist nicht nötig.
 - Der Host muss **genau** übereinstimmen. Mit `die-spengergasse.github.io` sind Unterdomains wie `a.die-spengergasse.github.io` nicht erlaubt.
 - Sie können mehrere Hosts eintragen, höchstens 20.
