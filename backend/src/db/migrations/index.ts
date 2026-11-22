@@ -10,6 +10,7 @@ import { MIGRATION_0009_API_KEYS } from './0009_api_keys.js';
 import { MIGRATION_0010_GRADES } from './0010_grades.js';
 import { MIGRATION_0011_MATRIX_VISIBILITY } from './0011_matrix_visibility.js';
 import { MIGRATION_0012_PRACTICE_HOSTS } from './0012_practice_hosts.js';
+import { MIGRATION_0013_KIND } from './0013_kind.js';
 
 export interface Migration {
   version: number;
@@ -30,4 +31,5 @@ export const MIGRATIONS: Migration[] = [
   MIGRATION_0010_GRADES,
   MIGRATION_0011_MATRIX_VISIBILITY,
   MIGRATION_0012_PRACTICE_HOSTS,
+  MIGRATION_0013_KIND,
 ];

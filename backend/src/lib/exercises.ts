@@ -1,4 +1,4 @@
-import type { Difficulty, StudentGrade } from '@jide/shared';
+import { KINDS, type ExerciseKind, type StudentGrade } from '@jide/shared';
 import type { SQLInstance } from '../db/sql.js';
 import { sql } from '../db/sql.js';
 import { AppError } from '../errors.js';
@@ -111,9 +111,9 @@ export async function saveExercise(
   const now = new Date();
   const data = Buffer.from(pkg.zip);
   await db`
-    INSERT INTO exercises (teacher_id, slug, title, difficulty, version, size, package, uploaded_at)
-    VALUES (${teacherId}, ${pkg.id}, ${pkg.title}, ${pkg.difficulty}, ${pkg.version}, ${data.length}, ${data}, ${now})
-    ON DUPLICATE KEY UPDATE title = VALUES(title), difficulty = VALUES(difficulty), version = VALUES(version), size = VALUES(size),
+    INSERT INTO exercises (teacher_id, slug, title, kind, version, size, package, uploaded_at)
+    VALUES (${teacherId}, ${pkg.id}, ${pkg.title}, ${pkg.kind}, ${pkg.version}, ${data.length}, ${data}, ${now})
+    ON DUPLICATE KEY UPDATE title = VALUES(title), kind = VALUES(kind), version = VALUES(version), size = VALUES(size),
                             package = VALUES(package), uploaded_at = VALUES(uploaded_at)
   `;
   const { rowId: _rowId, ...exercise } = await exerciseForTeacher(db, teacherId, pkg.id);
@@ -175,23 +175,28 @@ export interface StudentExerciseRow {
   version: string;
   deadline: string | null;
   groupId: number | null;
-  /** newbie | advanced | pro, or null (no difficulty, or uploaded before it existed). */
-  difficulty: Difficulty | null;
+  /** pflicht | uebung | bonus; Pflicht when none is stored (no kind in the yaml, or uploaded before it existed). */
+  kind: ExerciseKind;
   /** Set once the exercise is graded (it is then locked for hand-ins). */
   grade: StudentGrade | null;
 }
 
+/** Stored `kind` to the API value: NULL (and anything unknown) is Pflicht. */
+export function asKind(stored: string | null): ExerciseKind {
+  return (KINDS as readonly string[]).includes(stored ?? '') ? (stored as ExerciseKind) : 'pflicht';
+}
+
 export async function unlockedForCourse(db: SQLInstance, courseId: number, studentId: number): Promise<StudentExerciseRow[]> {
   const rows = await db<
-    { rowId: number; id: string; title: string; version: string; deadline: Date | null; groupId: number | null; difficulty: Difficulty | null }[]
+    { rowId: number; id: string; title: string; version: string; deadline: Date | null; groupId: number | null; kind: string | null }[]
   >`
-    SELECT e.id AS rowId, e.slug AS id, e.title, e.version, ce.deadline, ce.group_id AS groupId, e.difficulty
+    SELECT e.id AS rowId, e.slug AS id, e.title, e.version, ce.deadline, ce.group_id AS groupId, e.kind
     FROM course_exercises ce JOIN exercises e ON e.id = ce.exercise_id
     WHERE ce.course_id = ${courseId} AND ce.unlocked = 1
     ORDER BY ce.unlocked_at IS NULL, ce.unlocked_at DESC, e.title, e.slug
   `;
   const grades = await gradesOfStudent(db, studentId);
-  return rows.map(({ rowId, ...r }) => ({ ...r, deadline: r.deadline ? r.deadline.toISOString() : null, grade: grades.get(rowId) ?? null }));
+  return rows.map(({ rowId, kind, ...r }) => ({ ...r, kind: asKind(kind), deadline: r.deadline ? r.deadline.toISOString() : null, grade: grades.get(rowId) ?? null }));
 }
 
 export async function unlockedVersion(db: SQLInstance, courseId: number, slug: string): Promise<string | null> {

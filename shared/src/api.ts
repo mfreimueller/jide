@@ -1,5 +1,5 @@
 // Request/response shapes of the student-facing backend API (SPEC §5). Used by the backend and the app.
-import type { Difficulty } from "./exercise.js";
+import type { ExerciseKind } from "./exercise.js";
 
 /** Error body of every non-2xx JSON response. `message` is German and safe to show. */
 export interface ApiErrorBody {
@@ -24,8 +24,8 @@ export interface StudentExerciseSummary {
   deadline: string | null;
   /** Group of the course (see `groups`), null = ungrouped. Missing in answers of older backends. */
   groupId?: number | null;
-  /** From exercise.yaml; null/missing = none (also for packages uploaded before the field existed and for older backends). */
-  difficulty?: Difficulty | null;
+  /** Category from exercise.yaml (the backend answers "pflicht" when none is stored); missing/unknown = Pflicht (older backends). */
+  kind?: ExerciseKind;
   /** Set once a teacher has graded the exercise (it is then locked for hand-ins); null/missing = not graded (also for older backends). */
   grade?: StudentGrade | null;
 }

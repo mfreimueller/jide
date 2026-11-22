@@ -4,4 +4,4 @@ files:
   - path: Summe.java
     editable: true
 mainFile: Summe.java
-difficulty: newbie
+kind: pflicht

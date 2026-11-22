@@ -7,9 +7,17 @@ import { parseTestsConfig, type TestCase } from "./tests.js";
 
 export { ExerciseError };
 
-/** Allowed values of `difficulty` in exercise.yaml. */
-export const DIFFICULTIES = ["newbie", "advanced", "pro"] as const;
-export type Difficulty = (typeof DIFFICULTIES)[number];
+/** Allowed values of `kind` in exercise.yaml: Pflicht (needed for the grade), Übung (voluntary), Bonus (counts as Mitarbeit). */
+export const KINDS = ["pflicht", "uebung", "bonus"] as const;
+export type ExerciseKind = (typeof KINDS)[number];
+
+/**
+ * `strict`: the package enters the system here (teacher upload, "Aufgabe importieren …"), so the retired
+ * `difficulty` key is an error. Lenient (default): `difficulty` is ignored silently (downloads, cache, practice links).
+ */
+export interface ParseOptions {
+  strict?: boolean;
+}
 
 const exerciseSchema = z.object({
   id: z
@@ -41,9 +49,7 @@ const exerciseSchema = z.object({
       { error: "images muss eine Liste sein" },
     )
     .optional(),
-  difficulty: z
-    .enum(DIFFICULTIES, { error: "difficulty muss newbie, advanced oder pro sein" })
-    .optional(),
+  kind: z.enum(KINDS, { error: "kind muss pflicht, uebung oder bonus sein" }).optional(),
 });
 
 /** Maximum size of one SVG image in bytes. */
@@ -106,7 +112,7 @@ function javaPathProblem(p: string): string | undefined {
 }
 
 /** Parses and validates the text of an exercise.yaml (no file access). Throws ExerciseError with a German message. */
-export function parseExerciseConfig(raw: string, name = "?"): ExerciseConfig {
+export function parseExerciseConfig(raw: string, name = "?", opts: ParseOptions = {}): ExerciseConfig {
   const fail = (problem: string): never => {
     throw new ExerciseError(`Aufgabe "${name}": ${problem}`);
   };
@@ -118,6 +124,9 @@ export function parseExerciseConfig(raw: string, name = "?"): ExerciseConfig {
     return fail(`exercise.yaml ist kein gültiges YAML (${detail}).`);
   }
 
+  if (opts.strict && data !== null && typeof data === "object" && "difficulty" in data) {
+    fail("exercise.yaml ist ungültig: difficulty gibt es nicht mehr – bitte kind: pflicht, uebung oder bonus verwenden.");
+  }
   const parsed = exerciseSchema.safeParse(data);
   if (!parsed.success) {
     const issue = parsed.error.issues[0]!;
@@ -148,7 +157,7 @@ export function parseExerciseConfig(raw: string, name = "?"): ExerciseConfig {
   return config;
 }
 
-export async function loadExercise(dir: string): Promise<Exercise> {
+export async function loadExercise(dir: string, opts: ParseOptions = {}): Promise<Exercise> {
   const name = path.basename(path.resolve(dir));
   const fail = (problem: string): never => {
     throw new ExerciseError(`Aufgabe "${name}": ${problem}`);
@@ -161,7 +170,7 @@ export async function loadExercise(dir: string): Promise<Exercise> {
     return fail("Datei exercise.yaml fehlt.");
   }
 
-  const config = parseExerciseConfig(raw, name);
+  const config = parseExerciseConfig(raw, name, opts);
 
   const originals: Record<string, string> = {};
   for (const f of config.files) {

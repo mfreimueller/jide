@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { unzipSync } from "fflate";
-import { ExerciseError, loadExercise, type Exercise } from "./exercise.js";
+import { ExerciseError, loadExercise, type Exercise, type ParseOptions } from "./exercise.js";
 
 export const MAX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024;
 export const MAX_ENTRIES = 500;
@@ -106,7 +106,7 @@ export interface ReadPackage {
  * oversize archives, and validates the content with `loadExercise`. Throws ExerciseError with a German message.
  * Shared by the teacher upload (backend) and the student import (app).
  */
-export async function readExerciseZip(zip: Uint8Array): Promise<ReadPackage> {
+export async function readExerciseZip(zip: Uint8Array, opts: ParseOptions = {}): Promise<ReadPackage> {
   const files = unpack(zip);
   if (files.size === 0) throw new ExerciseError("Das ZIP ist leer.");
   const prefix = exercisePrefix(files);
@@ -124,7 +124,7 @@ export async function readExerciseZip(zip: Uint8Array): Promise<ReadPackage> {
       await writeFile(target, data);
       inner.set(rel, data);
     }
-    return { exercise: await loadExercise(dir), files: inner };
+    return { exercise: await loadExercise(dir, opts), files: inner };
   } finally {
     await rm(tmp, { recursive: true, force: true });
   }

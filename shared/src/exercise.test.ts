@@ -144,26 +144,40 @@ describe("loadExercise", () => {
   });
 });
 
-describe("difficulty", () => {
+describe("kind", () => {
   const yaml = (extra: string) => `id: d\ntitle: T\nfiles:\n  - path: A.java\nmainFile: A.java\n${extra}`;
 
-  it.each(["newbie", "advanced", "pro"])("accepts %s", (level) => {
-    expect(parseExerciseConfig(yaml(`difficulty: ${level}\n`), "d").difficulty).toBe(level);
+  it.each(["pflicht", "uebung", "bonus"])("accepts %s", (kind) => {
+    expect(parseExerciseConfig(yaml(`kind: ${kind}\n`), "d").kind).toBe(kind);
   });
 
   it("is optional", () => {
-    expect(parseExerciseConfig(yaml(""), "d").difficulty).toBeUndefined();
+    expect(parseExerciseConfig(yaml(""), "d").kind).toBeUndefined();
   });
 
-  it.each(["expert", "Newbie", "3", "''"])("rejects %s with a German message", (v) => {
-    expect(() => parseExerciseConfig(yaml(`difficulty: ${v}\n`), "d")).toThrow(
-      'Aufgabe "d": exercise.yaml ist ungültig: difficulty muss newbie, advanced oder pro sein (difficulty).',
+  it.each(["expert", "Pflicht", "3", "''"])("rejects %s with a German message", (v) => {
+    expect(() => parseExerciseConfig(yaml(`kind: ${v}\n`), "d")).toThrow(
+      'Aufgabe "d": exercise.yaml ist ungültig: kind muss pflicht, uebung oder bonus sein (kind).',
     );
   });
 
   it("is carried through loadExercise", async () => {
+    const ex = await loadExercise(await make("d", { yaml: yaml("kind: bonus\n") }));
+    expect(ex.kind).toBe("bonus");
+  });
+
+  it("strict mode rejects the retired difficulty key", async () => {
+    const msg = 'Aufgabe "d": exercise.yaml ist ungültig: difficulty gibt es nicht mehr – bitte kind: pflicht, uebung oder bonus verwenden.';
+    expect(() => parseExerciseConfig(yaml("difficulty: newbie\n"), "d", { strict: true })).toThrow(msg);
+    await expect(loadExercise(await make("d", { yaml: yaml("difficulty: pro\n") }), { strict: true })).rejects.toThrow(msg);
+  });
+
+  it("lenient mode (default) ignores the retired difficulty key", async () => {
+    const cfg = parseExerciseConfig(yaml("difficulty: newbie\nkind: bonus\n"), "d");
+    expect(cfg.kind).toBe("bonus");
+    expect("difficulty" in cfg).toBe(false);
     const ex = await loadExercise(await make("d", { yaml: yaml("difficulty: pro\n") }));
-    expect(ex.difficulty).toBe("pro");
+    expect(ex.kind).toBeUndefined();
   });
 });
 

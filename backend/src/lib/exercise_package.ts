@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { zipSync, type Zippable } from 'fflate';
-import { ExerciseError, MAX_ENTRIES, MAX_PACKAGE_BYTES, MAX_UNCOMPRESSED_BYTES, readExerciseZip, type Difficulty } from '@jide/shared';
+import { ExerciseError, MAX_ENTRIES, MAX_PACKAGE_BYTES, MAX_UNCOMPRESSED_BYTES, readExerciseZip, type ExerciseKind } from '@jide/shared';
 import { AppError } from '../errors.js';
 
 export const MAX_UPLOAD_BYTES = MAX_PACKAGE_BYTES;
@@ -10,8 +10,8 @@ export interface ValidatedPackage {
   /** Exercise id from exercise.yaml. */
   id: string;
   title: string;
-  /** From exercise.yaml, null when not set. */
-  difficulty: Difficulty | null;
+  /** `kind` from exercise.yaml, null when not set (= Pflicht). */
+  kind: ExerciseKind | null;
   /** Normalised zip: a single folder `<id>/` with the exercise inside. */
   zip: Uint8Array;
   /** sha256 hex of `zip`. */
@@ -24,7 +24,7 @@ const invalid = (message: string) => new AppError(400, 'INVALID_EXERCISE', messa
 export async function validatePackage(upload: Uint8Array): Promise<ValidatedPackage> {
   let pkg;
   try {
-    pkg = await readExerciseZip(upload);
+    pkg = await readExerciseZip(upload, { strict: true });
   } catch (e) {
     if (e instanceof ExerciseError) throw invalid(e.message);
     throw e;
@@ -42,7 +42,7 @@ export async function validatePackage(upload: Uint8Array): Promise<ValidatedPack
   return {
     id: exercise.id,
     title: exercise.title,
-    difficulty: exercise.difficulty ?? null,
+    kind: exercise.kind ?? null,
     zip,
     version: createHash('sha256').update(zip).digest('hex'),
   };

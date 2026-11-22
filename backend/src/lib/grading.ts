@@ -1,7 +1,8 @@
-import type { Difficulty, GradeSymbol, HandInFile, StudentGradeResponse } from '@jide/shared';
+import type { ExerciseKind, GradeSymbol, HandInFile, StudentGradeResponse } from '@jide/shared';
 import type { SQLInstance } from '../db/sql.js';
 import { sql } from '../db/sql.js';
 import { AppError } from '../errors.js';
+import { asKind } from './exercises.js';
 import { isLate } from './handins.js';
 
 // ---- reading (Grading API, /api/v1) ----
@@ -40,16 +41,16 @@ export interface V1Exercise {
   id: number;
   slug: string;
   title: string;
-  difficulty: Difficulty | null;
+  kind: ExerciseKind;
   unlockedAt: string | null;
   deadline: string | null;
 }
 
 export async function v1Exercises(db: SQLInstance, courseId: number): Promise<V1Exercise[]> {
   const rows = await db<
-    { id: number; slug: string; title: string; difficulty: Difficulty | null; unlockedAt: Date | null; deadline: Date | null }[]
+    { id: number; slug: string; title: string; kind: string | null; unlockedAt: Date | null; deadline: Date | null }[]
   >`
-    SELECT e.id, e.slug, e.title, e.difficulty, ce.unlocked_at AS unlockedAt, ce.deadline
+    SELECT e.id, e.slug, e.title, e.kind, ce.unlocked_at AS unlockedAt, ce.deadline
     FROM course_exercises ce JOIN exercises e ON e.id = ce.exercise_id
     WHERE ce.course_id = ${courseId} AND ce.unlocked = 1
     ORDER BY e.title, e.slug
@@ -58,7 +59,7 @@ export async function v1Exercises(db: SQLInstance, courseId: number): Promise<V1
     id: r.id,
     slug: r.slug,
     title: r.title,
-    difficulty: r.difficulty ?? null,
+    kind: asKind(r.kind),
     unlockedAt: r.unlockedAt ? r.unlockedAt.toISOString() : null,
     deadline: r.deadline ? r.deadline.toISOString() : null,
   }));

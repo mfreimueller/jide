@@ -7,7 +7,7 @@ import { signedInTeacher, useTestDb, type TestTeacher } from './helpers.js';
 const t = useTestDb();
 
 const YAML = (id: string) =>
-  `id: ${id}\ntitle: Aufgabe ${id}\ndifficulty: advanced\nfiles:\n  - path: Main.java\n  - path: util/Helper.java\nmainFile: Main.java\n`;
+  `id: ${id}\ntitle: Aufgabe ${id}\nkind: bonus\nfiles:\n  - path: Main.java\n  - path: util/Helper.java\nmainFile: Main.java\n`;
 const pkg = (id: string) =>
   zipSync({
     'exercise.yaml': strToU8(YAML(id)),
@@ -147,7 +147,7 @@ describe('GET /api/v1/courses/:id/exercises', () => {
     expect(res.status).toBe(200);
     const list = await json(res);
     expect(list).toHaveLength(1);
-    expect(list[0]).toMatchObject({ id: exA, slug: 'ex-a', title: 'Aufgabe ex-a', difficulty: 'advanced', deadline: '2030-01-01T00:00:00.000Z' });
+    expect(list[0]).toMatchObject({ id: exA, slug: 'ex-a', title: 'Aufgabe ex-a', kind: 'bonus', deadline: '2030-01-01T00:00:00.000Z' });
     expect(list[0].unlockedAt).toMatch(/^\d{4}-\d\d-\d\dT/);
   });
 
