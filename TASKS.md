@@ -278,3 +278,16 @@ Facts (checked 2026-11-22): app code is already platform-neutral (java/javac nam
 - [x] **T66 CI + release** – `ci.yml`: add `ubuntu-latest` to the e2e matrix (xvfb-run, jlink runtime check). `release.yml`: Linux job on `ubuntu-latest` (JDK 25, java-helper, jlink runtime, `electron-builder --linux --publish never`), upload `JDE-*.AppImage` + `latest-linux.yml` to the release next to the Windows files. Smoke start of the AppImage in CI (`--appimage-extract-and-run` + xvfb) like the Windows installer smoke test.
 - [x] **T67 Manual + docs** – manual `app.md`: Linux section (Debian 12/13, Ubuntu 22.04/24.04, x64): download, save as `~/Applications/JDE.AppImage`, `chmod +x`, FUSE 2 package, on Ubuntu 24.04 the one-time AppArmor profile (`/etc/apparmor.d/jde` with `userns,` for that path, `sudo apparmor_parser -r …`; exact text verified on a 24.04 machine/VM), first start registers `jide://`; README + docs/release.md mention the Linux artifact.
 - [ ] **T68 Manual test + release** – user (or a teacher with Linux) on a real desktop: install, start, sign in, run + test an exercise, click a practice link in the browser, receive an auto-update (needs two releases).
+
+## M14 – Exercise categories, wording, README (2026-11-22)
+
+Decisions (user, 2026-11-22):
+- `difficulty` is replaced by the category `kind: pflicht | uebung | bonus` in `exercise.yaml` (optional). Meaning: Pflicht = needed for the grade, Bonus = counts as Mitarbeit, Übung = voluntary (external zips).
+- Course exercise without `kind` → Pflicht (pill shown). Practice-link imports (`jide://practice`) always show Übung, whatever the yaml says. Other Scratch exercises (import, "In Scratch kopieren") show their yaml kind (default Pflicht); own programs show no pill. Nothing in exam mode (as before).
+- `difficulty` is rejected only where a package enters the system strictly: teacher upload (backend) and "Aufgabe importieren …" in Scratch (German error naming `kind`). Everywhere else (already-uploaded packages downloaded by the app, cached exercises, practice-link zips — the 21 course-repo zips still carry `difficulty`) it is silently ignored, so nothing live breaks.
+- Pill: same outlined pill, text only (no signal bars): Pflicht, Übung, Bonus; existing colour tokens reused/renamed. No Figma.
+- Wording: J;DE is an IDE for Java beginners, preferably 1st-year Informatik classes at HTLs — not "one class, one school year".
+- README: German, all important information for interested teachers, link to the manual (https://mfreimueller.github.io/jide/), no links to SPEC/TASKS.
+
+- [ ] **T69 Categories** – shared validator (`kind`, strict vs. lenient for `difficulty`), backend migration (`exercises.difficulty` → `kind`; stored newbie → pflicht, advanced/pro → bonus, NULL → pflicht) + API field `kind`, app (pill, practice links → uebung, types), teacher web if it shows difficulty, examples/, tests, SPEC §4, manual (aufgaben.md, app.md).
+- [ ] **T70 Wording + README** – remove "one class / one school year" framing in README, SPEC §1, manual, package descriptions; new German README.
