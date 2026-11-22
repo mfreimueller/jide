@@ -19,7 +19,7 @@ Java muss nicht installiert werden. Die App bringt es mit.
 
 ### Linux
 
-Unterstützt sind Debian 12 und 13 sowie Ubuntu 22.04 und 24.04, jeweils mit einem 64-Bit-Prozessor (x64). Die App kommt als AppImage. Es gibt keine Installation mit Administratorrechten. Nur zwei Schritte brauchen einmalig `sudo` (siehe unten).
+Unterstützt sind Debian 12 und 13 sowie Ubuntu 22.04 und 24.04, jeweils mit einem 64-Bit-Prozessor (x64). Die App kommt als AppImage. Es gibt keine Installation mit Administratorrechten. Nur das FUSE-Paket (Schritt 4) und, auf Ubuntu 24.04, das AppArmor-Profil (Schritt 5) brauchen einmalig `sudo`.
 
 1. Öffnen Sie die [Seite der Programmversionen](https://github.com/mfreimueller/jide/releases) und laden Sie die neueste Datei `JDE-<Version>.AppImage` herunter. Das ist dieselbe Seite wie beim Windows-Installer.
 2. Legen Sie den Ordner `~/Applications` an und speichern Sie die Datei dort unter dem festen Namen `JDE.AppImage`:
