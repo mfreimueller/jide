@@ -151,6 +151,16 @@ await page.goto(`${BASE}/kurse/${courseId}/abgaben`);
 await page.getByRole('row', { name: /Ben Gruber/ }).getByRole('link').first().click();
 await page.getByText('Verlauf (').waitFor();
 await shot('18-abgabe-detail');
+await page.getByRole('link', { name: /Einstellungen/ }).click();
+await page.getByText('Noch keine Hosts').waitFor();
+await shot('20-einstellungen-leer');
+await page.getByLabel('Host hinzufügen').fill('nope');
+await page.getByRole('button', { name: 'Hinzufügen' }).click();
+await page.getByText('Das ist kein gültiger Hostname.').waitFor();
+await page.getByLabel('Host hinzufügen').fill('https://die-spengergasse.github.io/practice/a.zip');
+await page.getByRole('button', { name: 'Hinzufügen' }).click();
+await page.getByRole('listitem').filter({ hasText: 'die-spengergasse.github.io' }).waitFor();
+await shot('21-einstellungen-host');
 await page.locator('.course').click();
 await shot('19-kursauswahl');
 

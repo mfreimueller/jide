@@ -34,7 +34,7 @@
 
 	function pick(id: number) {
 		menuOpen = false;
-		return goto(`/kurse/${id}/${['abgaben', 'schueler', 'aufgaben'].includes(section) ? section : 'abgaben'}`);
+		return goto(`/kurse/${id}/${['abgaben', 'schueler', 'aufgaben', 'einstellungen'].includes(section) ? section : 'abgaben'}`);
 	}
 
 	async function signOut() {
@@ -50,7 +50,8 @@
 	const items = $derived([
 		{ key: 'abgaben', icon: '▦', label: 'Abgaben', count: null as number | null },
 		{ key: 'schueler', icon: '☺', label: 'Schüler:innen', count: course?.studentCount ?? null },
-		{ key: 'aufgaben', icon: '≡', label: 'Aufgaben', count: courseStore.exerciseCount }
+		{ key: 'aufgaben', icon: '≡', label: 'Aufgaben', count: courseStore.exerciseCount },
+		{ key: 'einstellungen', icon: '⛓', label: 'Einstellungen', count: null as number | null }
 	]);
 </script>
 
