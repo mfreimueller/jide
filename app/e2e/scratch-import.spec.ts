@@ -41,7 +41,7 @@ function readDir(dir: string, base = dir, out: Zippable = {}): Zippable {
   return out;
 }
 
-test("import a folder and a zip: tests, difficulty, no Abgeben, fixed classes, errors, second copy", async () => {
+test("import a folder and a zip: tests, kind, difficulty refused, no Abgeben, fixed classes, errors, second copy", async () => {
   const { app, page } = await launchBeforeLogin();
   await page.getByTestId("open-scratch").click();
   await expect(page.getByTestId("scratch-empty")).toBeVisible();
@@ -62,6 +62,20 @@ test("import a folder and a zip: tests, difficulty, no Abgeben, fixed classes, e
   await page.getByTestId("scratch-import-error-close").click();
   await expect(page.getByTestId("scratch-import-error")).toHaveCount(0);
 
+  // the retired difficulty key is refused when importing, with a hint to use kind
+  const old = mkdtempSync(join(tmpdir(), "jide-import-old-"));
+  for (const [rel, data] of Object.entries(readDir(join(examplesDir, "summe")))) {
+    mkdirSync(join(old, rel, ".."), { recursive: true });
+    const text = Buffer.from(data as Uint8Array).toString("utf8");
+    writeFileSync(join(old, rel), rel === "exercise.yaml" ? text.replace("kind: pflicht", "difficulty: newbie") : text);
+  }
+  await stubOpenDialog(app, old);
+  await page.getByTestId("scratch-import").click();
+  await page.getByTestId("scratch-import-folder").click();
+  await expect(page.getByTestId("scratch-import-error")).toContainText("difficulty gibt es nicht mehr – bitte kind: pflicht, uebung oder bonus verwenden");
+  await expect(page.getByTestId("scratch-empty")).toBeVisible();
+  await page.getByTestId("scratch-import-error-close").click();
+
   // a good folder
   await stubOpenDialog(app, join(examplesDir, "summe"));
   await page.getByTestId("scratch-import").click();
@@ -69,7 +83,7 @@ test("import a folder and a zip: tests, difficulty, no Abgeben, fixed classes, e
   const card = item(page, "Summe zweier Zahlen");
   await expect(card).toHaveCount(1);
   await expect(card.getByTestId("scratch-line")).toHaveText("Importiert · 3 Tests");
-  await expect(card.getByTestId("difficulty")).toHaveAttribute("data-level", "newbie");
+  await expect(card.getByTestId("kind")).toHaveAttribute("data-kind", "pflicht");
   await screenshot(page, { path: join(screenshotDir, "scratch-import-list.png") });
 
   // the same exercise as a zip: a second copy

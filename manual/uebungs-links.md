@@ -7,7 +7,7 @@ Ein Übungs-Link hat folgende Eigenschaften:
 - Die Übung hat Tests.
 - Es gibt **keine Abgabe**, keine Frist und keine Beurteilung.
 - Es wird **nichts erfasst oder gesendet**. Sie sehen nicht, wer geübt hat.
-- Die Übung landet im Bereich „Scratch“ der App, also nur auf dem Laptop der Schüler:innen.
+- Die Übung landet im Bereich „Scratch“ der App, also nur auf dem Laptop der Schüler:innen. Sie trägt immer das Schild „Übung“, egal welches `kind` in der `exercise.yaml` steht.
 
 ## Der Link
 
@@ -38,6 +38,7 @@ Die ZIP-Datei hat **dasselbe Format wie ein Scratch-Import** in der App. Das ist
 - `exercise.yaml`, `aufgabe.md` und `files/`, dazu optional `tests.yaml`
 - die Dateien liegen direkt im Stamm der ZIP-Datei oder in einem einzigen Ordner
 - höchstens 10 MB
+- ein altes Feld `difficulty` in der `exercise.yaml` schadet hier nicht, es wird ignoriert (anders als beim Hochladen und beim Import in Scratch)
 
 Ist die Datei kein gültiges Aufgabenpaket, zeigt die App eine deutsche Fehlermeldung. Prüfen Sie ein Paket am einfachsten selbst: Importieren Sie es in der App unter „Scratch“ → „Aufgabe importieren …“ → „ZIP-Datei wählen …“.
 

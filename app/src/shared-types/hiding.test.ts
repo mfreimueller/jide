@@ -4,7 +4,7 @@ import type { ExerciseSummary } from "./api";
 
 const NOW = new Date("2026-11-20T12:00:00Z");
 function ex(over: Partial<ExerciseSummary> = {}): ExerciseSummary {
-  return { id: "a", title: "A", status: "neu", deadline: null, submittedAt: null, late: false, groupId: null, difficulty: null, ...over };
+  return { id: "a", title: "A", status: "neu", deadline: null, submittedAt: null, late: false, groupId: null, kind: null, ...over };
 }
 const gradedAgo = (ms: number): Partial<ExerciseSummary> => ({
   status: "abgegeben",

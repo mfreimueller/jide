@@ -92,7 +92,7 @@ Nach der Anmeldung zeigt die App „Meine Aufgaben“. Oben stehen der Kurs, zum
 
 Jede Aufgabe zeigt:
 
-- den Titel, bei gesetzter Schwierigkeit „Pflicht“, „Advanced“ oder „Pro“
+- den Titel und die Kategorie als kleines Schild: „Pflicht“, „Übung“ oder „Bonus“ (ohne Angabe in der Aufgabe gilt „Pflicht“; in der Prüfung gibt es das Schild nicht)
 - die Frist, zum Beispiel „bis 15.01.2027“
 - einen Status: „Neu“, „In Arbeit“, „Abgegeben“, „Abgegeben · verspätet“ oder „Frist vorbei · Abgabe noch möglich“
 - bei einer Beurteilung das Symbol

@@ -1,6 +1,6 @@
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { listExercises, type Difficulty, type Exercise, type HandInFile, type StudentExerciseGroup, type StudentGrade, type StudentGradeResponse, type TestSummary } from "@jide/shared";
+import { listExercises, type Exercise, type ExerciseKind, type HandInFile, type StudentExerciseGroup, type StudentGrade, type StudentGradeResponse, type TestSummary } from "@jide/shared";
 
 /** One exercise as the source knows it. */
 export interface SourceEntry {
@@ -11,7 +11,8 @@ export interface SourceEntry {
   /** Exercise group of the course, null = none. */
   groupId: number | null;
   /** From exercise.yaml (or the backend list), null/missing = none. */
-  difficulty?: Difficulty | null;
+  /** Pill on the card; null = none (own Scratch programs). Course exercises always have one (default Pflicht). */
+  kind?: ExerciseKind | null;
   /** Set once the exercise is graded (online source). */
   grade?: StudentGrade | null;
   /** A Scratch item (own program without a server), listed in its own section. */
@@ -97,7 +98,7 @@ export class LocalSource implements ExerciseSource {
   async list(): Promise<SourceListing> {
     const { exercises, errors } = await this.loadAll();
     return {
-      exercises: exercises.map((e) => ({ id: e.id, title: e.title, deadline: null, groupId: null, difficulty: e.difficulty ?? null })),
+      exercises: exercises.map((e) => ({ id: e.id, title: e.title, deadline: null, groupId: null, kind: e.kind ?? "pflicht" })),
       groups: [],
       errors,
       offline: false

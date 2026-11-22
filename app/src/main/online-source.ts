@@ -1,6 +1,6 @@
 import { rm } from "node:fs/promises";
 import path from "node:path";
-import { DIFFICULTIES, GRADE_SYMBOLS, loadExercise, saveFile, type Difficulty, type Exercise, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
+import { GRADE_SYMBOLS, KINDS, loadExercise, saveFile, type Exercise, type ExerciseKind, type HandInFile, type StudentExerciseGroup, type StudentExerciseSummary, type TestSummary } from "@jide/shared";
 import { ApiClient, ApiError } from "./api-client";
 import { GRADED_ERROR_CODE } from "@jide/shared";
 import { isSafeExerciseId, needsDownload, PackageCache, restorableFiles } from "./package-cache";
@@ -20,7 +20,7 @@ function toEntries(list: StudentExerciseSummary[]): SourceEntry[] {
     title: e.title,
     deadline: e.deadline ?? null,
     groupId: e.groupId ?? null,
-    difficulty: (DIFFICULTIES as readonly unknown[]).includes(e.difficulty) ? (e.difficulty as Difficulty) : null,
+    kind: (KINDS as readonly unknown[]).includes(e.kind) ? (e.kind as ExerciseKind) : "pflicht",
     grade: (GRADE_SYMBOLS as readonly unknown[]).includes(e.grade?.symbol) && typeof e.grade?.gradedAt === "string" ? e.grade : null
   }));
 }

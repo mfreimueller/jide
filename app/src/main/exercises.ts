@@ -67,7 +67,7 @@ async function summarise(exercises: SourceEntry[]): Promise<ExerciseSummary[]> {
       submittedAt,
       late: handIn?.late ?? false,
       groupId: ex.groupId,
-      difficulty: ex.difficulty ?? null,
+      kind: ex.kind ?? null,
       ...(ex.grade ? { grade: ex.grade } : {}),
       ...(ex.scratch ? { scratch: true, classCount: ex.classCount ?? 0 } : {}),
       ...(ex.imported ? { imported: true, testCount: ex.testCount ?? 0, ...(ex.copied ? { copied: true } : {}) } : {})

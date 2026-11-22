@@ -12,6 +12,7 @@ import {
   MSG_OFFLINE,
   MSG_TOO_BIG
 } from "./practice-import";
+import { scratchEntry } from "./composite-source";
 import { ScratchStore } from "./scratch";
 
 const SRC = "https://example.test/p/a.zip";
@@ -102,6 +103,26 @@ describe("importPractice", () => {
     expect(second).toEqual({ kind: "open", id: first.id });
     expect(f).not.toHaveBeenCalled();
     expect((await store.list()).exercises).toHaveLength(1);
+  });
+  it("a practice link is always an Übung (whatever the yaml says) and still accepts the retired difficulty key", async () => {
+    const zipWith = (extra: string): Buffer =>
+      Buffer.from(
+        zipSync({
+          "exercise.yaml": strToU8(`id: summe\ntitle: Summe\nfiles:\n  - path: Summe.java\nmainFile: Summe.java\n${extra}`),
+          "aufgabe.md": strToU8("# Summe\n"),
+          "files/Summe.java": strToU8("class Summe {}")
+        })
+      );
+    for (const [i, extra] of ["", "kind: bonus\n", "kind: pflicht\n", "difficulty: newbie\n"].entries()) {
+      const src = `${SRC}?v=${i}`;
+      const r = await importPractice(src, store, undefined, { fetch: stub(reply(zipWith(extra))), isAllowed: allow });
+      expect(r.kind).toBe("open");
+      if (r.kind !== "open") return;
+      const ex = (await store.find(r.id))!;
+      expect(ex.kind).toBe("uebung");
+      const { exercises, imported } = await store.list();
+      expect(scratchEntry(exercises.find((e) => e.id === r.id)!, imported.get(r.id))).toMatchObject({ kind: "uebung" });
+    }
   });
   it("source lookup is an exact string match", async () => {
     await importPractice(SRC, store, undefined, { fetch: stub(reply(goodZip())), isAllowed: allow });

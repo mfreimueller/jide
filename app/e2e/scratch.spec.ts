@@ -107,6 +107,7 @@ test("before login: create, add a class, run, pick an Angabe, rename and delete 
   await expect(item(page, "Mein Rechner")).toContainText("Eigenes Programm · 1 Klasse");
   await expect(item(page, "Mein Rechner").locator(".icon")).toHaveText("{ }");
   await expect(item(page, "Mein Rechner")).not.toContainText("Neu");
+  await expect(item(page, "Mein Rechner").getByTestId("kind")).toHaveCount(0); // own programs have no category
   await screenshot(page, { path: join(screenshotDir, "scratch-list.png") });
 
   // rename, open again (Angabe and Main.java survived), delete

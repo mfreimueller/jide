@@ -6,7 +6,8 @@ import type { ExerciseSource, GradedViewResult, HandInOutcome, SourceEntry, Sour
 export function scratchEntry(e: Exercise, imported?: ImportedInfo): SourceEntry {
   return {
     ...(imported ? { imported: true, testCount: imported.tests, ...(imported.copy ? { copied: true } : {}) } : {}),
-    difficulty: e.difficulty ?? null,
+    // Own programs have no pill; imports and copies show their yaml kind (default Pflicht), practice links are Übung (see importZipBuffer).
+    kind: imported ? (e.kind ?? "pflicht") : null,
     id: e.id,
     title: e.title,
     deadline: null,

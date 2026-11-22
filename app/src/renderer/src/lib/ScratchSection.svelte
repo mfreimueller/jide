@@ -1,7 +1,7 @@
 <!-- The "Scratch" section of the exercise list: own programs without a server (Figma: Schüler-App 20-24). -->
 <script lang="ts">
   import type { ExerciseSummary } from "../../../shared-types/api";
-  import DifficultyPill from "./DifficultyPill.svelte";
+  import KindPill from "./KindPill.svelte";
   import { importedLine, scratchLine } from "./scratch-ui";
   import TextDialog from "./TextDialog.svelte";
 
@@ -129,7 +129,7 @@
     <div class="ex-main">
       <div class="ex-head">
         <span class="ex-title">{item.title}</span>
-        {#if item.difficulty}<DifficultyPill level={item.difficulty} />{/if}
+        {#if item.kind}<KindPill kind={item.kind} />{/if}
       </div>
       <span class="muted" data-testid="scratch-line">{item.imported ? importedLine(item.testCount ?? 0, item.copied === true) : scratchLine(item.classCount ?? 1)}</span>
     </div>

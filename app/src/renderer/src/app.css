@@ -46,13 +46,13 @@
   --text-ok: #18794e;
   --text-warn: #ab6400;
   --text-err: #ce2c31;
-  /* difficulty pill (text/bars colour + background) */
-  --diff-newbie: #18794e;
-  --diff-newbie-bg: #ecf8f1;
-  --diff-advanced: #b45309;
-  --diff-advanced-bg: #fef3e2;
-  --diff-pro: #6d28d9;
-  --diff-pro-bg: #f3ecfe;
+  /* kind pill (text colour + background) */
+  --kind-pflicht: #18794e;
+  --kind-pflicht-bg: #ecf8f1;
+  --kind-uebung: #b45309;
+  --kind-uebung-bg: #fef3e2;
+  --kind-bonus: #6d28d9;
+  --kind-bonus-bg: #f3ecfe;
   /* grade chip: + and +~ use the "Abgegeben" green, ~ the "In Arbeit" amber, −~ and − this red */
   --grade-bad: #b42318;
   --grade-bad-bg: #fdecec;
@@ -101,12 +101,12 @@
     --text-ok: #3dd68c;
     --text-warn: #ffca16;
     --text-err: #ff9592;
-    --diff-newbie: #3dd68c;
-    --diff-newbie-bg: #132d21;
-    --diff-advanced: #ffa057;
-    --diff-advanced-bg: #331e0b;
-    --diff-pro: #d19dff;
-    --diff-pro-bg: #2b1f3d;
+    --kind-pflicht: #3dd68c;
+    --kind-pflicht-bg: #132d21;
+    --kind-uebung: #ffa057;
+    --kind-uebung-bg: #331e0b;
+    --kind-bonus: #d19dff;
+    --kind-bonus-bg: #2b1f3d;
     --grade-bad: #ff9592;
     --grade-bad-bg: #3b1219;
     --feedback-bg: #1b1d1f;

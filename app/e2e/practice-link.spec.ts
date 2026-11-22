@@ -32,12 +32,17 @@ function readDir(dir: string, base = dir, out: Zippable = {}): Zippable {
 /** A local stand-in for the course page: serves the "summe" fixture as a zip; counts requests per path. */
 async function fixtureServer(): Promise<{ server: Server; origin: string; hits: string[] }> {
   const zip = Buffer.from(zipSync(readDir(join(examplesDir, "summe"))));
+  // like the live course zips: still carries the retired difficulty key (practice links read leniently)
+  const old = readDir(join(examplesDir, "summe"));
+  old["exercise.yaml"] = Buffer.from(Buffer.from(old["exercise.yaml"] as Uint8Array).toString("utf8").replace("kind: pflicht", "difficulty: newbie"));
+  const oldZip = Buffer.from(zipSync(old));
   const hits: string[] = [];
   const server = createServer((req, res) => {
     hits.push(req.url ?? "");
-    if (req.url === "/kurs/practice/summe.zip") {
-      res.writeHead(200, { "content-type": "application/zip", "content-length": zip.length });
-      res.end(zip);
+    if (req.url === "/kurs/practice/summe.zip" || req.url === "/kurs/practice/alt.zip") {
+      const body = req.url.endsWith("alt.zip") ? oldZip : zip;
+      res.writeHead(200, { "content-type": "application/zip", "content-length": body.length });
+      res.end(body);
     } else {
       res.writeHead(404);
       res.end();
@@ -91,6 +96,9 @@ test("signed in, allowed host: a link imports the exercise into Scratch and open
 
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE })).toHaveCount(1);
+  // practice links are always an Übung, although the yaml says kind: pflicht
+  await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE }).getByTestId("kind")).toHaveAttribute("data-kind", "uebung");
+  await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE }).getByTestId("kind")).toHaveText("Übung");
 
   // an existing copy opens without any host check or network: also with an empty host list
   await backend.setPracticeHosts([]);
@@ -99,6 +107,15 @@ test("signed in, allowed host: a link imports the exercise into Scratch and open
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE })).toHaveCount(1);
   expect(fixture.hits).toHaveLength(1); // no second download
+});
+
+test("a practice zip that still carries difficulty imports (lenient) and shows Übung", async () => {
+  const { app, page } = await signedIn();
+  await sendLink(app, zipUrl("alt.zip"));
+  await expectOpenedCopy(page);
+  await expect(page.getByTestId("app-notice")).toHaveCount(0);
+  await page.getByRole("button", { name: "← Aufgaben" }).click();
+  await expect(page.getByTestId("scratch-item").filter({ hasText: TITLE }).getByTestId("kind")).toHaveAttribute("data-kind", "uebung");
 });
 
 test("a host that is not in the course list is refused and nothing is imported", async () => {

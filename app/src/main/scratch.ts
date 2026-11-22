@@ -8,7 +8,8 @@ import {
   MAX_PACKAGE_BYTES,
   parseExerciseConfig,
   readExerciseZip,
-  type Exercise
+  type Exercise,
+  type ExerciseKind
 } from "@jide/shared";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
@@ -276,7 +277,11 @@ export class ScratchStore {
     return undefined;
   }
 
-  /** Imports a zip held in memory (a download) as a new Scratch item; `source` is remembered in the import info. */
+  /**
+   * Imports a zip held in memory (a practice-link download) as a new Scratch item; `source` is remembered in the
+   * import info. Rule: a practice-link import is always an Übung, whatever `kind` the yaml says. The package is
+   * read leniently: the live course zips may still carry the retired `difficulty` key.
+   */
   importZipBuffer(bytes: Uint8Array, source?: string): Promise<ScratchResult<{ id: string }>> {
     return this.serial(async () => {
       if (bytes.byteLength > MAX_PACKAGE_BYTES) return { ok: false, message: TOO_BIG_MESSAGE };
@@ -288,14 +293,14 @@ export class ScratchStore {
         return { ok: false, message: "Die Datei konnte nicht gelesen werden." };
       }
       const raw = pkg.files.get("tests.yaml");
-      return this.install(pkg.exercise, raw === undefined ? undefined : Buffer.from(raw).toString("utf8"), {}, false, source);
+      return this.install(pkg.exercise, raw === undefined ? undefined : Buffer.from(raw).toString("utf8"), {}, false, source, "uebung");
     });
   }
 
   /**
    * Imports a teacher-format exercise (a folder, or a zip with the files at its root or in one top-level folder)
-   * as a new Scratch item. Validation is the same parser as for the teacher upload (`loadExercise` /
-   * `readExerciseZip`). Importing the same exercise twice gives two items.
+   * as a new Scratch item. Validation is the same strict parser as for the teacher upload (`loadExercise` /
+   * `readExerciseZip`; a `difficulty` key is an error). Importing the same exercise twice gives two items.
    */
   importExercise(kind: unknown, source: unknown): Promise<ScratchResult<{ id: string }>> {
     return this.serial(async () => {
@@ -307,7 +312,7 @@ export class ScratchStore {
       try {
         if (kind === "folder") {
           if (!(await isDir(source))) return { ok: false, message: "Der Ordner wurde nicht gefunden." };
-          ex = await loadExercise(source);
+          ex = await loadExercise(source, { strict: true });
           testsYaml = await readFile(join(source, "tests.yaml"), "utf8").catch(() => undefined);
         } else {
           const st = await stat(source);
@@ -315,7 +320,7 @@ export class ScratchStore {
           if (st.size > MAX_PACKAGE_BYTES) {
             return { ok: false, message: TOO_BIG_MESSAGE };
           }
-          const pkg = await readExerciseZip(new Uint8Array(await readFile(source)));
+          const pkg = await readExerciseZip(new Uint8Array(await readFile(source)), { strict: true });
           ex = pkg.exercise;
           const raw = pkg.files.get("tests.yaml");
           testsYaml = raw === undefined ? undefined : Buffer.from(raw).toString("utf8");
@@ -336,7 +341,9 @@ export class ScratchStore {
     testsYaml: string | undefined,
     overrides: Record<string, string>,
     copy = false,
-    source?: string
+    source?: string,
+    /** Replaces the yaml `kind` (practice links). */
+    kindOverride?: ExerciseKind
   ): Promise<ScratchResult<{ id: string }>> {
     const id = `${SCRATCH_PREFIX}${randomBytes(6).toString("hex")}`;
     const dir = this.dir(id);
@@ -359,7 +366,8 @@ export class ScratchStore {
       };
       if (ex.harness) config["harness"] = ex.harness;
       if (ex.images.length > 0) config["images"] = ex.images;
-      if (ex.difficulty) config["difficulty"] = ex.difficulty;
+      const kind = kindOverride ?? ex.kind;
+      if (kind) config["kind"] = kind;
       await mkdir(dir, { recursive: true });
       await this.writeConfig(id, config);
       await loadExercise(dir); // what was written must load again

@@ -14,15 +14,15 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-describe("OnlineSource difficulty", () => {
-  it("keeps the difficulty through the offline cache; missing or unknown values become null", async () => {
+describe("OnlineSource kind", () => {
+  it("keeps the kind through the offline cache; missing or unknown values (also a cached old difficulty) become pflicht", async () => {
     const cache = new PackageCache(dir);
     const base = { version: "v1", deadline: null };
     await cache.writeList([
-      { ...base, id: "a", title: "A", difficulty: "pro" },
-      { ...base, id: "b", title: "B", difficulty: null },
-      { ...base, id: "c", title: "C" },
-      { ...base, id: "d", title: "D", difficulty: "expert" as never }
+      { ...base, id: "a", title: "A", kind: "bonus" },
+      { ...base, id: "b", title: "B", kind: "uebung" },
+      { ...base, id: "c", title: "C", difficulty: "pro" } as never,
+      { ...base, id: "d", title: "D", kind: "expert" as never }
     ]);
     const api = {
       exercises: async () => {
@@ -32,11 +32,11 @@ describe("OnlineSource difficulty", () => {
 
     const listing = await new OnlineSource(api, cache).list();
     expect(listing.offline).toBe(true);
-    expect(listing.exercises.map((e) => [e.id, e.difficulty])).toEqual([
-      ["a", "pro"],
-      ["b", null],
-      ["c", null],
-      ["d", null]
+    expect(listing.exercises.map((e) => [e.id, e.kind])).toEqual([
+      ["a", "bonus"],
+      ["b", "uebung"],
+      ["c", "pflicht"],
+      ["d", "pflicht"]
     ]);
   });
 });

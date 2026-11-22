@@ -26,14 +26,22 @@ files:
   - path: Summe.java
     editable: true
 mainFile: Summe.java
-difficulty: newbie
+kind: pflicht
 ```
 
 - `id`: eindeutiger Kurzname. Er ist auch der Ordnername bei der Abgabe. Die ID darf nicht mit `scratch-` beginnen.
 - `title`: Titel in der Aufgabenliste.
 - `files`: Dateien der Aufgabe. `editable: false` macht eine Datei schreibgeschützt, zum Beispiel eine vorgegebene Klasse.
 - `mainFile`: Datei, die gestartet wird.
-- `difficulty` (optional): `newbie`, `advanced` oder `pro`. Die Aufgabenkarte zeigt dann „Pflicht“, „Advanced“ oder „Pro“. Jeder andere Wert wird beim Hochladen abgelehnt.
+- `kind` (optional): die Kategorie der Aufgabe. Die Aufgabenkarte zeigt sie als kleines Schild. Ohne Angabe gilt `pflicht`. Jeder andere Wert wird beim Hochladen abgelehnt.
+
+  | `kind` | Schild | Bedeutung |
+  | --- | --- | --- |
+  | `pflicht` | „Pflicht“ | zählt für die Note |
+  | `bonus` | „Bonus“ | zählt zur Mitarbeit |
+  | `uebung` | „Übung“ | freiwillig, zum Beispiel über [Übungs-Links](/uebungs-links) |
+
+  Das frühere Feld `difficulty` gibt es nicht mehr. Beim Hochladen und beim Import in Scratch kommt eine Fehlermeldung, bitte verwenden Sie `kind`. Bereits hochgeladene Aufgaben zeigen „Pflicht“, bis Sie sie neu hochladen.
 
 Optional gibt es außerdem:
 

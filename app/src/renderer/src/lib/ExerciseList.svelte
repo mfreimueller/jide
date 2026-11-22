@@ -4,7 +4,7 @@
   import { formatDate, formatDateTime, isPast } from "../../../shared-types/datetime";
   import { sectionExercises } from "../../../shared-types/grouping";
   import CopyToScratchDialog from "./CopyToScratchDialog.svelte";
-  import DifficultyPill from "./DifficultyPill.svelte";
+  import KindPill from "./KindPill.svelte";
   import GradeChip from "./GradeChip.svelte";
   import { gradeSubtitle } from "../../../shared-types/grade";
   import {
@@ -111,7 +111,7 @@
     <div class="ex-main">
       <div class="ex-head">
         <span class="ex-title">{ex.title}</span>
-        {#if ex.difficulty}<DifficultyPill level={ex.difficulty} />{/if}
+        {#if ex.kind}<KindPill kind={ex.kind} />{/if}
       </div>
       {#if ex.grade}
         <span class="muted" data-testid="grade-subtitle">{gradeSubtitle(ex.grade.gradedAt)}</span>

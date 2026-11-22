@@ -178,10 +178,12 @@ mainFile: Summe.java   # file that is launched
 images:                # optional, read-only SVG diagrams in files/, viewed in the middle area
   - path: klassendiagramm.svg
     title: Klassendiagramm   # optional label in the file list
-difficulty: newbie     # optional: newbie | advanced | pro
+kind: pflicht         # optional: pflicht | uebung | bonus (default pflicht)
 ```
 
-`difficulty` is shown on the student's exercise card as a small pill (three signal bars + "Pflicht", "Advanced" or "Pro"; green, orange, violet; the yaml value stays `newbie`). No pill without it, and nothing in exam mode. Any other value is rejected with a German error (`difficulty muss newbie, advanced oder pro sein`). The backend stores it at upload (`exercises.difficulty`, NULL until a package is uploaded again) and returns it as `difficulty` in `GET /api/exercises` (`null` when none).
+`kind` is the category of the exercise: Pflicht (needed for the grade), Bonus (counts as Mitarbeit) or Übung (voluntary). It is shown on the student's exercise card as a small outlined text pill ("Pflicht", "Übung", "Bonus"; green, orange, violet) and never in exam mode. Without `kind` a course exercise is Pflicht (pill shown). Any other value is rejected with a German error (`kind muss pflicht, uebung oder bonus sein`). The backend stores it at upload (`exercises.kind`, NULL = Pflicht, so packages uploaded before it existed show Pflicht until uploaded again) and returns it as `kind` (`pflicht` | `uebung` | `bonus`) in `GET /api/exercises`. Scratch: exercises made by "Aufgabe importieren …" or "In Scratch kopieren" show their yaml `kind` (default Pflicht); an exercise opened through a practice link (`jide://practice`) is always shown as Übung, whatever the yaml says; own programs have no pill.
+
+The former `difficulty` key (`newbie | advanced | pro`) no longer exists. It is rejected (German error: `difficulty gibt es nicht mehr – bitte kind: pflicht, uebung oder bonus verwenden`) only where a package enters the system strictly: the teacher upload and "Aufgabe importieren …" in Scratch. Everywhere else (packages already stored on the server and downloaded by the app, cached exercises, practice-link zips, local `JIDE_EXERCISES_DIR` folders) the key is silently ignored.
 
 Working directory for running and testing: a temp copy of the exercise with `resources/` in it.
 
@@ -228,7 +230,7 @@ Auth: `Authorization: Bearer jide_<32 random chars>`, an API key created by a te
 | Method | Path | Response / body |
 |---|---|---|
 | GET | `/api/v1/courses` | `[{ id, subject, className, students: [{ id, name }] }]` |
-| GET | `/api/v1/courses/:courseId/exercises` | exercises unlocked for the course: `[{ id, slug, title, difficulty, unlockedAt, deadline }]` (`id` numeric, `slug` = `exercise.yaml` id) |
+| GET | `/api/v1/courses/:courseId/exercises` | exercises unlocked for the course: `[{ id, slug, title, kind, unlockedAt, deadline }]` (`id` numeric, `slug` = `exercise.yaml` id) |
 | GET | `/api/v1/exercises/:exerciseId/package` | the exercise zip (same as the student download) |
 | GET | `/api/v1/courses/:courseId/exercises/:exerciseId/handins` | latest hand-in per student, students without a hand-in left out: `[{ handinId, studentId, submittedAt, late, testsPassed, testsTotal, graded, files: [{ path, content }] }]` |
 | PUT | `/api/v1/handins/:handinId/grade` | body `{ symbol, comment, lineComments: [{ path, line, text }] }` → `200 { gradedAt }`; replaces an earlier grade of the same student + exercise; `409 NEWER_HANDIN` if the student handed in again after `handinId` |

@@ -348,7 +348,7 @@ describe("import", () => {
   const SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'></svg>";
   const PACKAGE: Record<string, string> = {
     "exercise.yaml":
-      "id: summe\ntitle: Summe\nfiles:\n  - path: Summe.java\n  - path: Hilfe.java\n    editable: false\nmainFile: Summe.java\nimages:\n  - path: bild.svg\ndifficulty: advanced\n",
+      "id: summe\ntitle: Summe\nfiles:\n  - path: Summe.java\n  - path: Hilfe.java\n    editable: false\nmainFile: Summe.java\nimages:\n  - path: bild.svg\nkind: bonus\n",
     "aufgabe.md": "# Summe\n",
     "tests.yaml": 'tests:\n  - {name: a, type: io, expected: "1"}\n  - {name: b, type: io, expected: "2"}\n',
     "files/Summe.java": "class Summe {}",
@@ -379,13 +379,13 @@ describe("import", () => {
     return r.id;
   }
 
-  it("imports a folder as a new scratch item with tests, image and difficulty", async () => {
+  it("imports a folder as a new scratch item with tests, image and kind", async () => {
     const id = await imported("folder", await folder());
     expect(isScratchId(id)).toBe(true);
     const ex = (await store.find(id))!;
     expect(ex.id).toBe(id);
     expect(ex.title).toBe("Summe");
-    expect(ex.difficulty).toBe("advanced");
+    expect(ex.kind).toBe("bonus");
     expect(ex.tests).toHaveLength(2);
     expect(ex.imageContents["bild.svg"]).toBe(SVG);
     expect(ex.originals["Hilfe.java"]).toBe("class Hilfe {}");
@@ -393,7 +393,30 @@ describe("import", () => {
     expect(ex.assignment).toBe("# Summe\n");
     const { exercises, imported: info } = await store.list();
     expect(exercises.map((e) => e.id)).toEqual([id]);
-    expect(scratchEntry(exercises[0]!, info.get(id))).toMatchObject({ imported: true, testCount: 2, difficulty: "advanced", scratch: true });
+    expect(scratchEntry(exercises[0]!, info.get(id))).toMatchObject({ imported: true, testCount: 2, kind: "bonus", scratch: true });
+  });
+
+  it("refuses the retired difficulty key (folder and zip) with a German hint and imports nothing", async () => {
+    const old = { ...PACKAGE, "exercise.yaml": PACKAGE["exercise.yaml"]!.replace("kind: bonus", "difficulty: advanced") };
+    const msg = "difficulty gibt es nicht mehr – bitte kind: pflicht, uebung oder bonus verwenden";
+    const f = await store.importExercise("folder", await folder(old, "alt"));
+    expect(!f.ok && f.message).toContain(msg);
+    const z = await store.importExercise("zip", await zip(old));
+    expect(!z.ok && z.message).toContain(msg);
+    expect((await store.list()).exercises).toEqual([]);
+  });
+
+  it("a card shows the yaml kind of an import (default Pflicht); own programs show none", async () => {
+    const { "exercise.yaml": y, ...rest } = PACKAGE;
+    const plain = await imported("folder", await folder({ ...rest, "exercise.yaml": y!.replace("kind: bonus\n", "") }, "plain"));
+    const bonus = await imported("folder", await folder());
+    const own = await store.create("Eigenes");
+    if (!own.ok) throw new Error(own.message);
+    const { exercises, imported: info } = await store.list();
+    const entry = (id: string) => scratchEntry(exercises.find((e) => e.id === id)!, info.get(id));
+    expect(entry(plain).kind).toBe("pflicht");
+    expect(entry(bonus).kind).toBe("bonus");
+    expect(entry(own.id).kind).toBeNull();
   });
 
   it("imports a flat zip and a zip with one wrapping folder the same way", async () => {
@@ -478,7 +501,7 @@ describe("import", () => {
       return loadExercise(await folder());
     }
 
-    it("neu beginnen: starter files, tests, image, difficulty, title; imported.json locks the classes", async () => {
+    it("neu beginnen: starter files, tests, image, kind, title; imported.json locks the classes", async () => {
       const ex = await original();
       // the student worked on the original; "fresh" ignores that
       await mkdir(join(ws, "summe"), { recursive: true });
@@ -488,7 +511,7 @@ describe("import", () => {
       expect(isScratchId(r.id)).toBe(true);
       const copy = (await store.find(r.id))!;
       expect(copy.title).toBe("Summe");
-      expect(copy.difficulty).toBe("advanced");
+      expect(copy.kind).toBe("bonus");
       expect(copy.tests).toHaveLength(2);
       expect(copy.imageContents["bild.svg"]).toBe(SVG);
       expect(copy.assignment).toBe("# Summe\n");
