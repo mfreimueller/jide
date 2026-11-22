@@ -419,6 +419,30 @@ describe("import", () => {
     expect(entry(own.id).kind).toBeNull();
   });
 
+  it("an item with a practice-link source is always Übung (also old copies without kind or with difficulty); others show yaml kind or Pflicht", async () => {
+    const mk = async (yamlExtra: string, source?: string) => {
+      const { "exercise.yaml": y, ...rest } = PACKAGE;
+      const id = await imported("folder", await folder({ ...rest, "exercise.yaml": y!.replace("kind: bonus\n", "") }, `p${Math.random()}`));
+      // rewrite the stored item like an older version would have (yaml extra, source in imported.json)
+      const yamlPath = join(tmp, "scratch", id, "exercise.yaml");
+      await writeFile(yamlPath, (await readFile(yamlPath, "utf8")) + yamlExtra, "utf8");
+      const infoPath = join(tmp, "scratch", id, "imported.json");
+      const info = JSON.parse(await readFile(infoPath, "utf8"));
+      await writeFile(infoPath, JSON.stringify(source ? { ...info, source } : info), "utf8");
+      return id;
+    };
+    const oldPractice = await mk("difficulty: newbie\n", "https://example.test/p/a.zip");
+    const noKindPractice = await mk("", "https://example.test/p/b.zip");
+    const bonusPractice = await mk("kind: bonus\n", "https://example.test/p/c.zip");
+    const plainBonus = await mk("kind: bonus\n");
+    const plainNone = await mk("");
+    const { exercises, imported: info } = await store.list();
+    const entry = (id: string) => scratchEntry(exercises.find((e) => e.id === id)!, info.get(id)).kind;
+    expect([oldPractice, noKindPractice, bonusPractice].map(entry)).toEqual(["uebung", "uebung", "uebung"]);
+    expect(entry(plainBonus)).toBe("bonus");
+    expect(entry(plainNone)).toBe("pflicht");
+  });
+
   it("imports a flat zip and a zip with one wrapping folder the same way", async () => {
     const a = await imported("zip", await zip());
     const b = await imported("zip", await zip(PACKAGE, "summe/"));

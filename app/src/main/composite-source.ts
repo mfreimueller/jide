@@ -6,8 +6,10 @@ import type { ExerciseSource, GradedViewResult, HandInOutcome, SourceEntry, Sour
 export function scratchEntry(e: Exercise, imported?: ImportedInfo): SourceEntry {
   return {
     ...(imported ? { imported: true, testCount: imported.tests, ...(imported.copy ? { copied: true } : {}) } : {}),
-    // Own programs have no pill; imports and copies show their yaml kind (default Pflicht), practice links are Übung (see importZipBuffer).
-    kind: imported ? (e.kind ?? "pflicht") : null,
+    // Own programs have no pill; imports and copies show their yaml kind (default Pflicht). Anything that came from a
+    // practice link (import info has a source) is always Übung, whatever its yaml says: this also covers copies
+    // imported by 0.12.x / 0.13.0, whose yaml has no kind.
+    kind: imported ? (imported.source ? "uebung" : (e.kind ?? "pflicht")) : null,
     id: e.id,
     title: e.title,
     deadline: null,
