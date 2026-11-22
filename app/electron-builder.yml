@@ -27,6 +27,17 @@ win:
     - target: nsis
       arch: x64
   icon: resources/icon.ico
+linux:
+  target:
+    - target: AppImage
+      arch: x64
+  icon: resources/icon.png
+  category: Education
+  artifactName: JDE-${version}.AppImage
+  # The app copies this icon to ~/.local/share/icons for the jide:// desktop entry (linux-deep-link.ts).
+  extraResources:
+    - from: resources/icon.png
+      to: icon.png
 nsis:
   oneClick: true
   perMachine: false

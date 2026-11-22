@@ -4,7 +4,7 @@ vi.mock("electron", () => ({ app: {}, BrowserWindow: {}, clipboard: {}, dialog: 
 vi.mock("./context", () => ({ context: () => ({}) }));
 vi.mock("./exam-state", () => ({ examSession: () => undefined }));
 
-import { describeOs, reportFileName } from "./bug-report";
+import { describeOs, prettyNameFromOsRelease, reportFileName } from "./bug-report";
 
 describe("describeOs", () => {
   it("tells Windows 11 from Windows 10 by the build number", () => {
@@ -13,7 +13,25 @@ describe("describeOs", () => {
   });
   it("names other systems", () => {
     expect(describeOs("darwin", "25.6.0")).toBe("macOS (Darwin) 25.6.0");
-    expect(describeOs("linux", "6.1.0")).toBe("Linux 6.1.0");
+  });
+  it("Linux: distribution from os-release, else the kernel", () => {
+    const debian = 'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"\nNAME="Debian GNU/Linux"\nID=debian\n';
+    expect(describeOs("linux", "6.1.0-18-amd64", debian)).toBe("Debian GNU/Linux 12 (bookworm)");
+    expect(describeOs("linux", "6.1.0", "NAME=Foo\nID=foo\n")).toBe("Linux (6.1.0)");
+    expect(describeOs("linux", "6.1.0", "PRETTY_NAME=\n")).toBe("Linux (6.1.0)");
+    expect(describeOs("linux", "6.1.0", null)).toBe("Linux (6.1.0)");
+    expect(describeOs("linux", "6.1.0")).toBe("Linux (6.1.0)");
+  });
+});
+
+describe("prettyNameFromOsRelease", () => {
+  it("reads quoted, single-quoted and bare values", () => {
+    expect(prettyNameFromOsRelease('PRETTY_NAME="Ubuntu 24.04.1 LTS"')).toBe("Ubuntu 24.04.1 LTS");
+    expect(prettyNameFromOsRelease("PRETTY_NAME='Ubuntu 22.04 LTS'")).toBe("Ubuntu 22.04 LTS");
+    expect(prettyNameFromOsRelease("ID=x\r\nPRETTY_NAME=Arch\r\n")).toBe("Arch");
+  });
+  it("unescapes quoted values", () => {
+    expect(prettyNameFromOsRelease('PRETTY_NAME="My \\"Distro\\""')).toBe('My "Distro"');
   });
 });
 

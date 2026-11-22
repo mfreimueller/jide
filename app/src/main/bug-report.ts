@@ -1,4 +1,5 @@
 import { release } from "node:os";
+import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { app, BrowserWindow, clipboard, dialog, ipcMain } from "electron";
@@ -7,14 +8,45 @@ import { context } from "./context";
 import { examSession } from "./exam-state";
 import { PackageCache } from "./package-cache";
 
-/** "Windows 11 (10.0.22631)": Windows 11 is NT 10.0 from build 22000 on. Other systems: name and kernel release. */
-export function describeOs(platform: string, rel: string): string {
+/** `PRETTY_NAME` of an os-release file ("Debian GNU/Linux 12 (bookworm)"), quotes removed; null if absent or empty. */
+export function prettyNameFromOsRelease(text: string): string | null {
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^PRETTY_NAME=(.*)$/.exec(line.trim());
+    if (!m) continue;
+    let v = m[1]!.trim();
+    if (v.length >= 2 && (v[0] === '"' || v[0] === "'") && v.endsWith(v[0])) {
+      v = v.slice(1, -1);
+      if (line.includes('"')) v = v.replace(/\\(["\\$`])/g, "$1");
+    }
+    return v.trim() || null;
+  }
+  return null;
+}
+
+/**
+ * "Windows 11 (10.0.22631)": Windows 11 is NT 10.0 from build 22000 on. Linux: the distribution's
+ * `PRETTY_NAME` from `osRelease` (content of /etc/os-release, null if unreadable), else "Linux (<kernel>)".
+ * Other systems: name and kernel release.
+ */
+export function describeOs(platform: string, rel: string, osRelease: string | null = null): string {
   if (platform === "win32") {
     const build = Number(rel.split(".")[2]);
     return `${Number.isFinite(build) && build >= 22000 ? "Windows 11" : "Windows 10"} (${rel})`;
   }
-  const name = platform === "darwin" ? "macOS (Darwin)" : platform === "linux" ? "Linux" : platform;
+  if (platform === "linux") {
+    const distro = osRelease === null ? null : prettyNameFromOsRelease(osRelease);
+    return distro ?? `Linux (${rel})`;
+  }
+  const name = platform === "darwin" ? "macOS (Darwin)" : platform;
   return `${name} ${rel}`;
+}
+
+function readOsRelease(): string | null {
+  try {
+    return readFileSync("/etc/os-release", "utf8");
+  } catch {
+    return null;
+  }
 }
 
 /** Safe default name for the save dialog: a plain `.txt` file name. */
@@ -33,7 +65,7 @@ export function registerBugReportIpc(): void {
       const v = await new PackageCache(join(app.getPath("userData"), "cache")).version(exerciseId);
       packageVersion = v ? v.replace(/[^0-9a-f]/gi, "").slice(0, 8) || null : null;
     }
-    return { appVersion: app.getVersion(), os: describeOs(process.platform, release()), mode, packageVersion };
+    return { appVersion: app.getVersion(), os: describeOs(process.platform, release(), process.platform === "linux" ? readOsRelease() : null), mode, packageVersion };
   });
 
   ipcMain.handle("jide:report-save", async (e, defaultName: unknown, text: unknown): Promise<ReportSaveResult> => {
