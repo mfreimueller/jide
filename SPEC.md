@@ -24,7 +24,7 @@ They enter a personal code once. From then on they see the exercises the teacher
 
 | | Online mode | Exam mode |
 |---|---|---|
-| Runs on | Student laptops (Windows) | School exam PCs (Windows), started from the Angabelaufwerk |
+| Runs on | Student laptops (Windows, Linux x64 AppImage) | School exam PCs (Windows), started from the Angabelaufwerk |
 | Distribution | Per-user installer (no admin), auto-update | Unpacked folder copied to the Angabelaufwerk, no installation |
 | Activated by | default | `exam.json` next to the exe |
 | Identity | Personal code (one per student) | Student types their name at start |
@@ -280,7 +280,7 @@ First exam: **2026-11-19**. The switch to the app follows right after. That leav
 - **Ask first**: new dependencies with native modules; changes to the exercise format once exercises exist.
 - **Never**: execute student code on the server; store more personal data than names and course membership.
 
-**Non-goals (v1)**: debugger, real code analysis for completion, macOS/Linux builds, code signing, teacher account management UI, server-side grading, plagiarism detection.
+**Non-goals (v1)**: debugger, real code analysis for completion, macOS builds, code signing, teacher account management UI, server-side grading, plagiarism detection.
 
 ## 10. Risks
 1. **Running from a network share** (exam mode): Electron's unpacked folder is ~200 MB of files, and a whole class starts it at once from SMB. Startup may be slow. Windows may warn about executables from network locations. → Test early on the real Angabelaufwerk.
