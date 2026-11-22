@@ -2,7 +2,7 @@ import { expect, test, type ElectronApplication, type Page } from "@playwright/t
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { examplesDir, launch, openExercise, useTempApp } from "./helpers";
+import { examplesDir, launch, openExercise, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -64,7 +64,7 @@ for (const count of [4, 8]) {
       await zoom(app, level);
       if (SHOTS) {
         mkdirSync(SHOTS, { recursive: true });
-        await page.screenshot({ path: join(SHOTS, `t36-toolbar-exam-${count}-tabs-${level ? 120 : 100}.png`) });
+        await screenshot(page, { path: join(SHOTS, `t36-toolbar-exam-${count}-tabs-${level ? 120 : 100}.png`) });
       }
       const m = await measure(page);
       expect(m.buttonsInside).toBe(true);
@@ -107,7 +107,7 @@ test("normal workspace: a long exercise title is cut off with an ellipsis, the b
   await zoom(app, 1);
   if (SHOTS) {
     mkdirSync(SHOTS, { recursive: true });
-    await page.screenshot({ path: join(SHOTS, "t36-toolbar-workspace-long-title-120.png") });
+    await screenshot(page, { path: join(SHOTS, "t36-toolbar-workspace-long-title-120.png") });
   }
   const r = await page.evaluate(() => {
     const box = (s: string) => document.querySelector(s)!.getBoundingClientRect();

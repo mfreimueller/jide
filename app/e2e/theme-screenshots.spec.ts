@@ -2,7 +2,7 @@ import { expect, test, type ElectronApplication, type Page } from "@playwright/t
 import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { examplesDir, exitApp, launch, newUserData, openExercise, setEditorText, useTempApp } from "./helpers";
+import { examplesDir, exitApp, launch, newUserData, openExercise, setEditorText, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -23,7 +23,7 @@ async function shoot(app: ElectronApplication, page: Page, name: string): Promis
   for (const theme of themes) {
     await setTheme(app, page, theme);
     await page.waitForTimeout(250);
-    await page.screenshot({ path: join(DIR!, `t35-${name}-${theme}.png`) });
+    await screenshot(page, { path: join(DIR!, `t35-${name}-${theme}.png`) });
   }
 }
 

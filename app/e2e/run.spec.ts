@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { join } from "node:path";
-import { launch, openExercise, screenshotDir, setEditorText, useTempApp } from "./helpers";
+import { launch, openExercise, screenshotDir, setEditorText, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -44,7 +44,7 @@ test("a Scanner program reads two numbers and prints the sum", async ({}, info) 
   await expect(consoleText(page)).toContainText("■ Programm beendet.");
   await expect(page.getByTestId("run")).toBeEnabled();
   await expect(page.getByTestId("stop")).toBeDisabled();
-  await page.screenshot({ path: join(screenshotDir, "konsole.png") });
+  await screenshot(page, { path: join(screenshotDir, "konsole.png") });
   info.annotations.push({ type: "screenshot", description: "konsole.png" });
 
   // "Leeren" empties the console

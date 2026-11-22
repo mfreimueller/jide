@@ -2,7 +2,7 @@ import { expect, test, type ElectronApplication, type Page } from "@playwright/t
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { examplesDir, launch, newUserData, openExercise, setEditorText, useTempApp, userDataDir } from "./helpers";
+import { examplesDir, launch, newUserData, openExercise, setEditorText, useTempApp, userDataDir, clickClosingButton } from "./helpers";
 
 useTempApp();
 
@@ -109,7 +109,7 @@ for (const panel of ["code", "assign", "console", "problems", "tests"] as const)
       await chip.click();
     }
 
-    await win.getByTestId("panel-back").click();
+    await clickClosingButton(win.getByTestId("panel-back"));
     await expect.poll(() => panelWindowCount(app)).toBe(0);
     await expect(chip).toHaveCount(0);
     await expect(mainPanelVisible(page, panel)).toBeVisible();
@@ -142,7 +142,7 @@ test("detached bottom tabs leave the bottom panel; with all three gone it disapp
   await expect.poll(() => panelWindowCount(app)).toBe(3);
   await expect(page.locator(".btabs")).not.toBeVisible();
   // docking one brings the panel back
-  await (await panelPage(app, "problems")).getByTestId("panel-back").click();
+  await clickClosingButton((await panelPage(app, "problems")).getByTestId("panel-back"));
   await expect(page.getByTestId("btab-Probleme")).toBeVisible();
 });
 
@@ -183,7 +183,7 @@ test("a window reopens where it was within the session", async () => {
       BrowserWindow.getAllWindows().find((w) => w.getTitle().startsWith("J;DE – Angabe"))?.setBounds({ x: 120, y: 90, width: 500, height: 600 });
     });
   await move();
-  await win.getByTestId("panel-back").click();
+  await clickClosingButton(win.getByTestId("panel-back"));
   await expect.poll(() => panelWindowCount(app)).toBe(0);
   await detach(page, "assign");
   await panelPage(app, "assign");
@@ -218,7 +218,7 @@ test("Ausführen in the Code window: output in a detached Konsole, input goes to
   await expect(out).toContainText("■ Programm beendet.");
   await expect(code.getByTestId("run")).toBeEnabled();
   // docking the Konsole back: the main window's console has the whole history including what was typed
-  await konsole.getByTestId("panel-back").click();
+  await clickClosingButton(konsole.getByTestId("panel-back"));
   await expect.poll(() => panelWindowCount(app)).toBe(1);
   const mainOut = page.getByTestId("console").locator(".xterm-rows");
   await expect(mainOut).toContainText("Summe: 7");
@@ -286,7 +286,7 @@ test("one live editor: edits in the Code window are saved by the main window and
   await expect(code.getByTestId("save-status")).toHaveText("Gespeichert");
   const saved = readFileSync(join(userDataDir(), "workspaces", "summe", "Summe.java"), "utf8");
   expect(saved).toContain("Hallo aus dem Fenster");
-  await code.getByTestId("panel-back").click();
+  await clickClosingButton(code.getByTestId("panel-back"));
   await expect.poll(() => panelWindowCount(app)).toBe(0);
   await expect(page.locator(".monaco-editor .view-lines")).toContainText("Hallo aus dem Fenster");
   // and editing in the main window again works

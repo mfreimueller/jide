@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { card, launch, newUserData, openExercise, screenshotDir, setEditorText, useTempApp, userDataDir } from "./helpers";
+import { card, launch, newUserData, openExercise, screenshotDir, setEditorText, useTempApp, userDataDir, screenshot } from "./helpers";
 import { dbReachable, login, startBackend, stopAllBackends, type Backend } from "./online-helpers";
 
 useTempApp();
@@ -40,7 +40,7 @@ test("a wrong code stays on the login with the server's message", async () => {
   const backend = await startBackend();
   const { page } = await launchOnline(backend);
   await expect(page.getByRole("heading", { name: "Willkommen!" })).toBeVisible();
-  await page.screenshot({ path: join(screenshotDir, "online-login.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-login.png") });
   await expect(page.getByRole("button", { name: "Anmelden" })).toBeDisabled();
   await login(page, "AAAA-AAAA");
   await expect(page.getByTestId("login-error")).toContainText("Dieser Code ist ungültig");
@@ -59,7 +59,7 @@ test("login with a lower-case code lists the unlocked exercises", async () => {
   await expect(card(page, SUMME)).toContainText("bis Do, 27.11."); // 2031-11-27T22:59Z = 23:59 in Vienna
   await expect(card(page, "Größere Zahl")).toContainText("Frist vorbei · Abgabe noch möglich");
   await expect(page.getByTestId("offline-hint")).toHaveCount(0);
-  await page.screenshot({ path: join(screenshotDir, "online-list.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-list.png") });
 });
 
 test("open, edit and hand in; the hand-in is on the server", async () => {
@@ -73,7 +73,7 @@ test("open, edit and hand in; the hand-in is on the server", async () => {
   await expect(page.getByTestId("toast")).toContainText(/Abgabe gespeichert – \w\w, \d+\.\d+\. um \d\d:\d\d/);
   await expect(page.getByTestId("handed-in")).toContainText("Abgegeben");
   await expect(page.getByTestId("hand-in")).toHaveText("Erneut abgeben");
-  await page.screenshot({ path: join(screenshotDir, "online-handin.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-handin.png") });
 
   const latest = await latestHandIn(backend, backend.code);
   expect(latest?.files.find((f) => f.path === "Summe.java")?.content).toBe(NEW_CODE);
@@ -114,7 +114,7 @@ test("a hand-in after the deadline is marked verspätet, also after a restart an
   await handIn(first.page);
   await expect(first.page.getByTestId("toast")).toContainText(/Abgabe gespeichert – verspätet \(\w\w, \d+\.\d+\. um \d\d:\d\d\)/);
   await expect(first.page.getByTestId("handed-in")).toContainText("Abgegeben · verspätet");
-  await first.page.screenshot({ path: join(screenshotDir, "online-handin-late.png") });
+  await screenshot(first.page, { path: join(screenshotDir, "online-handin-late.png") });
   await first.page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(card(first.page, "Größere Zahl")).toContainText("Abgegeben · verspätet");
   await first.app.close();
@@ -185,7 +185,7 @@ test("groups show newest unlock first with their progress; handing in updates it
   await expect(HEADINGS(page).nth(1)).toContainText("0 / 1 abgegeben");
   await expect(page.getByTestId("exercise").nth(0)).toContainText(SUMME);
   await expect(page.getByTestId("exercise").nth(1)).toContainText("Größere Zahl");
-  await page.screenshot({ path: join(screenshotDir, "online-list-groups.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-list-groups.png") });
 });
 
 test("the card shows the difficulty from the backend; one without difficulty shows none", async () => {
@@ -205,7 +205,7 @@ test("ungrouped exercises come last under Weitere Übungen", async () => {
   await expect(HEADINGS(page).nth(1)).toHaveText("Weitere Übungen");
   await expect(page.getByTestId("exercise").nth(0)).toContainText("Größere Zahl");
   await expect(page.getByTestId("exercise").nth(1)).toContainText(SUMME);
-  await page.screenshot({ path: join(screenshotDir, "online-list-groups-other.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-list-groups-other.png") });
 });
 
 test("a course without groups shows a plain list without headings, open before handed in", async () => {
@@ -262,14 +262,14 @@ test("offline start shows the cached list; editing works; Abgeben says there is 
   await expect(page.getByTestId("offline-hint")).toHaveText("Offline – du siehst die zuletzt geladenen Aufgaben.");
   await expect(page.getByTestId("sync")).toHaveText("Offline");
   await expect(page.getByTestId("student")).toContainText("Anna Huber");
-  await page.screenshot({ path: join(screenshotDir, "online-list-offline.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-list-offline.png") });
 
   await openExercise(page, SUMME);
   await setEditorText(app, page, 'void main() {\n    IO.println("OFFLINE-ARBEIT");\n}\n');
   await expect(page.getByTestId("save-status")).toHaveText("Gespeichert");
   await handIn(page);
   await expect(page.getByTestId("toast")).toHaveText(/Keine Verbindung – versuch es gleich nochmal\./);
-  await page.screenshot({ path: join(screenshotDir, "online-handin-offline.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-handin-offline.png") });
   await expect(page.getByTestId("handed-in")).toHaveCount(0);
 });
 
@@ -284,7 +284,7 @@ test("a reset code sends the student back to the login", async () => {
   await expect(page.getByTestId("login-notice")).toHaveText(
     "Dein Code ist nicht mehr gültig. Frag deine Lehrkraft nach dem neuen Zettel."
   );
-  await page.screenshot({ path: join(screenshotDir, "online-login-expired.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-login-expired.png") });
   // the stored code is gone; the new slip works
   await login(page, newCode);
   await expect(card(page, SUMME)).toBeVisible();
@@ -343,7 +343,7 @@ test("editing after a green run brings the dialog; confirming hands in without a
   const dialog = page.getByTestId("hand-in-dialog");
   await expect(dialog).toContainText("Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?");
   await expect(dialog.getByTestId("hand-in-dialog-count")).toHaveCount(0); // the green run no longer applies
-  await page.screenshot({ path: join(screenshotDir, "handin-dialog.png") });
+  await screenshot(page, { path: join(screenshotDir, "handin-dialog.png") });
   expect(await backend.handInCell("summe")).toBeNull();
   await page.getByTestId("hand-in-confirm").click();
   await expect(page.getByTestId("toast")).toContainText("Abgabe gespeichert");
@@ -422,7 +422,7 @@ test("a graded exercise shows the grade chip, Beurteilt am and Ansehen on its ca
   await expect(c).not.toContainText("Abgegeben");
   await expect(c.getByRole("button", { name: "Ansehen" })).toBeVisible();
   await expect(card(page, "Größere Zahl").getByTestId("grade-chip")).toHaveCount(0);
-  await page.screenshot({ path: join(screenshotDir, "online-graded-list.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-graded-list.png") });
 });
 
 test("opening a graded exercise: graded files read-only, Rückmeldung, line comments, no run / test / hand-in", async () => {
@@ -465,7 +465,7 @@ test("opening a graded exercise: graded files read-only, Rückmeldung, line comm
   expect(first!.y).toBeLessThan(line3!.y + 1); // ... and line 3 is pushed down below the box
   expect(last!.y).toBeGreaterThan(closing!.y); // after the last line
   await expect(page.getByTestId("file-comments")).toHaveText("💬 2");
-  await page.screenshot({ path: join(screenshotDir, "online-graded-workspace.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-graded-workspace.png") });
 
   // read-only: typing changes nothing
   await lines.click();
@@ -521,7 +521,7 @@ test("a hand-in answered with GRADED shows the server message and the list shows
   await backend.grade({ exerciseId: "summe", symbol: "WELLE", comment: "", lineComments: [] });
   await handIn(page);
   await expect(page.getByTestId("toast")).toContainText("Diese Aufgabe ist bereits beurteilt. Du kannst sie nicht mehr abgeben.");
-  await page.screenshot({ path: join(screenshotDir, "online-graded-409.png") });
+  await screenshot(page, { path: join(screenshotDir, "online-graded-409.png") });
   await page.getByRole("button", { name: "← Aufgaben" }).click();
   await expect(card(page, SUMME).getByTestId("grade-chip")).toHaveText(/Beurteilt\s+~/);
   // an empty overall comment: no Rückmeldung box

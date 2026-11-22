@@ -1,6 +1,7 @@
 import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { screenshot } from "./helpers";
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from "@playwright/test";
 
 const appDir = resolve(__dirname, "..");
@@ -39,7 +40,7 @@ test("list shows both examples as Neu", async () => {
   const { page } = await launch();
   await expect(card(page, "Größere Zahl")).toContainText("Neu");
   await expect(card(page, "Summe zweier Zahlen")).toContainText("Neu");
-  await page.screenshot({ path: join(screenshotDir, "list.png") });
+  await screenshot(page, { path: join(screenshotDir, "list.png") });
 });
 
 test("a card shows its difficulty, a card without difficulty shows none", async () => {
@@ -58,7 +59,7 @@ test("opening an exercise shows code and rendered assignment", async () => {
   await expect(assignment.getByRole("heading", { name: "Summe zweier Zahlen" })).toBeVisible();
   await expect(assignment.locator("code", { hasText: "Scanner" }).first()).toBeVisible();
   await expect(page.getByTestId("save-status")).toHaveText("Gespeichert");
-  await page.screenshot({ path: join(screenshotDir, "workspace.png") });
+  await screenshot(page, { path: join(screenshotDir, "workspace.png") });
 });
 
 test("edits survive a restart", async () => {

@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ZOOM_LEVEL_MAX, ZOOM_LEVEL_MIN } from "../src/main/zoom-level";
-import { examplesDir, exitApp, launch, openExercise, userDataDir, useTempApp } from "./helpers";
+import { examplesDir, exitApp, launch, openExercise, userDataDir, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -134,7 +134,7 @@ test("the zoom is limited and the editor stays visible at the largest size in a 
   await wheel(page, editor, -100);
   await page.waitForTimeout(300);
   expect(await level(app)).toBe(ZOOM_LEVEL_MAX);
-  if (SHOT) await page.screenshot({ path: SHOT });
+  if (SHOT) await screenshot(page, { path: SHOT });
   const box = (await page.locator(".monaco-editor:visible").first().boundingBox())!;
   expect(box.width).toBeGreaterThan(150);
   expect(box.height).toBeGreaterThan(80);

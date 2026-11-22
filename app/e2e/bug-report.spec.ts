@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import { card, launch, openExercise, screenshotDir, setEditorText, useTempApp, userDataDir } from "./helpers";
+import { card, launch, openExercise, screenshotDir, setEditorText, useTempApp, userDataDir, screenshot } from "./helpers";
 import { dbReachable, login, startBackend, stopAllBackends } from "./online-helpers";
 
 useTempApp();
@@ -92,7 +92,7 @@ test.describe("bug report", () => {
     expect(Math.round(box!.width)).toBe(32);
     expect(Math.round(box!.height)).toBe(32);
 
-    await page.screenshot({ path: join(screenshotDir, "bug-confirm.png") });
+    await screenshot(page, { path: join(screenshotDir, "bug-confirm.png") });
     await bug.click();
     const report = page.getByTestId("bug-report-text");
     await expect(page.getByTestId("bug-report-dialog")).toContainText("Fehlerbericht");
@@ -108,7 +108,7 @@ test.describe("bug report", () => {
     for (const line of ["Ausführen gedrückt", "Testen gedrückt", "Testen fertig: 3 / 3 bestanden", "Abgeben gedrückt"]) {
       await expect(report).toContainText(line);
     }
-    await page.screenshot({ path: join(screenshotDir, "bug-report.png") });
+    await screenshot(page, { path: join(screenshotDir, "bug-report.png") });
     const text = (await report.textContent())!;
     expect(text).not.toContain(backend.code);
     expect(text).not.toContain(backend.code.replace("-", ""));

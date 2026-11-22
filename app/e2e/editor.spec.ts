@@ -1,6 +1,7 @@
 import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { screenshot } from "./helpers";
 import { _electron as electron, expect, test, type ElectronApplication, type Locator, type Page } from "@playwright/test";
 
 const appDir = resolve(__dirname, "..");
@@ -64,7 +65,7 @@ test("editor look: JetBrains Mono, type colours, plain brackets, cursor in the r
   expect(box!.width / text.length).toBeCloseTo(8.4, 1);
   expect(Math.abs(cursor!.x - (box!.x + box!.width))).toBeLessThan(1.5);
 
-  await page.screenshot({ path: join(screenshotDir, "editor-look.png") });
+  await screenshot(page, { path: join(screenshotDir, "editor-look.png") });
 });
 
 test("completion: Math.m suggests max and min with German descriptions", async () => {
@@ -84,7 +85,7 @@ test("completion: Math.m suggests max and min with German descriptions", async (
   await expect(details).toContainText("Beispiel:");
   await page.keyboard.press("ArrowDown");
   await expect(details).toContainText("Die kleinere von zwei Zahlen.");
-  await page.screenshot({ path: join(screenshotDir, "completion.png") });
+  await screenshot(page, { path: join(screenshotDir, "completion.png") });
 
   // accepting inserts a snippet with the parameter placeholders
   await page.keyboard.press("Enter");
@@ -116,5 +117,5 @@ test("method names in declarations are bold, the colour stays", async () => {
   expect(await kw.evaluate((el) => getComputedStyle(el).fontWeight)).not.toBe("700");
   const a = lines.locator("span", { hasText: /^return$/ }).first();
   expect(await a.evaluate((el) => getComputedStyle(el).fontWeight)).not.toBe("700");
-  await page.screenshot({ path: join(screenshotDir, "bold-methods.png") });
+  await screenshot(page, { path: join(screenshotDir, "bold-methods.png") });
 });

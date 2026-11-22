@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { card, launch, openExercise, screenshotDir, setEditorText, useTempApp } from "./helpers";
+import { card, launch, openExercise, screenshotDir, setEditorText, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -32,7 +32,7 @@ test("In Scratch kopieren: menu, dialog, Neu beginnen and Mit meinem Code, Teste
   // the menu on the card has the one entry
   await card(page, TITLE).getByTestId("exercise-menu").click();
   await expect(page.getByTestId("exercise-copy")).toHaveText("In Scratch kopieren …");
-  await page.screenshot({ path: join(screenshotDir, "scratch-copy-menu.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-copy-menu.png") });
   await page.getByTestId("exercise-copy").click();
 
   // the dialog: "Mit meinem Code" is preselected; Abbrechen copies nothing
@@ -44,7 +44,7 @@ test("In Scratch kopieren: menu, dialog, Neu beginnen and Mit meinem Code, Teste
   await expect(dialog).toContainText("mit deinem aktuellen Stand");
   await expect(page.getByTestId("copy-mine")).toBeChecked();
   await expect(page.getByTestId("copy-fresh")).not.toBeChecked();
-  await page.screenshot({ path: join(screenshotDir, "scratch-copy-dialog.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-copy-dialog.png") });
   await page.getByTestId("copy-cancel").click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId("scratch-item")).toHaveCount(0);
@@ -64,7 +64,7 @@ test("In Scratch kopieren: menu, dialog, Neu beginnen and Mit meinem Code, Teste
   await page.getByTestId("copy-fresh").check();
   await page.getByTestId("copy-confirm").click();
   await expect(scratchItems(page)).toHaveCount(2);
-  await page.screenshot({ path: join(screenshotDir, "scratch-copy-list.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-copy-list.png") });
 
   // one copy has the student's code (3 of 3 pass), the other starts fresh (the list order is by id)
   const results: string[] = [];

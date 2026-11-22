@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
 import { zipSync, type Zippable } from "fflate";
 import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
-import { examplesDir, launch, screenshotDir, setEditorText, useTempApp } from "./helpers";
+import { examplesDir, launch, screenshotDir, setEditorText, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -50,7 +50,7 @@ test("import a folder and a zip: tests, difficulty, no Abgeben, fixed classes, e
   await page.getByTestId("scratch-import").click();
   await expect(page.getByTestId("scratch-import-folder")).toHaveText("Ordner wählen …");
   await expect(page.getByTestId("scratch-import-zip")).toHaveText("ZIP-Datei wählen …");
-  await page.screenshot({ path: join(screenshotDir, "scratch-import-menu.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-import-menu.png") });
 
   // a folder that is not an exercise: the German parser error, nothing imported
   const empty = mkdtempSync(join(tmpdir(), "jide-import-empty-"));
@@ -58,7 +58,7 @@ test("import a folder and a zip: tests, difficulty, no Abgeben, fixed classes, e
   await page.getByTestId("scratch-import-folder").click();
   await expect(page.getByTestId("scratch-import-error")).toContainText("exercise.yaml fehlt");
   await expect(page.getByTestId("scratch-empty")).toBeVisible();
-  await page.screenshot({ path: join(screenshotDir, "scratch-import-error.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-import-error.png") });
   await page.getByTestId("scratch-import-error-close").click();
   await expect(page.getByTestId("scratch-import-error")).toHaveCount(0);
 
@@ -70,7 +70,7 @@ test("import a folder and a zip: tests, difficulty, no Abgeben, fixed classes, e
   await expect(card).toHaveCount(1);
   await expect(card.getByTestId("scratch-line")).toHaveText("Importiert · 3 Tests");
   await expect(card.getByTestId("difficulty")).toHaveAttribute("data-level", "newbie");
-  await page.screenshot({ path: join(screenshotDir, "scratch-import-list.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-import-list.png") });
 
   // the same exercise as a zip: a second copy
   const zipPath = join(mkdtempSync(join(tmpdir(), "jide-import-zip-")), "summe.zip");
@@ -106,7 +106,7 @@ test("import a folder and a zip: tests, difficulty, no Abgeben, fixed classes, e
   await setEditorText(app, page, SUMME_RIGHT);
   await page.getByTestId("test").click();
   await expect(page.getByTestId("tests-banner")).toContainText("3 von 3 Tests bestanden");
-  await page.screenshot({ path: join(screenshotDir, "scratch-import-workspace.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-import-workspace.png") });
 
   // rename and delete like any Scratch item
   await page.getByRole("button", { name: "← Aufgaben" }).click();

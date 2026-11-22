@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { launch, newUserData, openExercise, screenshotDir, setEditorText, useTempApp } from "./helpers";
+import { launch, newUserData, openExercise, screenshotDir, setEditorText, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -38,7 +38,7 @@ test("a correct solution shows the green summary and every row passed", async ()
   await expect(rows.first()).toContainText("3 + 4");
   await expect(page.getByTestId("test")).toBeEnabled();
   await expect(page.getByTestId("run")).toBeEnabled();
-  await page.screenshot({ path: join(screenshotDir, "tests-ok.png") });
+  await screenshot(page, { path: join(screenshotDir, "tests-ok.png") });
 });
 
 test("a wrong solution shows the warning and expected vs. actual", async () => {
@@ -57,7 +57,7 @@ test("a wrong solution shows the warning and expected vs. actual", async () => {
   // match: contains has no line diff: today's view plus a note
   await expect(failed.getByTestId("test-diff")).toHaveCount(0);
   await expect(failed.getByTestId("test-note")).toHaveText("Dieser Text kommt in deiner Ausgabe nicht vor.");
-  await page.screenshot({ path: join(screenshotDir, "tests-failed.png") });
+  await screenshot(page, { path: join(screenshotDir, "tests-failed.png") });
 });
 
 const SCHNITT_CODE = `void main() {
@@ -119,7 +119,7 @@ test("a failed io test shows the line diff; the first one is open, rows toggle",
   ]);
   await expect(first.getByTestId("diff-tag")).toHaveText(["zu viel", "", "anders"]);
   await expect(first.getByTestId("diff-note")).toContainText("3,5 und 3.5 gelten als gleich.");
-  await page.screenshot({ path: join(screenshotDir, "tests-diff.png") });
+  await screenshot(page, { path: join(screenshotDir, "tests-diff.png") });
 
   // the second failed test starts closed
   await expect(second.getByTestId("test-head")).toHaveAttribute("aria-expanded", "false");

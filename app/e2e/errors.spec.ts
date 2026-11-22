@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { join } from "node:path";
-import { launch, openExercise, screenshotDir, useTempApp } from "./helpers";
+import { launch, openExercise, screenshotDir, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -20,7 +20,7 @@ test("a missing semicolon shows a marker, a Probleme entry and a badge", async (
   await expect(entry).toHaveCount(1);
   await expect(entry).toContainText("';' erwartet");
   await expect(entry).toContainText("Summe.java:2");
-  await page.screenshot({ path: join(screenshotDir, "probleme.png") });
+  await screenshot(page, { path: join(screenshotDir, "probleme.png") });
 
   // move the cursor away, then click the entry: the cursor goes to the error position (right after the ")")
   await page.locator(".monaco-editor .view-line", { hasText: "Dein Code" }).click(); // line 3

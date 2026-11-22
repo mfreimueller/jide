@@ -1,6 +1,6 @@
 import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
 import { join } from "node:path";
-import { launch, openExercise, setEditorText, useTempApp } from "./helpers";
+import { launch, openExercise, setEditorText, useTempApp, clickClosingButton, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -63,7 +63,7 @@ test("M10 screens", async () => {
     for (const theme of themes) {
       await setTheme(app, all, theme);
       await p.waitForTimeout(300);
-      await p.screenshot({ path: join(DIR!, `m10-${name}-${theme}.png`) });
+      await screenshot(p, { path: join(DIR!, `m10-${name}-${theme}.png`) });
     }
   };
 
@@ -73,7 +73,7 @@ test("M10 screens", async () => {
   for (const theme of themes) {
     await setTheme(app, [page], theme);
     await pointAt(page, "detach-assign", app);
-    await page.screenshot({ path: join(DIR!, `m10-33-${theme}.png`) });
+    await screenshot(page, { path: join(DIR!, `m10-33-${theme}.png`) });
   }
   await page.mouse.move(600, 400);
 
@@ -106,13 +106,13 @@ test("M10 screens", async () => {
   for (const theme of themes) {
     await setTheme(app, [page, assign, tests], theme);
     await pointAt(page, "panel-chip-tests", app);
-    await page.screenshot({ path: join(DIR!, `m10-34-${theme}.png`) });
+    await screenshot(page, { path: join(DIR!, `m10-34-${theme}.png`) });
   }
   await page.mouse.move(600, 400);
   await shoot(assign, "35-angabe", [page, assign, tests]);
   await shoot(tests, "35-tests", [page, assign, tests]);
-  await assign.getByTestId("panel-back").click();
-  await tests.getByTestId("panel-back").click();
+  await clickClosingButton(assign.getByTestId("panel-back"));
+  await clickClosingButton(tests.getByTestId("panel-back"));
   await expect(page.getByTestId("assignment")).toBeVisible();
 
   // 36 + 36b: Code detached

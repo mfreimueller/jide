@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { examplesDir, exitApp, launch, openExercise, useTempApp } from "./helpers";
+import { examplesDir, exitApp, launch, openExercise, useTempApp, screenshot } from "./helpers";
 
 useTempApp();
 
@@ -204,12 +204,12 @@ test("screenshots: expanded and all collapsed", async () => {
   const { page } = await launch();
   await openExercise(page, "Summe zweier Zahlen");
   await page.getByTestId("files-collapse").hover();
-  await page.screenshot({ path: join(SCREENSHOTS!, "panels-expanded.png") });
+  await screenshot(page, { path: join(SCREENSHOTS!, "panels-expanded.png") });
   await page.keyboard.press("Alt+Digit1");
   await page.keyboard.press("Alt+Digit2");
   await page.keyboard.press("Alt+Digit3");
   await page.mouse.move(600, 300);
-  await page.screenshot({ path: join(SCREENSHOTS!, "panels-collapsed.png") });
+  await screenshot(page, { path: join(SCREENSHOTS!, "panels-collapsed.png") });
 });
 
 test.describe("exam mode", () => {

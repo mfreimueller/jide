@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from "@playwright/test";
+import { _electron as electron, expect, test, type ElectronApplication, type Locator, type Page } from "@playwright/test";
 
 export const appDir = resolve(__dirname, "..");
 export const examplesDir = resolve(appDir, "..", "examples");
@@ -90,4 +90,38 @@ export async function setEditorText(app: ElectronApplication, page: Page, text: 
   // Monaco auto-closes brackets/quotes and auto-indents when typing; paste instead.
   await app.evaluate(({ clipboard }, t) => clipboard.writeText(t), text);
   await page.keyboard.press("ControlOrMeta+V");
+}
+
+/**
+ * Clicks a button that closes its own window. On Linux the window can be gone before Playwright's
+ * click call returns ("Target page, context or browser has been closed"); that error is fine, any
+ * other one is not. Callers assert the effect (window count, chip, panel) afterwards.
+ */
+export async function clickClosingButton(locator: Locator): Promise<void> {
+  const page = locator.page();
+  try {
+    await locator.click();
+  } catch (err) {
+    if (!page.isClosed()) {
+      // the close event may land just after the failing call
+      await page.waitForEvent("close", { timeout: 1000 }).catch(() => undefined);
+    }
+    if (!page.isClosed()) throw err;
+  }
+}
+
+/**
+ * page.screenshot with one retry: the very first capture of a cold Electron launch under xvfb
+ * (no GPU) can fail with "Unable to capture screenshot"; after two animation frames it works.
+ */
+export async function screenshot(page: Page, options?: Parameters<Page["screenshot"]>[0]): Promise<Buffer> {
+  try {
+    return await page.screenshot(options);
+  } catch (err) {
+    if (!(err instanceof Error) || !err.message.includes("Unable to capture screenshot")) throw err;
+    await page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(undefined)))),
+    );
+    return await page.screenshot(options);
+  }
 }

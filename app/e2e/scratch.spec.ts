@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
-import { launch, screenshotDir, setEditorText, userDataDir, useTempApp } from "./helpers";
+import { launch, screenshotDir, setEditorText, userDataDir, useTempApp, screenshot } from "./helpers";
 import { dbReachable, login, startBackend, stopAllBackends, type Backend } from "./online-helpers";
 
 useTempApp();
@@ -34,7 +34,7 @@ test("before login: create, add a class, run, pick an Angabe, rename and delete 
   const { app, page } = await launchBeforeLogin();
   await expect(page.getByRole("heading", { name: "Willkommen!" })).toBeVisible();
   await expect(page.getByText("In Scratch schreibst du eigene Programme.")).toBeVisible();
-  await page.screenshot({ path: join(screenshotDir, "scratch-code-screen.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-code-screen.png") });
   await page.getByTestId("open-scratch").click();
 
   // Scratch-only list: own title, no course / connection / user, a button back to the code screen
@@ -45,7 +45,7 @@ test("before login: create, add a class, run, pick an Angabe, rename and delete 
   await expect(page.getByTestId("scratch-heading")).toContainText("Nur auf diesem Laptop gespeichert");
   await expect(page.getByTestId("scratch-empty")).toHaveText("Noch keine eigenen Programme.");
   await expect(page.getByTestId("load-errors")).toHaveCount(0);
-  await page.screenshot({ path: join(screenshotDir, "scratch-list-empty.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-list-empty.png") });
 
   await createProgram(page, "Mein Rechner");
   await expect(page.locator(".topbar .title")).toHaveText("Mein Rechner");
@@ -59,7 +59,7 @@ test("before login: create, add a class, run, pick an Angabe, rename and delete 
   // empty Angabe
   await expect(page.getByTestId("assign-empty")).toContainText("Noch keine Angabe");
   await expect(page.getByTestId("assign-empty")).toContainText("Du kannst eine Markdown-Datei (.md) als Angabe dazugeben.");
-  await page.screenshot({ path: join(screenshotDir, "scratch-workspace.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-workspace.png") });
 
   // add a class: errors stay in the dialog
   await page.getByTestId("add-class").click();
@@ -91,7 +91,7 @@ test("before login: create, add a class, run, pick an Angabe, rename and delete 
   await expect(page.getByTestId("assignment")).toContainText("Schreibe einen Taschenrechner.");
   await expect(page.getByTestId("assign-empty")).toHaveCount(0);
   await expect(page.getByTestId("assign-change")).toHaveText("Ändern …");
-  await page.screenshot({ path: join(screenshotDir, "scratch-angabe.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-angabe.png") });
 
   // delete the class after a confirmation
   await page.getByTestId("file-list").getByRole("button", { name: /Rechner\.java/ }).hover();
@@ -107,11 +107,11 @@ test("before login: create, add a class, run, pick an Angabe, rename and delete 
   await expect(item(page, "Mein Rechner")).toContainText("Eigenes Programm · 1 Klasse");
   await expect(item(page, "Mein Rechner").locator(".icon")).toHaveText("{ }");
   await expect(item(page, "Mein Rechner")).not.toContainText("Neu");
-  await page.screenshot({ path: join(screenshotDir, "scratch-list.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-list.png") });
 
   // rename, open again (Angabe and Main.java survived), delete
   await item(page, "Mein Rechner").getByTestId("scratch-menu").click();
-  await page.screenshot({ path: join(screenshotDir, "scratch-menu.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-menu.png") });
   await page.getByTestId("scratch-rename").click();
   await expect(page.getByTestId("scratch-dialog").getByRole("heading", { name: "Umbenennen" })).toBeVisible();
   await expect(page.getByTestId("text-dialog-input")).toHaveValue("Mein Rechner");
@@ -129,7 +129,7 @@ test("before login: create, add a class, run, pick an Angabe, rename and delete 
   await page.getByTestId("scratch-delete").click();
   await expect(page.getByTestId("scratch-dialog").getByRole("heading", { name: "„Taschenrechner“ löschen?" })).toBeVisible();
   await expect(page.getByTestId("scratch-dialog")).toContainText("Das Programm und alle seine Dateien werden von diesem Laptop gelöscht.");
-  await page.screenshot({ path: join(screenshotDir, "scratch-delete.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-delete.png") });
   await page.keyboard.press("Escape");
   await expect(item(page, "Taschenrechner")).toBeVisible();
   await item(page, "Taschenrechner").getByTestId("scratch-menu").click();
@@ -166,7 +166,7 @@ test("after login the Scratch section is the last section; no Abgeben in a Scrat
   expect(card!.y).toBeGreaterThan(heading!.y);
   // scratch cards never count as exercises
   await expect(page.getByTestId("exercise").filter({ hasText: "Nach dem Login" })).toHaveCount(0);
-  await page.screenshot({ path: join(screenshotDir, "scratch-online-list.png") });
+  await screenshot(page, { path: join(screenshotDir, "scratch-online-list.png") });
 });
 
 /** The native file dialog cannot be driven: answer it with `path`. */

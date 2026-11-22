@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
-import { card, launch, openExercise, setEditorText, useTempApp, userDataDir } from "./helpers";
+import { card, launch, openExercise, setEditorText, useTempApp, userDataDir, screenshot } from "./helpers";
 import { dbReachable, login, startBackend, stopAllBackends, type Backend } from "./online-helpers";
 
 useTempApp();
@@ -141,7 +141,7 @@ test("screenshots", async () => {
       await app.evaluate(({ nativeTheme }, t) => (nativeTheme.themeSource = t), theme);
       await expect.poll(() => page.evaluate(() => matchMedia("(prefers-color-scheme: dark)").matches)).toBe(theme === "dark");
       await page.waitForTimeout(250);
-      await page.screenshot({ path: join(dir!, `m9-app-${name}-${theme}.png`) });
+      await screenshot(page, { path: join(dir!, `m9-app-${name}-${theme}.png`) });
     }
   };
   // menu on an open exercise: "Ausblenden" disabled with its reason
