@@ -24,6 +24,7 @@ import {
   renameGroup,
 } from '../lib/groups.js';
 import { parseJson } from '../lib/http.js';
+import { listPracticeHostsForTeacher, replacePracticeHosts } from '../lib/practice_hosts.js';
 import { teacherAuth, type TeacherVariables } from '../middleware/teacher_auth.js';
 
 export const courseRoutes = new Hono<{ Variables: TeacherVariables }>();
@@ -179,6 +180,21 @@ courseRoutes.put('/:id/matrix-settings', async (c) => {
   const { hideGraded } = await parseJson(c, matrixSettingsSchema);
   await setHideGraded(db, teacherId, id, hideGraded);
   return c.json({ hideGraded });
+});
+
+const practiceHostsSchema = z.object({
+  hosts: z.array(z.string({ message: 'hosts muss eine Liste von Hostnamen sein.' }), { message: 'hosts muss eine Liste von Hostnamen sein.' }).max(200, 'Zu viele Einträge.'),
+});
+
+courseRoutes.get('/:id/practice-hosts', async (c) => {
+  const hosts = await listPracticeHostsForTeacher(getDb(), c.get('teacher').id, parseId(c.req.param('id')));
+  return c.json({ hosts });
+});
+
+courseRoutes.put('/:id/practice-hosts', async (c) => {
+  const id = parseId(c.req.param('id'));
+  const { hosts } = await parseJson(c, practiceHostsSchema);
+  return c.json({ hosts: await replacePracticeHosts(getDb(), c.get('teacher').id, id, hosts) });
 });
 
 courseRoutes.put('/:id/exercises/:exerciseId/visibility', async (c) => {

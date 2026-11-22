@@ -119,3 +119,8 @@ export interface LatestHandInResponse {
   submittedAt: string;
   files: HandInFile[];
 }
+
+/** GET/PUT /api/teacher/courses/:id/practice-hosts and GET /api/student/practice-hosts (SPEC §3.6a, §3.7). Normalised, sorted. */
+export interface PracticeHostsResponse {
+  hosts: string[];
+}

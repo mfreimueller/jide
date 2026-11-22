@@ -7,3 +7,4 @@ export * from "./errors.js";
 export * from "./workspace.js";
 export * from "./api.js";
 export * from "./exercise-package.js";
+export * from "./practice-hosts.js";

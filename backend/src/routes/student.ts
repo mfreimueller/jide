@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { getDb } from '../db/connection.js';
 import { parseJson } from '../lib/http.js';
+import { listPracticeHosts } from '../lib/practice_hosts.js';
 import {
   authenticateStudent,
   studentAuth,
@@ -23,3 +25,8 @@ studentRoutes.post('/login', async (c) => {
 
 // All later student routes mount behind studentAuth.
 studentRoutes.get('/me', studentAuth, (c) => c.json(view(c.get('student'))));
+
+// Hosts the student's course allows for jide://practice zips (SPEC §3.6a).
+studentRoutes.get('/practice-hosts', studentAuth, async (c) => {
+  return c.json({ hosts: await listPracticeHosts(getDb(), c.get('student').courseId) });
+});

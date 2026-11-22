@@ -139,6 +139,7 @@ tests:
 - Students: paste a list of names → personal codes generated → printable code sheet. Reset code.
 - Exercises: upload as zip (exercise folder, see §4). Unlock or hide per course. Optional soft deadline per course.
 - Hand-ins: matrix of students × exercises with last hand-in timestamp, late marker and test summary. Filter "only missing hand-ins". Clicking a cell opens the hand-in: code (read-only, highlighted), test summary (passed/total), history of all hand-ins of that student, previous/next student. Download all hand-ins of one exercise as zip, one folder per student.
+- Course setting "Übungs-Links" (tab "Einstellungen"): the hosts practice zips of `jide://practice` links may be downloaded from (§3.6a), e.g. `die-spengergasse.github.io`. Host names only (DNS name with at least one dot, no IP, port or path), at most 20 per course, entries are trimmed and lower-cased, duplicates dropped; saved as a whole list. No default host. The student app asks the backend for the hosts of its course.
 - Students list shows code, last activity ("noch nie angemeldet" highlighted) and hand-in count. Printable code sheet: A4 cut-out slips with name, class and code.
 - Designs: Figma file "jide – Screens" (https://www.figma.com/design/QiOYkq1KgnmpzIjeYYBCGL), pages "Schüler-App" and "Lehrer-Web".
 - Exam mode needs no export: the teacher copies exercise folders (§4) into `exercises/` by hand.
@@ -214,6 +215,9 @@ The backend and teacher app follow **parsonxam** (`~/git/Personal/_work/parsonxa
 | POST | `/api/exercises/:id/handins` | upload hand-in (files + test summary) |
 | GET | `/api/exercises/:id/handins/latest` | restore on a new laptop |
 | GET | `/api/exercises/:id/grade` | the graded hand-in with symbol and comments (404 if not graded) |
+| GET | `/api/student/practice-hosts` | hosts the student's course allows for practice zips: `{ hosts: string[] }` (sorted) |
+| GET | `/api/teacher/courses/:id/practice-hosts` | the course's practice hosts: `{ hosts: string[] }` (404 for another teacher's course) |
+| PUT | `/api/teacher/courses/:id/practice-hosts` | replace the list, body `{ hosts: string[] }`; normalised (trim, lower-case, de-duplicated, sorted), at most 20, German 400 on an invalid host; returns `{ hosts }` |
 
 ### Grading API (grader's Gradeflow, M8)
 
