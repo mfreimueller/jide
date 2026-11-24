@@ -368,6 +368,7 @@
     <BugReportDialog report={reportText} fileName={reportName} onClose={() => (reportText = undefined)} />
   {:else if confirming}
     <HandInDialog
+      reason={confirming.reason}
       summary={confirming.plan.summary}
       onCancel={() => {
         eventLog.add("Nachfrage: Weiterarbeiten");

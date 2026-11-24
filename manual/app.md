@@ -111,7 +111,7 @@ Aufgaben in Gruppen stehen unter dem Namen der Gruppe. Alle ohne Gruppe stehen u
 ## Abgeben
 
 1. Auf „Abgeben“ klicken.
-2. Waren die Tests nicht erfolgreich oder noch nicht ausgeführt, fragt die App nach: „Wirklich abgeben?“ Mit „Weiterarbeiten“ geht man zurück, mit „Trotzdem abgeben“ gibt man ab.
+2. Waren die Tests nicht erfolgreich oder noch nicht ausgeführt, oder wurde der Code seit dem letzten Testen geändert, fragt die App nach: „Wirklich abgeben?“ Der Text sagt, warum: „Du hast deinen Code seit dem letzten Testen geändert. Teste noch einmal, bevor du abgibst.“, „Du hast deinen Code noch nicht getestet.“ oder „Da sind noch Fehler in deinem Programm.“ Leerzeichen am Zeilenende und leere Zeilen am Ende der Datei zählen nicht als Änderung. Mit „Weiterarbeiten“ geht man zurück, mit „Trotzdem abgeben“ gibt man ab.
 3. Danach heißt der Knopf „Erneut abgeben“.
 
 Man darf mehrmals abgeben. **Es zählt die letzte Abgabe.** Nach der Frist ist die Abgabe noch möglich, sie wird aber als „verspätet“ markiert. Nach der Beurteilung ist die Aufgabe gesperrt.

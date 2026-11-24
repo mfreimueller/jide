@@ -342,7 +342,7 @@ test("editing after a green run brings the dialog; confirming hands in without a
   await setEditorText(app, page, SUMME_RIGHT + "// geändert\n");
   await page.getByTestId("hand-in").click();
   const dialog = page.getByTestId("hand-in-dialog");
-  await expect(dialog).toContainText("Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?");
+  await expect(dialog).toContainText("Du hast deinen Code seit dem letzten Testen geändert. Teste noch einmal, bevor du abgibst.");
   await expect(dialog.getByTestId("hand-in-dialog-count")).toHaveCount(0); // the green run no longer applies
   await screenshot(page, { path: join(screenshotDir, "handin-dialog.png") });
   expect(await backend.handInCell("summe")).toBeNull();

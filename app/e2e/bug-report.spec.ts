@@ -32,7 +32,10 @@ test("the Tests panel shows an amber chip once the code differs from the last ru
   await expect(page.getByTestId("tests-time")).toBeVisible();
   await expect(page.getByTestId("tests-stale")).toHaveCount(0);
 
-  await setEditorText(app, page, SUMME_RIGHT + " "); // whitespace only
+  await setEditorText(app, page, SUMME_RIGHT + " "); // whitespace at the end only: still the same code
+  await expect(page.getByTestId("tests-stale")).toHaveCount(0);
+
+  await setEditorText(app, page, SUMME_RIGHT + "// x");
   await expect(page.getByTestId("tests-stale")).toHaveText("Code geändert – bitte neu testen");
   await expect(page.getByTestId("tests-stale")).toHaveCSS("color", "rgb(171, 100, 0)");
 
@@ -81,7 +84,7 @@ test.describe("bug report", () => {
     await setEditorText(app, page, SUMME_RIGHT);
     await page.getByTestId("test").click();
     await expect(page.getByTestId("tests-banner")).toContainText("3 von 3 Tests bestanden");
-    await setEditorText(app, page, SUMME_RIGHT.replace("a + b));", "a + b)); ")); // trailing space after the green run
+    await setEditorText(app, page, SUMME_RIGHT.replace("a + b));", "a + b)); //")); // a real change after the green run
 
     await page.getByTestId("hand-in").click();
     const dialog = page.getByTestId("hand-in-dialog");
@@ -103,7 +106,7 @@ test.describe("bug report", () => {
     await expect(report).toContainText("3 / 3 bestanden");
     await expect(report).toContainText("Code seit dem Testlauf geändert: ja");
     await expect(report).toContainText("Summe.java  Testlauf");
-    await expect(report).toContainText('jetzt:    "    IO.println(\\"Summe: \\" + (a + b)); "');
+    await expect(report).toContainText('jetzt:    "    IO.println(\\"Summe: \\" + (a + b)); //"');
     await expect(report).toContainText("Entscheidung: nachfragen (Code geändert), Ergebnis an Abgabe: keins");
     for (const line of ["Ausführen gedrückt", "Testen gedrückt", "Testen fertig: 3 / 3 bestanden", "Abgeben gedrückt"]) {
       await expect(report).toContainText(line);

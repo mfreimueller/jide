@@ -2,12 +2,17 @@
 <script lang="ts">
   import BugIcon from "./BugIcon.svelte";
 
+  import type { HandInReason } from "./test-state";
+
   let {
+    reason,
     summary,
     onCancel,
     onConfirm,
     onReport
   }: {
+    /** Why we ask; picks the text. */
+    reason: HandInReason;
     /** Opens the bug report (T44). Absent in exam mode: no button. */
     onReport?: () => void;
     /** Last test run if it is still current; null if never tested or the code changed since. */
@@ -15,6 +20,14 @@
     onCancel: () => void;
     onConfirm: () => void;
   } = $props();
+
+  const text = $derived(
+    reason === "changed"
+      ? "Du hast deinen Code seit dem letzten Testen geändert. Teste noch einmal, bevor du abgibst."
+      : reason === "never-tested"
+        ? "Du hast deinen Code noch nicht getestet."
+        : "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?"
+  );
 </script>
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && onCancel()} />
@@ -34,7 +47,7 @@
     {/if}
     <div class="dialog-icon">!</div>
     <h1 id="hid-title">Wirklich abgeben?</h1>
-    <p class="muted" id="hid-text">Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?</p>
+    <p class="muted" id="hid-text" data-testid="hand-in-dialog-text">{text}</p>
     <div class="summary">
       {#if summary}<span data-testid="hand-in-dialog-count"><b>{summary.passed} von {summary.total}</b> Tests bestanden</span>{/if}
       <span class="small">Du kannst später noch einmal abgeben – es zählt die letzte Abgabe.</span>

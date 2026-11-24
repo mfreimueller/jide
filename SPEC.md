@@ -110,7 +110,8 @@ tests:
 - Tests are not secret: students run them locally and could read them. They are feedback, not grading.
 
 ### 3.5 Hand-in ("Abgeben")
-- If the last test run failed, tests were not run yet, or the code changed since the last run: confirmation dialog "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" Exercises without tests never ask.
+- If the last test run failed, tests were not run yet, or the code changed since the last run: confirmation dialog "Wirklich abgeben?" with a text per reason: code changed since the last test → "Du hast deinen Code seit dem letzten Testen geändert. Teste noch einmal, bevor du abgibst."; never tested → "Du hast deinen Code noch nicht getestet."; last run failed → "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" Exercises without tests never ask.
+- "Code changed" compares the editable files after normalising line endings (CRLF/CR → LF), trailing spaces/tabs on each line and blank lines at the end of the file. Blank lines in the middle and leading indentation count as changes. The same rule drives the "Code geändert – bitte neu testen" hint.
 - Multiple hand-ins are allowed; the last one counts.
 - **Online mode**: uploads editable files plus the test summary. The server stores a server-side timestamp. Hand-ins after the deadline are accepted and marked "verspätet".
 - **Exam mode**: copies files to `<handInPath>\<Aufgabe>\` and writes `abgabe.json` (name, timestamp, test summary). Autosave goes to `<handInPath>\<Aufgabe>\_autosave\`. On opening an exercise (after a crash or on another exam PC) the newer of autosave and hand-in is restored. No lockdown: closing the app asks only if the code changed since the last hand-in. `<Aufgabe>` is the exercise id.

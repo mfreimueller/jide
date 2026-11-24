@@ -6,6 +6,7 @@ import {
   editableContents,
   handInReason,
   isStale,
+  normalizeForCompare,
   planHandIn,
   getLastTest,
   sameContents,
@@ -58,6 +59,13 @@ describe("snapshots", () => {
   });
 });
 
+describe("normalizeForCompare", () => {
+  it("unifies line endings and drops trailing whitespace and trailing blank lines only", () => {
+    expect(normalizeForCompare("a \t\r\n\r\n b\r\r")).toBe("a\n\n b");
+    expect(normalizeForCompare("  a\n\nb")).toBe("  a\n\nb");
+  });
+});
+
 describe("summary helpers", () => {
   it("all passed needs at least one test", () => {
     expect(allPassed({ passed: 3, total: 3 })).toBe(true);
@@ -76,10 +84,19 @@ describe("isStale / handInReason", () => {
   it("is never stale without a run", () => {
     expect(isStale(undefined, same)).toBe(false);
   });
-  it("is stale when content, a trailing space or a line ending differs, or a file came or went", () => {
+  it("is not stale for whitespace-only edits at line or file ends", () => {
     expect(isStale(green, same)).toBe(false);
-    expect(isStale(green, [{ path: "A.java", content: "x " }])).toBe(true);
-    expect(isStale(green, [{ path: "A.java", content: "x\r\n" }])).toBe(true);
+    expect(isStale(green, [{ path: "A.java", content: "x " }])).toBe(false);
+    expect(isStale(green, [{ path: "A.java", content: "x\t" }])).toBe(false);
+    expect(isStale(green, [{ path: "A.java", content: "x\r\n" }])).toBe(false);
+    expect(isStale(green, [{ path: "A.java", content: "x\n\n  \n" }])).toBe(false);
+  });
+  it("is stale when content or indentation differs, a blank line is added inside, or a file came or went", () => {
+    const two: LastTest = { ...green, snapshot: [{ path: "A.java", content: "a\nb" }] };
+    expect(isStale(green, [{ path: "A.java", content: "y" }])).toBe(true);
+    expect(isStale(two, [{ path: "A.java", content: "a\n\nb" }])).toBe(true);
+    expect(isStale(two, [{ path: "A.java", content: "a\n b" }])).toBe(true);
+    expect(isStale(two, [{ path: "A.java", content: " a\nb" }])).toBe(true);
     expect(isStale(green, [...same, { path: "B.java", content: "" }])).toBe(true);
     expect(isStale(green, [])).toBe(true);
   });
@@ -107,6 +124,9 @@ describe("planHandIn", () => {
   });
   it("does not ask after a green run on unchanged files and sends the summary", () => {
     expect(planHandIn(true, green, same)).toEqual({ confirm: false, summary: { passed: 2, total: 2 } });
+  });
+  it("does not ask after a green run with only trailing whitespace added", () => {
+    expect(planHandIn(true, green, [{ path: "A.java", content: "x \n\n" }])).toEqual({ confirm: false, summary: { passed: 2, total: 2 } });
   });
   it("asks after a green run when the code changed, without summary", () => {
     expect(planHandIn(true, green, edited)).toEqual({ confirm: true, summary: null });

@@ -31,10 +31,25 @@ export function editableContents(files: OpenedFile[], contents: SourceFileInput[
   return contents.filter((c) => editable.has(c.path));
 }
 
+/**
+ * What counts as "the same code": line endings (CRLF/CR → LF), spaces and tabs at line ends and
+ * blank lines at the end of the file do not matter. Blank lines in the middle and leading
+ * indentation do (Java text blocks).
+ */
+export function normalizeForCompare(content: string): string {
+  return content
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n+$/, "");
+}
+
 export function sameContents(a: SourceFileInput[], b: SourceFileInput[]): boolean {
   if (a.length !== b.length) return false;
   const byPath = new Map(b.map((f) => [f.path, f.content]));
-  return a.every((f) => byPath.get(f.path) === f.content);
+  return a.every((f) => {
+    const other = byPath.get(f.path);
+    return other !== undefined && normalizeForCompare(other) === normalizeForCompare(f.content);
+  });
 }
 
 export function allPassed(summary: { passed: number; total: number }): boolean {
@@ -64,7 +79,10 @@ export function handInReason(hasTests: boolean, last: LastTest | undefined, curr
 }
 
 export interface HandInPlan {
-  /** Ask "Da sind noch Fehler in deinem Programm. Möchtest du wirklich abgeben?" first. */
+  /**
+   * Ask "Wirklich abgeben?" first. The text depends on `handInReason`: "changed" (code changed
+   * since the last run), "never-tested", otherwise "Da sind noch Fehler in deinem Programm.".
+   */
   confirm: boolean;
   /** Goes with the hand-in: the last run, if the files are unchanged since then; otherwise null. */
   summary: { passed: number; total: number } | null;

@@ -98,8 +98,16 @@ describe("buildReport", () => {
     expect(r).toContain("Entscheidung: nachfragen (letzter Testlauf nicht bestanden), Ergebnis an Abgabe: 7 von 10");
   });
 
-  it("changed code: a whitespace-only change shows the trailing space", () => {
-    const now = SRC.replace("a + b;", "a + b; ");
+  it("a whitespace-only change at line ends is not a change", () => {
+    const now = SRC.replace("a + b;", "a + b; ") + "\n\n";
+    const r = buildReport(input({ current: [{ path: "Summe.java", content: now }] }));
+    expect(r).toContain("Code seit dem Testlauf geändert: nein");
+    expect(r).toContain("  Summe.java  unverändert");
+    expect(r).not.toContain("erste Abweichung");
+  });
+
+  it("changed code: a trailing space next to a real change is shown", () => {
+    const now = SRC.replace("a + b;", "a + b + 1; ");
     const r = buildReport(
       input({ current: [{ path: "Summe.java", content: now }], decision: { reason: "changed", confirm: true, summary: null } })
     );
@@ -107,12 +115,12 @@ describe("buildReport", () => {
     expect(r).toContain(`  Summe.java  Testlauf ${SRC.length} Zeichen #${shortHash(SRC)} → jetzt ${now.length} Zeichen #${shortHash(now)}`);
     expect(r).toContain("  erste Abweichung Zeile 2:");
     expect(r).toContain('    Testlauf: "    int s = a + b;"');
-    expect(r).toContain('    jetzt:    "    int s = a + b; "');
+    expect(r).toContain('    jetzt:    "    int s = a + b + 1; "');
     expect(r).toContain("Entscheidung: nachfragen (Code geändert), Ergebnis an Abgabe: keins");
   });
 
-  it("changed code: a CRLF change shows \\r", () => {
-    const crlf = SRC.replace(/\n/g, "\r\n");
+  it("changed code: a CRLF file with a real change shows \\r", () => {
+    const crlf = SRC.replace("a + b;", "a - b;").replace(/\n/g, "\r\n");
     const r = buildReport(input({ current: [{ path: "Summe.java", content: crlf }] }));
     expect(r).toContain("Code seit dem Testlauf geändert: ja");
     expect(r).toContain('    Testlauf: "class Summe {"');

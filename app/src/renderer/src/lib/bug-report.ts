@@ -1,6 +1,6 @@
 import type { ReportEnv, SourceFileInput } from "../../../shared-types/api";
 import type { LogEvent } from "./event-log";
-import type { HandInReason } from "./test-state";
+import { normalizeForCompare, type HandInReason } from "./test-state";
 
 // Bug report text (T44). Pure: everything it shows is passed in. It never contains whole files, the
 // access code or other secrets: only lengths, short hashes and the first line that differs.
@@ -148,7 +148,7 @@ function fileLines(last: NonNullable<ReportInput["last"]>, current: SourceFileIn
       changed = true;
       lines.push(`  ${path}  fehlt jetzt: im Testlauf ${size(before.length)} #${shortHash(before)}`);
     } else if (before !== undefined && after !== undefined) {
-      if (before === after) {
+      if (normalizeForCompare(before) === normalizeForCompare(after)) {
         lines.push(`  ${path}  unverändert ${size(after.length)} #${shortHash(after)}`);
         continue;
       }
