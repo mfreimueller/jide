@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { SvelteMap } from "svelte/reactivity";
-  import type { AppNotice, AppSession, ExerciseList as ExerciseListData, OpenedExercise, SaveStatus, StudentInfo } from "../../shared-types/api";
+  import type { AppNotice, AppSession, ExerciseList as ExerciseListData, NewerHandIn, OpenedExercise, OpenResult, SaveStatus, StudentInfo } from "../../shared-types/api";
   import CloseDialog from "./lib/CloseDialog.svelte";
+  import NewerHandInDialog from "./lib/NewerHandInDialog.svelte";
   import ExamBar from "./lib/ExamBar.svelte";
   import ExamProblem from "./lib/ExamProblem.svelte";
   import ExamStart from "./lib/ExamStart.svelte";
@@ -97,14 +98,41 @@
     };
   });
 
-  async function open(id: string): Promise<void> {
-    const result = await window.jide.openExercise(id);
+  // A newer hand-in from another device waits for the student's answer; the exercise opens after that.
+  let newerHandIn = $state<(NewerHandIn & { id: string }) | undefined>();
+  let newerBusy = $state(false);
+
+  async function answerNewerHandIn(choice: "load" | "keep"): Promise<void> {
+    const pending = newerHandIn;
+    if (!pending || newerBusy) return;
+    newerBusy = true;
+    try {
+      show(await window.jide.resolveNewerHandIn(pending.id, choice));
+    } catch {
+      error = "Das hat leider nicht geklappt.";
+    } finally {
+      newerHandIn = undefined;
+      newerBusy = false;
+    }
+  }
+
+  function show(result: OpenResult): void {
     if (result.ok) {
       error = "";
       exercise = result.exercise;
     } else {
       error = result.message;
     }
+  }
+
+  async function open(id: string): Promise<void> {
+    const result = await window.jide.openExercise(id);
+    if (result.ok && result.newerHandIn) {
+      error = "";
+      newerHandIn = { id, ...result.newerHandIn };
+      return;
+    }
+    show(result);
   }
 
   // Link-opened exercises are handled one after another (the open exercise is saved first).
@@ -164,6 +192,14 @@
 
 {#if notice}
   <div class="toast notice" class:error={notice.kind === "error"} role="alert" data-testid="app-notice">{notice.text}</div>
+{/if}
+{#if newerHandIn}
+  <NewerHandInDialog
+    submittedAt={newerHandIn.submittedAt}
+    busy={newerBusy}
+    onLoad={() => void answerNewerHandIn("load")}
+    onKeep={() => void answerNewerHandIn("keep")}
+  />
 {/if}
 {#if confirmClose}
   <CloseDialog

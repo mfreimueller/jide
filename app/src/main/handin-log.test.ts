@@ -13,3 +13,13 @@ it("keeps time and late flag across instances and reads the older string format"
   expect(new HandInLog(file).get("neu")).toEqual({ submittedAt: "2026-11-02T10:00:00Z", late: true });
   expect(new HandInLog(file).get("nix")).toBeNull();
 });
+
+it("stores the sync point and keeps it when a later set gives none", () => {
+  const file = path.join(mkdtempSync(path.join(tmpdir(), "jide-log-")), "handins.json");
+  const log = new HandInLog(file);
+  log.set("a", "2026-11-02T10:00:00Z", false, "h1");
+  log.set("a", "2026-11-03T10:00:00Z", true);
+  expect(new HandInLog(file).get("a")).toEqual({ submittedAt: "2026-11-03T10:00:00Z", late: true, base: "h1" });
+  log.set("a", "2026-11-04T10:00:00Z", false, "h2");
+  expect(new HandInLog(file).get("a")?.base).toBe("h2");
+});

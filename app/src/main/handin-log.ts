@@ -8,6 +8,11 @@ import path from "node:path";
 export interface HandInEntry {
   submittedAt: string;
   late: boolean;
+  /**
+   * Last sync point with the server on this laptop: hash of the normalised editable files right after the last
+   * hand-in made here or the last restore (see handin-sync.ts). Missing: older log, state unknown.
+   */
+  base?: string;
 }
 
 export class HandInLog {
@@ -26,7 +31,8 @@ export class HandInLog {
           for (const [id, v] of Object.entries(d)) {
             if (typeof v === "string") out[id] = { submittedAt: v, late: false }; // older file format
             else if (v && typeof v === "object" && typeof (v as HandInEntry).submittedAt === "string") {
-              out[id] = { submittedAt: (v as HandInEntry).submittedAt, late: (v as HandInEntry).late === true };
+              const base = (v as HandInEntry).base;
+              out[id] = { submittedAt: (v as HandInEntry).submittedAt, late: (v as HandInEntry).late === true, ...(typeof base === "string" ? { base } : {}) };
             }
           }
         }
@@ -43,9 +49,11 @@ export class HandInLog {
     return v ?? null;
   }
 
-  set(id: string, submittedAt: string, late: boolean): void {
+  /** `base` undefined keeps the sync point stored so far. */
+  set(id: string, submittedAt: string, late: boolean, base?: string): void {
     const data = this.load();
-    data[id] = { submittedAt, late };
+    const kept = base ?? data[id]?.base;
+    data[id] = { submittedAt, late, ...(kept ? { base: kept } : {}) };
     if (!this.file) return;
     mkdirSync(path.dirname(this.file), { recursive: true });
     const tmp = `${this.file}.${process.pid}.tmp`;

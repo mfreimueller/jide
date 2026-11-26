@@ -40,6 +40,7 @@ const api: JideApi = {
   listExercises: () => ipcRenderer.invoke("jide:list-exercises"),
   listScratch: () => ipcRenderer.invoke("jide:list-scratch"),
   openExercise: (id) => ipcRenderer.invoke("jide:open-exercise", id),
+  resolveNewerHandIn: (id, choice) => ipcRenderer.invoke("jide:resolve-newer-hand-in", id, choice),
   saveFile: (id, path, content) => ipcRenderer.invoke("jide:save-file", id, path, content),
   resetFile: (id, path) => ipcRenderer.invoke("jide:reset-file", id, path),
   scratchCreate: (title) => ipcRenderer.invoke("jide:scratch-create", title),

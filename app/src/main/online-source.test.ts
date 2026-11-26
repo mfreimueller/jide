@@ -99,3 +99,31 @@ describe("OnlineSource grades", () => {
     expect(r).toEqual({ ok: false, message: "Diese Aufgabe ist bereits beurteilt.", graded: true });
   });
 });
+
+describe("OnlineSource.fetchLatestHandIn", () => {
+  const ex = {
+    id: "a",
+    files: [
+      { path: "Main.java", editable: true },
+      { path: "Lib.java", editable: false }
+    ]
+  } as never;
+  const make = async (latest: () => Promise<unknown>, deadline: string | null = null) => {
+    const cache = new PackageCache(dir);
+    await cache.writeList([{ id: "a", title: "A", version: "v1", deadline }]);
+    return new OnlineSource({ latestHandIn: latest } as unknown as ApiClient, cache);
+  };
+  const handIn = { submittedAt: "2026-11-25T10:00:00.000Z", files: [{ path: "Main.java", content: "x" }, { path: "Lib.java", content: "y" }] };
+
+  it("returns the editable files with the late flag", async () => {
+    const r = await (await make(async () => handIn, "2026-11-24T00:00:00.000Z")).fetchLatestHandIn(ex);
+    expect(r).toEqual({ submittedAt: handIn.submittedAt, late: true, files: [{ path: "Main.java", content: "x" }] });
+    expect((await (await make(async () => handIn)).fetchLatestHandIn(ex))?.late).toBe(false);
+  });
+
+  it("is null without a hand-in, offline and on any other error (opening is never blocked)", async () => {
+    expect(await (await make(async () => null)).fetchLatestHandIn(ex)).toBeNull();
+    expect(await (await make(async () => { throw new ApiError("offline", "offline"); })).fetchLatestHandIn(ex)).toBeNull();
+    expect(await (await make(async () => { throw new Error("boom"); })).fetchLatestHandIn(ex)).toBeNull();
+  });
+});

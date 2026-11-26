@@ -1,5 +1,6 @@
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import type { RemoteHandIn } from "./handin-sync";
 import { listExercises, type Exercise, type ExerciseKind, type HandInFile, type StudentExerciseGroup, type StudentGrade, type StudentGradeResponse, type TestSummary } from "@jide/shared";
 
 /** One exercise as the source knows it. */
@@ -64,6 +65,11 @@ export interface ExerciseSource {
     workspaceRoot: string,
     workspaceExists: boolean
   ): Promise<{ ok: true; submittedAt?: string; late?: boolean } | { ok: false; message: string }>;
+  /**
+   * Online source: the latest hand-in on the server (editable files only), for exercises whose workspace exists
+   * already. null = none, or it could not be fetched (offline or any error: never blocks opening).
+   */
+  fetchLatestHandIn?(ex: Exercise): Promise<RemoteHandIn | null>;
   /** Online source: the graded hand-in of a graded exercise (from the cache when offline); null if not graded. */
   gradedView?(id: string): Promise<GradedViewResult>;
   /** Present when the source accepts hand-ins. */

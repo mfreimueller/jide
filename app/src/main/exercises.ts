@@ -1,9 +1,10 @@
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { app, ipcMain } from "electron";
-import { ExerciseError, openWorkspace, resetFile, saveFile, type Exercise } from "@jide/shared";
+import { ExerciseError, openWorkspace, resetFile, saveFile, type Exercise, type HandInFile } from "@jide/shared";
 import type {
   ExerciseList,
+  NewerHandIn,
   ExerciseSummary,
   HandInResult,
   OpenResult,
@@ -16,7 +17,14 @@ import { examWorkspaceKey } from "./exam-store";
 import { scratchEntry } from "./composite-source";
 import { isScratchId, type ImportedInfo } from "./scratch";
 import type { SourceEntry } from "./source";
+import { decideNewerHandIn, hashFiles, setPendingHandIn, takePendingHandIn, type RemoteHandIn } from "./handin-sync";
 import { parseTestSummary } from "./test-summary";
+
+type Workspace = Awaited<ReturnType<typeof openWorkspace>>;
+
+function editableOf(ws: Workspace): HandInFile[] {
+  return ws.files.filter((f) => f.editable).map((f) => ({ path: f.path, content: f.content }));
+}
 
 const MAX_CONTENT_BYTES = 2 * 1024 * 1024;
 
@@ -97,6 +105,30 @@ export function registerExerciseIpc(): void {
     };
   });
 
+  async function opened(ex: Exercise, ws: Workspace, newerHandIn?: NewerHandIn): Promise<OpenResult> {
+    const { source, handIns } = context();
+    const importedInfo = await context().scratch?.importedInfo(ex.id);
+    return {
+      ok: true,
+      exercise: {
+        id: ex.id,
+        title: ex.title,
+        assignment: ex.assignment,
+        mainFile: ex.mainFile,
+        files: ws.files,
+        // Images come from the exercise package, not from the student's workspace.
+        images: ex.images.map((i) => ({ path: i.path, title: i.title, svg: ex.imageContents[i.path] ?? "" })),
+        deadline: await source.deadlineOf(ex.id),
+        submittedAt: handIns.get(ex.id)?.submittedAt ?? null,
+        late: handIns.get(ex.id)?.late ?? false,
+        hasTests: (ex.tests?.length ?? 0) > 0,
+        ...(isScratchId(ex.id) ? { scratch: true } : {}),
+        ...(importedInfo ? { importedFiles: importedInfo.files } : {})
+      },
+      ...(newerHandIn ? { newerHandIn } : {})
+    };
+  }
+
   ipcMain.handle("jide:open-exercise", async (_e, id: unknown): Promise<OpenResult> => {
     const { source, handIns } = context();
     const ex = await findExercise(id);
@@ -105,35 +137,62 @@ export function registerExerciseIpc(): void {
       const graded = await source.gradedView?.(ex.id);
       if (graded && !graded.ok) return { ok: false, message: graded.message };
       if (graded) return { ok: true, exercise: gradedExercise(ex, graded.grade, await source.deadlineOf(ex.id)) };
-      const prepared = await source.prepareWorkspace(
-        ex,
-        workspaceRoot(),
-        await dirExists(join(workspaceRoot(), ex.id))
-      );
+      const existed = await dirExists(join(workspaceRoot(), ex.id));
+      const prepared = await source.prepareWorkspace(ex, workspaceRoot(), existed);
       if (!prepared.ok) return { ok: false, message: prepared.message };
-      if (prepared.submittedAt) handIns.set(ex.id, prepared.submittedAt, prepared.late === true);
-      const ws = await openWorkspace(ex, workspaceRoot());
-      const importedInfo = await context().scratch?.importedInfo(ex.id);
-      return {
-        ok: true,
-        exercise: {
-          id: ex.id,
-          title: ex.title,
-          assignment: ex.assignment,
-          mainFile: ex.mainFile,
-          files: ws.files,
-          // Images come from the exercise package, not from the student's workspace.
-          images: ex.images.map((i) => ({ path: i.path, title: i.title, svg: ex.imageContents[i.path] ?? "" })),
-          deadline: await source.deadlineOf(ex.id),
-          submittedAt: handIns.get(ex.id)?.submittedAt ?? null,
-          late: handIns.get(ex.id)?.late ?? false,
-          hasTests: (ex.tests?.length ?? 0) > 0,
-          ...(isScratchId(ex.id) ? { scratch: true } : {}),
-          ...(importedInfo ? { importedFiles: importedInfo.files } : {})
+      let ws = await openWorkspace(ex, workspaceRoot());
+      if (prepared.submittedAt) {
+        // Fresh restore from the server: this is the sync point.
+        handIns.set(ex.id, prepared.submittedAt, prepared.late === true, hashFiles(editableOf(ws)));
+      } else if (existed && source.kind === "online" && !isScratchId(ex.id) && !examMode()) {
+        // A hand-in made on another device may be newer than this laptop's draft (SPEC 3.6).
+        const latest = (await source.fetchLatestHandIn?.(ex)) ?? null;
+        const decision = decideNewerHandIn({
+          latest,
+          known: handIns.get(ex.id),
+          local: editableOf(ws),
+          starter: ex.files.filter((f) => f.editable).map((f) => ({ path: f.path, content: ex.originals[f.path] ?? "" }))
+        });
+        if (latest && decision === "record") {
+          handIns.set(ex.id, latest.submittedAt, latest.late, hashFiles(editableOf(ws)));
+        } else if (latest && decision === "replace") {
+          ws = await applyHandIn(ex, latest);
+        } else if (latest && decision === "ask") {
+          setPendingHandIn(ex.id, latest);
+          return opened(ex, ws, { submittedAt: latest.submittedAt, late: latest.late });
         }
-      };
+      }
+      return opened(ex, ws);
     } catch (e) {
       return { ok: false, message: errorMessage(e, "Die Aufgabe konnte nicht geöffnet werden.") };
+    }
+  });
+
+  /** Writes the hand-in over the editable files and makes it this laptop's sync point. */
+  async function applyHandIn(ex: Exercise, h: RemoteHandIn): Promise<Workspace> {
+    for (const f of h.files) await saveFile(ex, workspaceRoot(), f.path, f.content);
+    const ws = await openWorkspace(ex, workspaceRoot());
+    context().handIns.set(ex.id, h.submittedAt, h.late, hashFiles(editableOf(ws)));
+    return ws;
+  }
+
+  // The student's answer to "Neuere Abgabe von einem anderen Gerät": the pending hand-in was kept by the open call above.
+  ipcMain.handle("jide:resolve-newer-hand-in", async (_e, id: unknown, choice: unknown): Promise<OpenResult> => {
+    if (typeof id !== "string" || (choice !== "load" && choice !== "keep")) return { ok: false, message: "Ungültige Anfrage." };
+    const ex = await findExercise(id);
+    if (!ex) return { ok: false, message: UNKNOWN_EXERCISE };
+    try {
+      const h = takePendingHandIn(ex.id);
+      let ws: Workspace;
+      if (h && choice === "load") ws = await applyHandIn(ex, h);
+      else {
+        // Keep: remember that this hand-in was seen (so it is not asked again); the sync point stays.
+        if (h) context().handIns.set(ex.id, h.submittedAt, h.late);
+        ws = await openWorkspace(ex, workspaceRoot());
+      }
+      return opened(ex, ws);
+    } catch (e) {
+      return { ok: false, message: errorMessage(e, "Die Abgabe konnte nicht geladen werden.") };
     }
   });
 
@@ -183,7 +242,7 @@ export function registerExerciseIpc(): void {
       return { ok: false, message: errorMessage(e, "Deine Dateien konnten nicht gelesen werden.") };
     }
     const r = await source.handIn(ex, files, ex.tests?.length && testsAllowed() ? parseTestSummary(testSummary) : null);
-    if (r.ok) handIns.set(ex.id, r.submittedAt, r.late);
+    if (r.ok) handIns.set(ex.id, r.submittedAt, r.late, hashFiles(files));
     // Graded while the exercise was open: refresh the list (and its cache) so the exercise is graded from now on.
     else if (r.graded) await source.list().catch(() => undefined);
     return r;

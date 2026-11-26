@@ -46,5 +46,5 @@ Hat jemand den Zettel verloren? Klicken Sie in der Zeile auf „Code zurücksetz
 „Entfernen“ in der Zeile entfernt eine Person. Sie kann sich danach nicht mehr anmelden.
 
 ::: tip Gut zu wissen
-Ein Code funktioniert auf mehreren Laptops gleichzeitig. Auf einem neuen Laptop sieht die Person ihre zuletzt abgegebene Lösung als Ausgangspunkt.
+Ein Code funktioniert auf mehreren Laptops gleichzeitig. Auf einem neuen Laptop sieht die Person ihre zuletzt abgegebene Lösung als Ausgangspunkt. Wer auf einem anderen Gerät abgegeben hat, bekommt beim Öffnen der Aufgabe die neuere Abgabe: Ist der Code auf diesem Laptop unverändert, wird er ersetzt. Hat die Person hier weitergearbeitet, fragt die App „Abgabe laden“ oder „Meinen Stand behalten“. Entwürfe, die nicht abgegeben wurden, bleiben auf dem jeweiligen Laptop.
 :::

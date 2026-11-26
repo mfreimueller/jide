@@ -4,6 +4,7 @@ import { GRADE_SYMBOLS, KINDS, loadExercise, saveFile, type Exercise, type Exerc
 import { ApiClient, ApiError } from "./api-client";
 import { GRADED_ERROR_CODE } from "@jide/shared";
 import { isSafeExerciseId, needsDownload, PackageCache, restorableFiles } from "./package-cache";
+import type { RemoteHandIn } from "./handin-sync";
 import type { ExerciseSource, GradedViewResult, HandInOutcome, SourceEntry, SourceListing } from "./source";
 
 const GENERIC = "Das hat leider nicht geklappt.";
@@ -131,10 +132,25 @@ export class OnlineSource implements ExerciseSource {
       await rm(path.join(workspaceRoot, ex.id), { recursive: true, force: true });
       return { ok: false, message: "Deine letzte Abgabe konnte nicht wiederhergestellt werden." };
     }
-    // The server computes "late" the same way: hand-in after the current deadline.
-    const deadline = await this.deadlineOf(ex.id);
-    const late = deadline !== null && new Date(latest.submittedAt).getTime() > new Date(deadline).getTime();
-    return { ok: true, submittedAt: latest.submittedAt, late };
+    return { ok: true, submittedAt: latest.submittedAt, late: await this.lateOf(ex.id, latest.submittedAt) };
+  }
+
+  /** The server computes "late" the same way: hand-in after the current deadline. */
+  private async lateOf(id: string, submittedAt: string): Promise<boolean> {
+    const deadline = await this.deadlineOf(id);
+    return deadline !== null && new Date(submittedAt).getTime() > new Date(deadline).getTime();
+  }
+
+  async fetchLatestHandIn(ex: Exercise): Promise<RemoteHandIn | null> {
+    try {
+      const latest = await this.api.latestHandIn(ex.id);
+      const files = restorableFiles(false, ex.files, latest);
+      if (!latest || !files) return null;
+      return { submittedAt: latest.submittedAt, late: await this.lateOf(ex.id, latest.submittedAt), files };
+    } catch {
+      // Offline or any other trouble: the exercise opens with the local state, without an error.
+      return null;
+    }
   }
 
   async gradedView(id: string): Promise<GradedViewResult> {

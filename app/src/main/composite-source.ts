@@ -1,4 +1,5 @@
 import type { Exercise, HandInFile, TestSummary } from "@jide/shared";
+import type { RemoteHandIn } from "./handin-sync";
 import { isScratchId, SCRATCH_PREFIX, type ImportedInfo, type ScratchStore } from "./scratch";
 import type { ExerciseSource, GradedViewResult, HandInOutcome, SourceEntry, SourceListing } from "./source";
 
@@ -68,6 +69,10 @@ export class CompositeSource implements ExerciseSource {
 
   async deadlineOf(id: string): Promise<string | null> {
     return this.isScratch(id) ? null : this.main.deadlineOf(id);
+  }
+
+  async fetchLatestHandIn(ex: Exercise): Promise<RemoteHandIn | null> {
+    return this.isScratch(ex.id) || !this.main.fetchLatestHandIn ? null : this.main.fetchLatestHandIn(ex);
   }
 
   async prepareWorkspace(ex: Exercise, workspaceRoot: string, workspaceExists: boolean) {

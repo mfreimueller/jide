@@ -134,8 +134,18 @@ export interface OpenedExercise {
   graded?: GradedView;
 }
 
-export type OpenResult = { ok: true; exercise: OpenedExercise } | { ok: false; message: string };
+/** A hand-in from another device that is newer than this laptop's code, which has unsubmitted changes: the student decides. */
+export interface NewerHandIn {
+  submittedAt: string;
+  late: boolean;
+}
+
+/** `newerHandIn` set: `exercise` holds the local files; answer with resolveNewerHandIn before showing them. */
+export type OpenResult = { ok: true; exercise: OpenedExercise; newerHandIn?: NewerHandIn } | { ok: false; message: string };
 export type SaveResult = { ok: true } | { ok: false; message: string };
+
+/** Result of "Speichern unter …"; `canceled`: the student closed the save dialog. */
+export type ProjectSaveResult = { ok: true; canceled?: boolean } | { ok: false; message: string };
 
 /** Result of a Scratch operation; German message on failure. */
 export type ScratchResult<T = unknown> = ({ ok: true } & T) | { ok: false; message: string };
@@ -256,6 +266,8 @@ export interface JideApi {
   /** Only the Scratch programs (no backend call; works before login and in local mode, empty in exam mode). */
   listScratch: () => Promise<ExerciseList>;
   openExercise: (id: string) => Promise<OpenResult>;
+  /** Answer to the "newer hand-in" question of openExercise: "load" replaces the local code, "keep" keeps it. Returns the exercise to show. */
+  resolveNewerHandIn: (id: string, choice: "load" | "keep") => Promise<OpenResult>;
   saveFile: (id: string, path: string, content: string) => Promise<SaveResult>;
   resetFile: (id: string, path: string) => Promise<SaveResult>;
   /** Scratch (local and online mode, also before login; refused in exam mode): new program, `id` is the new item. */

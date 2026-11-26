@@ -82,7 +82,7 @@ Beim ersten Start sieht die Person die Seite „Willkommen!“.
 1. Unter „Dein Code“ den Code vom Zettel eintippen oder einfügen. Er hat acht Zeichen. Groß- und Kleinschreibung und der Bindestrich sind egal.
 2. „Anmelden“ klicken.
 
-Das muss man **nur einmal** machen. Der Code funktioniert auch auf mehreren Laptops. Wer den Zettel verliert, fragt die Lehrkraft nach einem neuen Code (siehe [Code zurücksetzen](/schueler#code-zurucksetzen)).
+Das muss man **nur einmal** machen. Der Code funktioniert auch auf mehreren Laptops. Abgaben von einem anderen Gerät holt die App beim Öffnen der Aufgabe (mit Internet): Ist der Code hier unverändert, wird er ersetzt. Hat man hier weitergearbeitet, fragt die App „Neuere Abgabe von einem anderen Gerät“ mit „Abgabe laden“ (ersetzt den Code hier) und „Meinen Stand behalten“. Nicht abgegebene Entwürfe bleiben auf dem Laptop. Wer den Zettel verliert, fragt die Lehrkraft nach einem neuen Code (siehe [Code zurücksetzen](/schueler#code-zurucksetzen)).
 
 Auf der Anmeldeseite gibt es außerdem „Ohne Code: Scratch öffnen“. In Scratch schreiben Schüler:innen eigene Programme. Sie bleiben nur auf diesem Laptop und werden nicht abgegeben.
 

@@ -105,6 +105,61 @@ test("a fresh laptop starts from the last hand-in", async () => {
   await expect(second.page.locator(".monaco-editor .view-lines")).not.toContainText("ABGABE-EINS");
 });
 
+const LOCAL_CODE = 'void main() {\n    IO.println("NUR-LAPTOP");\n}\n';
+
+/** The student worked on the laptop (this test's user data) and left; the desktop (another user data) hands in NEW_CODE. */
+async function handedInOnDesktop(backend: Backend, laptopCode?: string): Promise<void> {
+  const laptop = await loggedIn(backend);
+  await openExercise(laptop.page, SUMME);
+  if (laptopCode) await setEditorText(laptop.app, laptop.page, laptopCode);
+  await laptop.page.getByRole("button", { name: "← Aufgaben" }).click();
+  await expect(card(laptop.page, SUMME)).toBeVisible();
+  await laptop.app.close();
+
+  const desktop = await launchOnline(backend, newUserData());
+  await login(desktop.page, backend.code);
+  await openExercise(desktop.page, SUMME);
+  await setEditorText(desktop.app, desktop.page, NEW_CODE);
+  await handIn(desktop.page);
+  await expect(desktop.page.getByTestId("toast")).toContainText("Abgabe gespeichert");
+  await desktop.app.close();
+}
+
+test("another device's hand-in replaces an untouched local copy silently", async () => {
+  const backend = await startBackend();
+  await handedInOnDesktop(backend);
+  const laptop = await launchOnline(backend, userDataDir());
+  await openExercise(laptop.page, SUMME);
+  await expect(laptop.page.getByTestId("newer-hand-in-dialog")).toHaveCount(0);
+  await expect(laptop.page.locator(".monaco-editor .view-lines")).toContainText("ABGABE-EINS");
+  await expect(laptop.page.getByTestId("handed-in")).toContainText("Abgegeben");
+});
+
+test("another device's hand-in with local changes asks; Abgabe laden replaces the code", async () => {
+  const backend = await startBackend();
+  await handedInOnDesktop(backend, LOCAL_CODE);
+  const laptop = await launchOnline(backend, userDataDir());
+  await card(laptop.page, SUMME).getByRole("button", { name: /Öffnen|Weiterarbeiten|Ansehen/ }).click();
+  await expect(laptop.page.getByTestId("newer-hand-in-dialog")).toContainText("Neuere Abgabe von einem anderen Gerät");
+  await laptop.page.getByTestId("newer-hand-in-load").click();
+  await expect(laptop.page.locator(".monaco-editor .view-lines")).toContainText("ABGABE-EINS");
+  await expect(laptop.page.locator(".monaco-editor .view-lines")).not.toContainText("NUR-LAPTOP");
+  await expect(laptop.page.getByTestId("handed-in")).toContainText("Abgegeben");
+});
+
+test("Meinen Stand behalten keeps the local code and does not ask again for the same hand-in", async () => {
+  const backend = await startBackend();
+  await handedInOnDesktop(backend, LOCAL_CODE);
+  const laptop = await launchOnline(backend, userDataDir());
+  await card(laptop.page, SUMME).getByRole("button", { name: /Öffnen|Weiterarbeiten|Ansehen/ }).click();
+  await laptop.page.getByTestId("newer-hand-in-keep").click();
+  await expect(laptop.page.locator(".monaco-editor .view-lines")).toContainText("NUR-LAPTOP");
+  await laptop.page.getByRole("button", { name: "← Aufgaben" }).click();
+  await openExercise(laptop.page, SUMME);
+  await expect(laptop.page.getByTestId("newer-hand-in-dialog")).toHaveCount(0);
+  await expect(laptop.page.locator(".monaco-editor .view-lines")).toContainText("NUR-LAPTOP");
+});
+
 test("a hand-in after the deadline is marked verspätet, also after a restart and on a new laptop", async () => {
   const backend = await startBackend();
   const first = await loggedIn(backend);
