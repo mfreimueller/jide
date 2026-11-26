@@ -56,7 +56,7 @@ test("login with a lower-case code lists the unlocked exercises", async () => {
   await expect(page.getByTestId("course")).toHaveText("POS · 1AHIF");
   await expect(page.getByTestId("sync")).toHaveText("Verbunden");
   await expect(card(page, SUMME)).toContainText("Neu");
-  await expect(card(page, SUMME)).toContainText("bis Do, 27.11."); // 2031-11-27T22:59Z = 23:59 in Vienna
+  await expect(card(page, SUMME)).toContainText("bis Do, 27.11. um 23:59"); // 2031-11-27T22:59Z = 23:59 in Vienna
   await expect(card(page, "Größere Zahl")).toContainText("Frist vorbei · Abgabe noch möglich");
   await expect(page.getByTestId("offline-hint")).toHaveCount(0);
   await screenshot(page, { path: join(screenshotDir, "online-list.png") });
@@ -66,7 +66,7 @@ test("open, edit and hand in; the hand-in is on the server", async () => {
   const backend = await startBackend();
   const { app, page } = await loggedIn(backend);
   await openExercise(page, SUMME);
-  await expect(page.getByTestId("deadline")).toContainText("Abgabe bis Do, 27.11.");
+  await expect(page.getByTestId("deadline")).toContainText("Abgabe bis Do, 27.11. um 23:59");
   await setEditorText(app, page, NEW_CODE);
   // no manual wait: handing in flushes pending autosave first
   await handIn(page);

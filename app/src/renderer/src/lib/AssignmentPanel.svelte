@@ -5,7 +5,7 @@
   import PanelButton from "./PanelButton.svelte";
   import PanelStrip from "./PanelStrip.svelte";
 
-  import { formatDate, isPast } from "../../../shared-types/datetime";
+  import { formatDateTime, isPast } from "../../../shared-types/datetime";
 
   let {
     markdown,
@@ -75,7 +75,7 @@
     <div class="deadline" data-testid="deadline">
       {#if submittedAt}<span class="chip" class:done={!late} class:late-hand={late}>{late ? "Abgegeben · verspätet" : "Abgegeben"}</span>{:else if isPast(deadline)}<span class="chip late"
           >Frist vorbei</span
-        >{/if}Abgabe bis {formatDate(deadline)}
+        >{/if}Abgabe bis {formatDateTime(deadline)}
     </div>
   {/if}
   {#if empty}

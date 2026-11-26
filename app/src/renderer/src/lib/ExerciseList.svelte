@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import iconUrl from "../assets/icon.svg";
-  import { formatDate, formatDateTime, isPast } from "../../../shared-types/datetime";
+  import { formatDateTime, isPast } from "../../../shared-types/datetime";
   import { sectionExercises } from "../../../shared-types/grouping";
   import CopyToScratchDialog from "./CopyToScratchDialog.svelte";
   import KindPill from "./KindPill.svelte";
@@ -120,7 +120,7 @@
       {/if}
     </div>
     <div class="meta">
-      {#if ex.deadline}<span class="small">bis {formatDate(ex.deadline)}</span>{/if}
+      {#if ex.deadline}<span class="small">bis {formatDateTime(ex.deadline)}</span>{/if}
       {#if ex.grade}
         <GradeChip symbol={ex.grade.symbol} />
       {:else if ex.status === "abgegeben"}
@@ -365,6 +365,7 @@
     align-items: center;
   }
   .small {
+    white-space: nowrap;
     font-size: 12px;
     color: var(--text-faint);
   }
