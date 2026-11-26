@@ -31,6 +31,7 @@ export default defineConfig({
           { text: 'Aufgaben', link: '/aufgaben' },
           { text: 'Abgaben und Bewertung', link: '/abgaben' },
           { text: 'Übungs-Links von der Kursseite', link: '/uebungs-links' },
+          { text: 'Übungen mit KI erstellen', link: '/uebungen-mit-ki' },
           { text: 'Prüfungsmodus', link: '/pruefungsmodus' }
         ]
       },
