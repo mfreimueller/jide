@@ -19,7 +19,7 @@ import { closeAllPanelWindows, registerPanelWindowIpc } from "./panel-windows";
 import { applyTheme, storedTheme, watchWindowBackground } from "./theme";
 import { startAutoUpdate } from "./updater";
 import { baseWindowOptions, loadRenderer, lockDownWindow } from "./window";
-import { registerZoomIpc } from "./zoom";
+import { registerEditorFontIpc } from "./editor-font";
 
 const smoke = process.env.JIDE_SMOKE === "1";
 
@@ -182,7 +182,7 @@ app.whenReady().then(async () => {
   registerCompileIpc();
   registerRunIpc();
   registerTestIpc();
-  registerZoomIpc();
+  registerEditorFontIpc();
   registerPanelWindowIpc();
   createWindow();
   setMainWindowOpener(() => createWindow());

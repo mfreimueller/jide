@@ -1,6 +1,10 @@
-import { BrowserWindow, dialog, ipcMain } from "electron";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { context } from "./context";
+import { examMode } from "./exam-state";
 import { findExercise, workspaceRoot } from "./exercises";
+import { saveProject } from "./project-save";
 import { scratchHandlers } from "./scratch-handlers";
 
 /** Scratch operations for the renderer. Not available in exam mode (the context has no Scratch there). */
@@ -37,6 +41,26 @@ export function registerScratchIpc(): void {
   ipcMain.handle("jide:scratch-import-path", (_e, kind: unknown, path: unknown) => h.importPath(kind, path));
   ipcMain.handle("jide:scratch-copy-exercise", (_e, id: unknown, mode: unknown) => h.copyExercise(id, mode));
   // Hiding exercises (T54): choices per account, only on this laptop; refused in exam mode.
+  // "Speichern unter …": the open project as an importable ZIP. Not in exam mode; the renderer only names the exercise.
+  ipcMain.handle("jide:project-save", (e, id: unknown) =>
+    saveProject(id, {
+      examMode: () => !!examMode(),
+      find: findExercise,
+      workspaceRoot,
+      gradedView: async (gid) => (await context().source.gradedView?.(gid)) ?? null,
+      pick: async (defaultName) => {
+        const win = BrowserWindow.fromWebContents(e.sender);
+        const options: Electron.SaveDialogOptions = {
+          title: "Speichern unter",
+          defaultPath: join(app.getPath("documents"), defaultName),
+          filters: [{ name: "ZIP-Datei (.zip)", extensions: ["zip"] }]
+        };
+        const r = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
+        return r.canceled || !r.filePath ? undefined : r.filePath;
+      },
+      write: (path, bytes) => writeFile(path, bytes)
+    })
+  );
   ipcMain.handle("jide:hidden-get", () => context().hidden?.get() ?? {});
   ipcMain.handle("jide:hidden-set", (_e, id: unknown, mode: unknown) => context().hidden?.set(id, mode) ?? {});
   ipcMain.handle("jide:scratch-pick-assignment", (_e, id: unknown, path: unknown) => h.pickAssignment(id, path));

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webFrame } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 import type { JideApi } from "../shared-types/api";
 import { isDetachablePanel, type DetachablePanel } from "../shared-types/panel-windows";
 
@@ -52,6 +52,8 @@ const api: JideApi = {
   scratchChooseAssignment: (id) => ipcRenderer.invoke("jide:scratch-choose-assignment", id),
   scratchImport: (kind) => ipcRenderer.invoke("jide:scratch-import", kind),
   scratchCopyExercise: (id, mode) => ipcRenderer.invoke("jide:scratch-copy-exercise", id, mode),
+  saveProjectAs: (id) => ipcRenderer.invoke("jide:project-save", id),
+  onSaveProjectRequest: (handler) => subscribe<void>("jide:save-project-request", () => handler()),
   scratchImportPath: (kind, path) => ipcRenderer.invoke("jide:scratch-import-path", kind, path),
   hiddenGet: () => ipcRenderer.invoke("jide:hidden-get"),
   hiddenSet: (id, mode) => ipcRenderer.invoke("jide:hidden-set", id, mode),
@@ -70,8 +72,8 @@ const api: JideApi = {
     return () => ipcRenderer.removeListener("jide:confirm-close", listener);
   },
   answerClose: (leave) => ipcRenderer.send("jide:close-answer", leave),
-  zoomFactor: () => webFrame.getZoomFactor(),
-  zoomStep: (steps) => ipcRenderer.send("jide:zoom-step", steps),
+  editorFontSize: () => ipcRenderer.invoke("jide:editor-font-size-get"),
+  onEditorFontSize: (handler) => subscribe("jide:editor-font-size", handler),
   quit: () => ipcRenderer.send("jide:quit"),
   login: (code) => ipcRenderer.invoke("jide:login", code),
   onSessionExpired: (handler) => {

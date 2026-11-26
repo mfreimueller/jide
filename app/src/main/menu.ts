@@ -1,9 +1,9 @@
-import { app, BrowserWindow, dialog, Menu } from "electron";
+import { app, BaseWindow, BrowserWindow, dialog, Menu } from "electron";
+import { changeEditorFont } from "./editor-font";
 import { context } from "./context";
 import { examMode } from "./exam-state";
 import { buildMenuTemplate } from "./menu-template";
 import { chooseTheme, storedTheme } from "./theme";
-import { zoomWindow } from "./zoom";
 
 /** Asks, then deletes the stored code and sends every window back to the login. */
 async function logout(): Promise<void> {
@@ -26,6 +26,12 @@ async function logout(): Promise<void> {
   }
 }
 
+/** Datei > Speichern unter …: tells the focused window's page to save its open project (it does nothing without one). */
+function requestSaveProject(from?: BaseWindow): void {
+  const win = (from instanceof BrowserWindow ? from : undefined) ?? BrowserWindow.getFocusedWindow();
+  if (win && !win.isDestroyed()) win.webContents.send("jide:save-project-request");
+}
+
 /** The application menu of every mode: Electron's default plus Ansicht > Darstellung, and "Abmelden…" online. */
 export function installAppMenu(): void {
   const template = buildMenuTemplate({
@@ -35,10 +41,9 @@ export function installAppMenu(): void {
     theme: storedTheme(),
     onTheme: chooseTheme,
     onLogout: () => void logout(),
-    onZoom: (action) => {
-      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
-      if (win && !win.isDestroyed()) zoomWindow(win.webContents, action);
-    }
+    exam: !!examMode(),
+    onSaveAs: requestSaveProject,
+    onEditorFont: changeEditorFont
   });
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }

@@ -176,6 +176,7 @@
         {exercise}
         canHandIn={s.mode === "online" && !exercise.scratch && !exercise.graded}
         detachable={s.mode !== "exam"}
+        canSaveAs={s.mode !== "exam"}
         onBack={() => (exercise = undefined)}
         registerSession={(es) => (es ? sessions.set("current", es) : sessions.delete("current"))}
       />

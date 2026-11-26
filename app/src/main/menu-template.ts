@@ -1,4 +1,4 @@
-import type { MenuItemConstructorOptions } from "electron";
+import type { BaseWindow, MenuItemConstructorOptions } from "electron";
 import type { ThemeChoice } from "./settings";
 
 export interface MenuOptions {
@@ -9,11 +9,15 @@ export interface MenuOptions {
   theme: ThemeChoice;
   onTheme: (theme: ThemeChoice) => void;
   onLogout: () => void;
-  /** Ansicht > Actual Size / Zoom In / Zoom Out; main keeps the zoom within the same limits as Ctrl + wheel. */
-  onZoom: (action: ZoomAction) => void;
+  /** Exam mode: no Datei > "Speichern unter …". */
+  exam: boolean;
+  /** Datei > Speichern unter … (Ctrl/Cmd+Shift+S): the focused window saves its open project as a ZIP. */
+  onSaveAs: (window?: BaseWindow) => void;
+  /** Ansicht > Editor-Schrift (Ctrl/Cmd +, -, 0): only the code editor's font size. The app has no window zoom. */
+  onEditorFont: (action: FontAction) => void;
 }
 
-export type ZoomAction = "reset" | "in" | "out";
+export type FontAction = "reset" | "in" | "out";
 
 const THEMES: { id: ThemeChoice; label: string }[] = [
   { id: "light", label: "Hell" },
@@ -29,6 +33,9 @@ export function buildMenuTemplate(o: MenuOptions): MenuItemConstructorOptions[] 
   const logout: MenuItemConstructorOptions[] = o.online
     ? [{ id: "logout", label: "Abmelden…", click: () => o.onLogout() }, { type: "separator" }]
     : [];
+  const saveAs: MenuItemConstructorOptions[] = o.exam
+    ? []
+    : [{ id: "save-as", label: "Speichern unter…", accelerator: "CommandOrControl+Shift+S", click: (_item, window) => o.onSaveAs(window) }];
   const ansicht: MenuItemConstructorOptions = {
     id: "ansicht",
     label: "Ansicht",
@@ -37,12 +44,11 @@ export function buildMenuTemplate(o: MenuOptions): MenuItemConstructorOptions[] 
       { role: "forceReload" },
       { role: "toggleDevTools" },
       { type: "separator" },
-      // Not the zoomIn / zoomOut roles (no limit): same labels and accelerators, clicks go to onZoom.
-      { id: "zoom-reset", label: "Actual Size", accelerator: "CommandOrControl+0", click: () => o.onZoom("reset") },
-      { id: "zoom-in", label: "Zoom In", accelerator: "CommandOrControl+Plus", click: () => o.onZoom("in") },
-      // Ctrl+= zooms in as well, without Shift (hidden duplicate)
-      { id: "zoom-in-alt", label: "Zoom In", accelerator: "CommandOrControl+=", visible: false, acceleratorWorksWhenHidden: true, click: () => o.onZoom("in") },
-      { id: "zoom-out", label: "Zoom Out", accelerator: "CommandOrControl+-", click: () => o.onZoom("out") },
+      { id: "editor-font-reset", label: "Editor-Schrift Standardgröße", accelerator: "CommandOrControl+0", click: () => o.onEditorFont("reset") },
+      { id: "editor-font-in", label: "Editor-Schrift größer", accelerator: "CommandOrControl+Plus", click: () => o.onEditorFont("in") },
+      // Ctrl+= as well, without Shift (hidden duplicate)
+      { id: "editor-font-in-alt", label: "Editor-Schrift größer", accelerator: "CommandOrControl+=", visible: false, acceleratorWorksWhenHidden: true, click: () => o.onEditorFont("in") },
+      { id: "editor-font-out", label: "Editor-Schrift kleiner", accelerator: "CommandOrControl+-", click: () => o.onEditorFont("out") },
       { type: "separator" },
       { role: "togglefullscreen" },
       { type: "separator" },
@@ -76,9 +82,15 @@ export function buildMenuTemplate(o: MenuOptions): MenuItemConstructorOptions[] 
             { role: "quit" }
           ]
         },
+        ...(o.exam ? [] : [{ id: "datei", label: "Datei", submenu: saveAs }]),
         { role: "editMenu" },
         ansicht,
         { role: "windowMenu" }
       ]
-    : [{ label: "Datei", submenu: [...logout, { role: "quit" }] }, { role: "editMenu" }, ansicht, { role: "windowMenu" }];
+    : [
+        { id: "datei", label: "Datei", submenu: [...(o.exam ? [] : [...saveAs, { type: "separator" as const }]), ...logout, { role: "quit" }] },
+        { role: "editMenu" },
+        ansicht,
+        { role: "windowMenu" }
+      ];
 }

@@ -50,7 +50,8 @@
     assignmentHeading,
     allowTests = true,
     handInTarget,
-    detachable = false
+    detachable = false,
+    canSaveAs = false
   }: {
     exercise: OpenedExercise;
     /** Online mode: show "Abgeben". */
@@ -67,6 +68,8 @@
     handInTarget?: string;
     /** M10: panels can get their own window (⧉ buttons, chips). Never in exam mode. */
     detachable?: boolean;
+    /** "Speichern unter …" (button and Datei menu): the project as a ZIP. Never in exam mode. */
+    canSaveAs?: boolean;
   } = $props();
 
   // The exercise never changes for the lifetime of this component (App re-mounts it).
@@ -300,6 +303,35 @@
     }
   }
 
+  let saveAsBusy = false;
+  /** Datei > Speichern unter … / the button: flushes pending edits, then main asks where to save the ZIP. */
+  async function saveAs(): Promise<void> {
+    if (!canSaveAs || saveAsBusy) return;
+    saveAsBusy = true;
+    try {
+      await session.flush();
+      if (!graded && !session.clean) {
+        showToast("error", "Deine Änderungen konnten nicht gespeichert werden. Versuch es gleich nochmal.");
+        return;
+      }
+      const r = await window.jide.saveProjectAs(exercise.id);
+      if (!r.ok) showToast("error", r.message);
+      else if (!r.canceled) showToast("ok", "Als ZIP-Datei gespeichert.");
+    } catch {
+      showToast("error", "Das hat leider nicht geklappt.");
+    } finally {
+      saveAsBusy = false;
+    }
+  }
+  // The menu asks the focused window; only the workspace that is on screen answers.
+  onMount(() =>
+    canSaveAs
+      ? window.jide.onSaveProjectRequest(() => {
+          if (screenEl && screenEl.getClientRects().length > 0 && !confirming && !copying && !classDialog) void saveAs();
+        })
+      : undefined
+  );
+
   /** "Abgegeben 10:44" for today, "Abgegeben Do, 12.11." otherwise. */
   function handInChip(iso: string): string {
     const today = formatDate(new Date().toISOString()) === formatDate(iso);
@@ -441,6 +473,9 @@
       </button>
     {/each}
     <span class="spacer"></span>
+    {#if canSaveAs}
+      <button class="btn ghost" onclick={() => void saveAs()} data-testid="save-as">Speichern unter…</button>
+    {/if}
     {#if graded}
       <button class="btn" onclick={() => (copying = true)} data-testid="copy-to-scratch">In Scratch kopieren …</button>
     {:else}

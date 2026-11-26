@@ -283,6 +283,13 @@ export interface JideApi {
   scratchPickAssignment: (id: string, path: string) => Promise<ScratchResult>;
   /** Opens the file dialog (.md) and copies the chosen file into the item; `canceled` = nothing chosen. */
   scratchChooseAssignment: (id: string) => Promise<ScratchResult<{ canceled?: boolean }>>;
+  /**
+   * "Speichern unter …": saves the open project (the saved files, so flush the editor first) as an exercise ZIP that
+   * "Importieren" reads back; shows the save dialog. Refused in exam mode.
+   */
+  saveProjectAs: (id: string) => Promise<ProjectSaveResult>;
+  /** The menu (Datei > Speichern unter …) asks the open workspace to save its project. */
+  onSaveProjectRequest: (handler: () => void) => () => void;
   /** Imports a teacher-format exercise into Scratch: shows the dialog (a folder or a .zip). Refused in exam mode. */
   scratchImport: (kind: "folder" | "zip") => Promise<ScratchResult<{ id?: string; canceled?: boolean }>>;
   /**
@@ -316,10 +323,10 @@ export interface JideApi {
   onCloseConfirm: (handler: () => void) => () => void;
   /** Answer to `onCloseConfirm`: true = close anyway. */
   answerClose: (leave: boolean) => void;
-  /** The current window zoom factor (1 = 100 %). */
-  zoomFactor: () => number;
-  /** Ctrl + wheel: zoom the whole window by this many menu-sized steps (+ bigger, - smaller). */
-  zoomStep: (steps: number) => void;
+  /** The code editor's font size in px (Ansicht > Editor-Schrift; the same in every window, not saved). */
+  editorFontSize: () => Promise<number>;
+  /** Called when the menu changed the editor font size. */
+  onEditorFontSize: (handler: (size: number) => void) => () => void;
   /** Quits the app (exam error screens). */
   quit: () => void;
   /** Online mode: checks the code (case-insensitive) with the server and stores it. */

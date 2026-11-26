@@ -1,23 +1,6 @@
-import { ipcMain, type WebContents } from "electron";
-import type { ZoomAction } from "./menu-template";
-import { nextZoomLevel } from "./zoom-level";
+import type { WebContents } from "electron";
 
-/** Menu: Actual Size (100 %), Zoom In, Zoom Out; the same limits as the wheel. */
-export function zoomWindow(wc: WebContents, action: ZoomAction): void {
-  wc.setZoomLevel(action === "reset" ? 0 : nextZoomLevel(wc.getZoomLevel(), action === "in" ? 1 : -1));
-}
-
-/** Ctrl + wheel in the renderer asks for app zoom steps. */
-export function registerZoomIpc(): void {
-  ipcMain.on("jide:zoom-step", (e, steps: unknown) => {
-    if (typeof steps !== "number" || !Number.isFinite(steps)) return;
-    const wc = e.sender;
-    if (wc.isDestroyed()) return;
-    wc.setZoomLevel(nextZoomLevel(wc.getZoomLevel(), Math.round(steps)));
-  });
-}
-
-/** The zoom is not remembered: every start (and every load of the page) begins at 100 %. */
+/** The app has no window zoom: every load of the page starts at 100 % (also after an earlier setZoomLevel). */
 export function resetZoomOnLoad(wc: WebContents): void {
   wc.on("did-finish-load", () => wc.setZoomLevel(0));
 }

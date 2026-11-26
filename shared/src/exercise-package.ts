@@ -1,8 +1,9 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { unzipSync } from "fflate";
-import { ExerciseError, loadExercise, type Exercise, type ParseOptions } from "./exercise.js";
+import { strToU8, unzipSync, zipSync } from "fflate";
+import { stringify as stringifyYaml } from "yaml";
+import { ExerciseError, loadExercise, parseExerciseConfig, type Exercise, type ParseOptions } from "./exercise.js";
 
 export const MAX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024;
 export const MAX_ENTRIES = 500;
@@ -128,4 +129,42 @@ export async function readExerciseZip(zip: Uint8Array, opts: ParseOptions = {}):
   } finally {
     await rm(tmp, { recursive: true, force: true });
   }
+}
+
+/**
+ * Builds an exercise zip (files at the zip root, as `readExerciseZip` reads it) from a loaded exercise, with the
+ * content of the editable files taken from `current` (path -> text) instead of the starter code. Only what the
+ * validated exercise lists goes in: exercise.yaml, aufgabe.md, tests.yaml (given as text, as the exercise only
+ * keeps it parsed), files/<classes and images> and the harness file. Used by "Speichern unter …".
+ */
+export function buildExerciseZip(ex: Exercise, current: Record<string, string>, testsYaml?: string): Uint8Array {
+  const config: Record<string, unknown> = {
+    id: ex.id,
+    title: ex.title,
+    files: ex.files.map((f) => ({ path: f.path, editable: f.editable })),
+    mainFile: ex.mainFile,
+  };
+  if (ex.harness) config["harness"] = ex.harness;
+  if (ex.images.length > 0) config["images"] = ex.images;
+  if (ex.kind) config["kind"] = ex.kind;
+  const yamlText = stringifyYaml(config);
+  parseExerciseConfig(yamlText, ex.id); // never write a package the importer would refuse
+
+  const entries: Record<string, Uint8Array> = {
+    "exercise.yaml": strToU8(yamlText),
+    "aufgabe.md": strToU8(ex.assignment),
+  };
+  if (testsYaml !== undefined) entries["tests.yaml"] = strToU8(testsYaml);
+  for (const f of ex.files) {
+    const mine = f.editable ? current[f.path] : undefined;
+    entries[`files/${f.path}`] = strToU8(mine ?? ex.originals[f.path] ?? "");
+  }
+  for (const img of ex.images) entries[`files/${img.path}`] = strToU8(ex.imageContents[img.path] ?? "");
+  if (ex.harness && ex.harnessContent !== undefined) entries[ex.harness.file] = strToU8(ex.harnessContent);
+
+  const zip = zipSync(entries);
+  if (zip.byteLength > MAX_PACKAGE_BYTES) {
+    throw new ExerciseError(`Das Programm ist zu groß für eine ZIP-Datei (höchstens ${MAX_PACKAGE_BYTES / 1024 / 1024} MB).`);
+  }
+  return zip;
 }
